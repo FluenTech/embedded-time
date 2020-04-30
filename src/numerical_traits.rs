@@ -14,7 +14,7 @@ use crate::Duration;
 /// Basic construction of `Duration`s.
 ///
 /// ```rust
-/// # use embedded_time::{Duration, NumericalDuration};
+/// # use embedded_time::{Duration, prelude::*};
 /// assert_eq!(5.nanoseconds(), Duration::from_nanos(5));
 /// assert_eq!(5.microseconds(), Duration::from_micros(5));
 /// assert_eq!(5.milliseconds(), Duration::from_millis(5));
@@ -26,7 +26,7 @@ use crate::Duration;
 /// Signed integers work as well!
 ///
 /// ```rust
-/// # use embedded_time::{Duration, NumericalDuration};
+/// # use embedded_time::{Duration, prelude::*};
 /// assert_eq!((-5).nanoseconds(), Duration::from_nanos(-5));
 /// assert_eq!((-5).microseconds(), Duration::from_micros(-5));
 /// assert_eq!((-5).milliseconds(), Duration::from_millis(-5));
@@ -38,7 +38,7 @@ use crate::Duration;
 /// Just like any other `Duration`, they can be added, subtracted, etc.
 ///
 /// ```rust
-/// # use embedded_time::NumericalDuration;
+/// # use embedded_time::prelude::*;
 /// assert_eq!(2.seconds() + 500.milliseconds(), 2_500.milliseconds());
 /// assert_eq!(2.seconds() - 500.milliseconds(), 1_500.milliseconds());
 /// ```

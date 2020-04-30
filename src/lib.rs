@@ -1,13 +1,22 @@
 #![cfg_attr(not(test), no_std)]
+#![feature(const_fn)]
 
 mod duration;
 mod numerical_traits;
+mod ratio;
 
 pub use duration::Duration;
-pub use numerical_traits::NumericalDuration;
+pub use ratio::Ratio;
 
 pub mod instant_trait {
-    pub trait Instant: Copy {
+    use core::ops;
+
+    pub trait Instant:
+        Copy
+        + ops::Add<crate::Duration>
+        + ops::Sub<Output = crate::Duration>
+        + ops::Sub<crate::Duration>
+    {
         fn now() -> Self;
 
         fn elapsed(self) -> crate::Duration;
@@ -28,14 +37,15 @@ pub mod instant_trait {
 /// major releases.
 pub mod prelude {
     // Rename traits to `_` to avoid any potential name conflicts.
-    pub use crate::instant_trait::Instant as _Instant;
-    pub use crate::NumericalDuration as _NumericalDuration;
+    pub use crate::instant_trait::Instant as _;
+    pub use crate::numerical_traits::NumericalDuration as _;
 }
 
 #[cfg(test)]
 mod tests {
     use super::{prelude::*, *};
     use core::fmt::{self, Display, Formatter};
+    use core::ops;
 
     #[derive(Debug, Copy, Clone)]
     struct Instant(Duration);
@@ -53,6 +63,30 @@ mod tests {
 
         fn duration_since_epoch(self) -> Duration {
             self.0
+        }
+    }
+
+    impl ops::Add<Duration> for Instant {
+        type Output = Duration;
+
+        fn add(self, rhs: Duration) -> Self::Output {
+            self.0 + rhs
+        }
+    }
+
+    impl ops::Sub for Instant {
+        type Output = Duration;
+
+        fn sub(self, rhs: Self) -> Self::Output {
+            self.0 - rhs.0
+        }
+    }
+
+    impl ops::Sub<Duration> for Instant {
+        type Output = Self;
+
+        fn sub(self, rhs: Duration) -> Self::Output {
+            Self(self.0 - rhs)
         }
     }
 

@@ -1,4 +1,4 @@
-use crate::NumericalDuration;
+use crate::numerical_traits::NumericalDuration;
 use core::fmt::{self, Display, Formatter};
 use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
