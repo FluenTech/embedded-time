@@ -1,7 +1,10 @@
 use crate::numerical_traits::NumericalDuration;
-use core::fmt::{self, Display, Formatter};
-use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
+use core::fmt;
+use core::ops;
 
+/// A time duration type based on an `i64` nanoseconds value.
+///
+/// It replicates many of the `as_` and `from_` methods found on the [`core::time::Duration`](https://doc.rust-lang.org/core/time/struct.Duration.html) type.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Ord, PartialOrd)]
 pub struct Duration {
     nanoseconds: i64,
@@ -298,8 +301,8 @@ impl From<Duration> for u32 {
     }
 }
 
-impl Display for Duration {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+impl fmt::Display for Duration {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let hours = self.as_hours().hours();
         let minutes = self.as_mins().minutes() - hours;
         let seconds = self.as_secs().seconds() - minutes - hours;
@@ -315,7 +318,7 @@ impl Display for Duration {
     }
 }
 
-impl Add for Duration {
+impl ops::Add for Duration {
     type Output = Self;
 
     #[inline]
@@ -325,14 +328,14 @@ impl Add for Duration {
     }
 }
 
-impl AddAssign for Duration {
+impl ops::AddAssign for Duration {
     #[inline(always)]
     fn add_assign(&mut self, rhs: Self) {
         *self = *self + rhs;
     }
 }
 
-impl Neg for Duration {
+impl ops::Neg for Duration {
     type Output = Self;
 
     #[inline(always)]
@@ -341,7 +344,7 @@ impl Neg for Duration {
     }
 }
 
-impl Sub for Duration {
+impl ops::Sub for Duration {
     type Output = Self;
 
     #[inline]
@@ -351,7 +354,7 @@ impl Sub for Duration {
     }
 }
 
-impl SubAssign for Duration {
+impl ops::SubAssign for Duration {
     #[inline(always)]
     fn sub_assign(&mut self, rhs: Self) {
         *self = *self - rhs;
@@ -361,7 +364,7 @@ impl SubAssign for Duration {
 macro_rules! duration_mul_div_int {
     ($($type:ty),+) => {
         $(
-            impl Mul<$type> for Duration {
+            impl ops::Mul<$type> for Duration {
                 type Output = Self;
 
                 #[inline(always)]
@@ -372,14 +375,14 @@ macro_rules! duration_mul_div_int {
                 }
             }
 
-            impl MulAssign<$type> for Duration {
+            impl ops::MulAssign<$type> for Duration {
                 #[inline(always)]
                 fn mul_assign(&mut self, rhs: $type) {
                     *self = *self * rhs;
                 }
             }
 
-            impl Mul<Duration> for $type {
+            impl ops::Mul<Duration> for $type {
                 type Output = Duration;
 
                 #[inline(always)]
@@ -388,7 +391,7 @@ macro_rules! duration_mul_div_int {
                 }
             }
 
-            impl Div<$type> for Duration {
+            impl ops::Div<$type> for Duration {
                 type Output = Self;
 
                 #[inline(always)]
@@ -400,7 +403,7 @@ macro_rules! duration_mul_div_int {
                 }
             }
 
-            impl DivAssign<$type> for Duration {
+            impl ops::DivAssign<$type> for Duration {
                 #[inline(always)]
                 fn div_assign(&mut self, rhs: $type) {
                     *self = *self / rhs;
