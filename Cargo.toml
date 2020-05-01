@@ -3,6 +3,9 @@ name = "embedded-time"
 version = "0.1.0"
 authors = ["Peter Taylor <ptaylor@fluentech.info>"]
 edition = "2018"
+keywords = ["no_std", "time", "Duration", "Instant"]
+categories = ["date-and-time", "embedded", "no-std"]
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
