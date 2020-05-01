@@ -10,3 +10,13 @@ readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+
+[dev-dependencies]
+cortex-m = "0.6.2"
+cortex-m-rtfm = "0.5.1"
+panic_rtt = "0.2.0"
+nrf52832-hal = { version = "0.10.0", default-features = false, features = ["rt", "xxAA-package"] }
+mutex-trait = "0.2.0"
+
+[patch.crates-io]
+cortex-m = { path = "../cortex-m" }
