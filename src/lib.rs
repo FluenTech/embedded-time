@@ -1,5 +1,7 @@
 #![cfg_attr(not(test), no_std)]
 #![feature(const_fn)]
+#![feature(const_trait_impl)]
+#![allow(incomplete_features)]
 
 mod duration;
 mod numerical_traits;
@@ -32,7 +34,6 @@ pub mod instant_trait {
 /// ```rust,no_run
 /// use embedded_time::prelude::*;
 /// ```
-///
 /// The prelude may grow in minor releases. Any removals will only occur in
 /// major releases.
 pub mod prelude {

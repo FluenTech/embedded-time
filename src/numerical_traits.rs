@@ -1,12 +1,10 @@
-#![allow(trivial_numeric_casts, clippy::cast_possible_truncation)]
-
 use crate::Duration;
 
 /// Create `Duration`s from primitive and core numeric types.
 ///
-/// This trait can be imported with `use time::prelude::*`.
+/// This trait can be imported with `use embedded-time::prelude::*`.
 ///
-/// Due to limitations in rustc, these methods are currently _not_ `const fn`.
+/// Due to limitations in rustc, the NonZero_ methods are currently _not_ `const fn`.
 /// See [RFC 2632](https://github.com/rust-lang/rfcs/pull/2632) for details.
 ///
 /// # Examples
@@ -64,7 +62,7 @@ pub trait NumericalDuration {
 macro_rules! impl_numerical_duration {
     ($($type:ty),* $(,)?) => {
         $(
-            impl NumericalDuration for $type {
+            impl const NumericalDuration for $type {
                 #[inline(always)]
                 fn nanoseconds(self) -> Duration {
                     Duration::from_nanos(self as i64)
