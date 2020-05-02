@@ -46,7 +46,6 @@ jobs:
       matrix:
         rust: [nightly]
         os: [ubuntu-latest, windows-latest]
-        target: [thumbv7em-none-eabihf]
 
     steps:
       - name: Checkout sources
@@ -65,14 +64,14 @@ jobs:
         with:
           profile: minimal
           toolchain: ${{ matrix.rust }}
-          target: ${{ matrix.target }}
           override: true
 
       # everything
       - name: Run `cargo test`
         uses: actions-rs/cargo@v1
         with:
-          command: test --lib
+          command: test
+          args: --lib
 
 #  fmt:
 #    name: Formatting
