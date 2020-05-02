@@ -138,7 +138,6 @@ impl SystemTime {
 }
 
 static SYSTEM_TICKS: Mutex<Option<SystemTime>> = Mutex::new(None);
-// static RTC0: Mutex<Option<Rtc<target::RTC0, rtc::Started>>> = Mutex::new(Option::None);
 
 #[rtfm::app(device = nrf52832_hal::pac, peripherals = true, monotonic = crate::nrf52::Instant)]
 const APP: () = {

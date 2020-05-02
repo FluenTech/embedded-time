@@ -11,6 +11,9 @@ readme = "README.md"
 
 [dependencies]
 
+[[example]]
+name = "nrf52_dk"
+
 [dev-dependencies]
 cortex-m = "0.6.2"
 cortex-m-rtfm = "0.5.1"
@@ -19,4 +22,5 @@ nrf52832-hal = { version = "0.10.0", default-features = false, features = ["rt",
 mutex-trait = "0.2.0"
 
 [patch.crates-io]
-cortex-m = { path = "../cortex-m" }
+cortex-m = { git = "https://github.com/rust-embedded/cortex-m", branch = "mutex_add" }
+panic_rtt = { git = "https://github.com/PTaylor-FluenTech/jlink_rtt", branch = "master" }
