@@ -1,44 +1,8 @@
-name: Check and Test
+name: Tests
 
 on: [push, pull_request]
 
 jobs:
-  check:
-    name: Type checking
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        rust: [nightly]
-        os: [ubuntu-latest, windows-latest]
-        target: [thumbv7em-none-eabihf]
-
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v2
-
-      - name: Cache target
-        uses: actions/cache@v1
-        env:
-          cache-name: target
-        with:
-          path: ./target
-          key: ${{ matrix.os }}-typecheck-target-${{ matrix.rust }}
-
-      - name: Install toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: ${{ matrix.rust }}
-          target: ${{ matrix.target }}
-          override: true
-
-      # everything
-      - name: Run `cargo check`
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --target ${{ matrix.target }}
-
   test:
     name: Test suite
     runs-on: ${{ matrix.os }}
