@@ -80,7 +80,7 @@ macro_rules! test_mul_div {
             fn mul<T>(input: T, output: T)
             where
                 T: Copy + ops::Mul<Output = T> + ops::Div<Output = T> + ops::Mul<Ratio<T>, Output = T>+ cmp::PartialEq + core::fmt::Debug + TryFrom<i32>,
-                <T as std::convert::TryFrom<i32>>::Error: std::fmt::Debug,
+                <T as core::convert::TryFrom<i32>>::Error: core::fmt::Debug,
             {
                 assert_eq!(input * Ratio::new(T::try_from(1).unwrap(), T::try_from(2).unwrap()), output);
             }
@@ -96,7 +96,7 @@ macro_rules! test_mul_div {
             fn mul_assign<T>(mut input: T, output: T)
             where
                 T: Copy + ops::MulAssign + ops::MulAssign<Ratio<T>> + ops::Mul<Output = T> + ops::Div<Output = T> + ops::Mul<Ratio<T>, Output = T>+ cmp::PartialEq + core::fmt::Debug + TryFrom<i32>,
-                <T as std::convert::TryFrom<i32>>::Error: std::fmt::Debug,
+                <T as core::convert::TryFrom<i32>>::Error: core::fmt::Debug,
             {
                 input *= Ratio::new(T::try_from(1).unwrap(), T::try_from(2).unwrap());
                 assert_eq!(input, output);
@@ -113,7 +113,7 @@ macro_rules! test_mul_div {
             fn div<T>(input: T, output: T)
             where
                 T: Copy + ops::Div<Output = T> + ops::Div<Ratio<T>, Output = T>+ cmp::PartialEq + core::fmt::Debug + TryFrom<i32>,
-                <T as std::convert::TryFrom<i32>>::Error: std::fmt::Debug,
+                <T as core::convert::TryFrom<i32>>::Error: core::fmt::Debug,
             {
                 assert_eq!(input / Ratio::new(T::try_from(1).unwrap(), T::try_from(2).unwrap()), output);
             }
@@ -129,7 +129,7 @@ macro_rules! test_mul_div {
             fn div_assign<T>(mut input: T, output: T)
             where
                 T: Copy + ops::DivAssign + ops::DivAssign<Ratio<T>> + ops::Mul<Output = T> + ops::Div<Output = T> + ops::Mul<Ratio<T>, Output = T>+ cmp::PartialEq + core::fmt::Debug + TryFrom<i32>,
-                <T as std::convert::TryFrom<i32>>::Error: std::fmt::Debug,
+                <T as core::convert::TryFrom<i32>>::Error: core::fmt::Debug,
             {
                 input /= Ratio::new(T::try_from(1).unwrap(), T::try_from(2).unwrap());
                 assert_eq!(input, output);
