@@ -150,7 +150,6 @@ const APP: () = {
 
     #[init(spawn = [turn_on_led1, turn_on_led2, turn_on_led3, turn_on_led4])]
     fn init(cx: init::Context) -> init::LateResources {
-
         cx.spawn.turn_on_led1().unwrap();
         cx.spawn.turn_on_led2().unwrap();
         cx.spawn.turn_on_led3().unwrap();
@@ -225,7 +224,12 @@ const APP: () = {
             .p0_20
             .into_open_drain_output(OpenDrainConfig::Standard0Disconnect1, Level::High);
 
-        init::LateResources { led1, led2, led3, led4 }
+        init::LateResources {
+            led1,
+            led2,
+            led3,
+            led4,
+        }
     }
 
     #[task(resources = [led1], schedule = [turn_off_led1])]
@@ -233,7 +237,9 @@ const APP: () = {
         let led1 = cx.resources.led1;
         led1.set_low().unwrap();
 
-        cx.schedule.turn_off_led1(cx.scheduled + 1.seconds()).unwrap();
+        cx.schedule
+            .turn_off_led1(cx.scheduled + 1.seconds())
+            .unwrap();
     }
 
     #[task(resources = [led1], schedule = [turn_on_led1])]
@@ -241,49 +247,63 @@ const APP: () = {
         let led1 = cx.resources.led1;
         led1.set_high().unwrap();
 
-        cx.schedule.turn_on_led1(cx.scheduled + 1.seconds()).unwrap();
+        cx.schedule
+            .turn_on_led1(cx.scheduled + 1.seconds())
+            .unwrap();
     }
 
     #[task(resources = [led2], schedule = [turn_off_led2])]
     fn turn_on_led2(cx: turn_on_led2::Context) {
         cx.resources.led2.set_low().unwrap();
 
-        cx.schedule.turn_off_led2(cx.scheduled + 2.seconds()).unwrap();
+        cx.schedule
+            .turn_off_led2(cx.scheduled + 2.seconds())
+            .unwrap();
     }
 
     #[task(resources = [led2], schedule = [turn_on_led2])]
     fn turn_off_led2(cx: turn_off_led2::Context) {
         cx.resources.led2.set_high().unwrap();
 
-        cx.schedule.turn_on_led2(cx.scheduled + 2.seconds()).unwrap();
+        cx.schedule
+            .turn_on_led2(cx.scheduled + 2.seconds())
+            .unwrap();
     }
 
     #[task(resources = [led3], schedule = [turn_off_led3])]
     fn turn_on_led3(cx: turn_on_led3::Context) {
         cx.resources.led3.set_low().unwrap();
 
-        cx.schedule.turn_off_led3(cx.scheduled + 3.seconds()).unwrap();
+        cx.schedule
+            .turn_off_led3(cx.scheduled + 3.seconds())
+            .unwrap();
     }
 
     #[task(resources = [led3], schedule = [turn_on_led3])]
     fn turn_off_led3(cx: turn_off_led3::Context) {
         cx.resources.led3.set_high().unwrap();
 
-        cx.schedule.turn_on_led3(cx.scheduled + 3.seconds()).unwrap();
+        cx.schedule
+            .turn_on_led3(cx.scheduled + 3.seconds())
+            .unwrap();
     }
 
     #[task(resources = [led4], schedule = [turn_off_led4])]
     fn turn_on_led4(cx: turn_on_led4::Context) {
         cx.resources.led4.set_low().unwrap();
 
-        cx.schedule.turn_off_led4(cx.scheduled + 4.seconds()).unwrap();
+        cx.schedule
+            .turn_off_led4(cx.scheduled + 4.seconds())
+            .unwrap();
     }
 
     #[task(resources = [led4], schedule = [turn_on_led4])]
     fn turn_off_led4(cx: turn_off_led4::Context) {
         cx.resources.led4.set_high().unwrap();
 
-        cx.schedule.turn_on_led4(cx.scheduled + 4.seconds()).unwrap();
+        cx.schedule
+            .turn_on_led4(cx.scheduled + 4.seconds())
+            .unwrap();
     }
 
     // Interrupt handlers used to dispatch software tasks
@@ -292,4 +312,3 @@ const APP: () = {
         fn RTC0();
     }
 };
-

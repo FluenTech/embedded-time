@@ -1,4 +1,6 @@
 use crate::numerical_traits::NumericalDuration;
+use core::convert::Infallible;
+use core::convert::TryFrom;
 use core::fmt;
 use core::ops;
 
@@ -10,13 +12,13 @@ pub struct Duration {
     nanoseconds: i64,
 }
 
-/// The number of seconds in one minute.
-const SECONDS_PER_MINUTE: i64 = 60;
-
-/// The number of seconds in one hour.
-const SECONDS_PER_HOUR: i64 = 60 * SECONDS_PER_MINUTE;
-
 impl Duration {
+    /// The number of seconds in one minute.
+    const SECONDS_PER_MINUTE: i64 = 60;
+
+    /// The number of seconds in one hour.
+    const SECONDS_PER_HOUR: i64 = 60 * Self::SECONDS_PER_MINUTE;
+
     /// Equivalent to `0.seconds()`.
     ///
     /// ```rust
@@ -75,7 +77,7 @@ impl Duration {
     /// ```
     #[inline(always)]
     pub const fn from_hours(hours: i64) -> Self {
-        Self::from_secs(hours * SECONDS_PER_HOUR)
+        Self::from_secs(hours * Self::SECONDS_PER_HOUR)
     }
 
     /// Get the number of whole hours in the duration.
@@ -89,7 +91,7 @@ impl Duration {
     /// ```
     #[inline(always)]
     pub const fn as_hours(self) -> i64 {
-        self.as_secs() / SECONDS_PER_HOUR
+        self.as_secs() / Self::SECONDS_PER_HOUR
     }
 
     /// Create a new `Duration` with the given number of minutes. Equivalent to
@@ -101,7 +103,7 @@ impl Duration {
     /// ```
     #[inline(always)]
     pub const fn from_mins(minutes: i64) -> Self {
-        Self::from_secs(minutes * SECONDS_PER_MINUTE)
+        Self::from_secs(minutes * Self::SECONDS_PER_MINUTE)
     }
 
     /// Get the number of whole minutes in the duration.
@@ -115,7 +117,7 @@ impl Duration {
     /// ```
     #[inline(always)]
     pub const fn as_mins(self) -> i64 {
-        self.as_secs() / SECONDS_PER_MINUTE
+        self.as_secs() / Self::SECONDS_PER_MINUTE
     }
 
     /// Create a new `Duration` with the given number of seconds.
@@ -295,9 +297,13 @@ impl Duration {
     }
 }
 
-impl From<Duration> for u32 {
-    fn from(duration: Duration) -> Self {
-        duration.nanoseconds as u32
+impl TryFrom<Duration> for u32 {
+    type Error = Infallible;
+
+    fn try_from(duration: Duration) -> Result<Self, Self::Error> {
+        let ticks = duration.nanoseconds * 8_i64 / 125_i64;
+
+        Ok(ticks as Self)
     }
 }
 
