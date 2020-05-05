@@ -10,11 +10,9 @@ extern crate panic_rtt;
 use core::borrow::Borrow;
 use core::fmt::{self, Display, Formatter};
 use core::prelude::v1::*;
-// use core::{cmp, ops};
 use cortex_m::mutex::CriticalSectionMutex as Mutex;
-use embedded_time::{instant_trait, prelude::*, Duration, Ratio};
+use embedded_time::{prelude::*, Duration, Instant, Ratio};
 use mutex_trait::Mutex as _;
-// use nrf52::Instant;
 use nrf52832_hal::gpio::{Level, OpenDrain, OpenDrainConfig, Output};
 use nrf52832_hal::prelude::*;
 
@@ -23,97 +21,10 @@ pub mod nrf52 {
     use core::ops;
     use mutex_trait::Mutex;
     use rtfm::Fraction;
-
-    #[derive(Debug, Copy, Clone, Ord, PartialOrd, PartialEq, Eq)]
-    pub struct Instant(Duration);
-
-    impl Instant {
-        pub const fn ratio() -> Ratio<i64> {
-            Ratio::new(1_000_000_000, 16_000_000)
-        }
-    }
-
-    impl instant_trait::Instant for Instant {
-        fn now() -> Self {
-            Self((&SYSTEM_TICKS).lock(|system_ticks| match system_ticks {
-                Some(system_ticks) => (system_ticks.read() as i64 * Self::ratio()).nanoseconds(),
-                None => 0.seconds(),
-            }))
-        }
-
-        fn elapsed(self) -> Duration {
-            todo!()
-        }
-
-        fn duration_since_epoch(self) -> Duration {
-            self.0
-        }
-    }
-
-    impl ops::Add<Duration> for Instant {
-        type Output = Self;
-
-        fn add(self, rhs: Duration) -> Self::Output {
-            Self (self.
-            0 + rhs
-            )
-        }
-    }
-
-    impl ops::Sub for Instant {
-        type Output = Duration;
-
-        fn sub(self, rhs: Self) -> Self::Output {
-            self.0 - rhs.0
-        }
-    }
-
-    impl ops::Sub<Duration> for Instant {
-        type Output = Self;
-
-        fn sub(self, rhs: Duration) -> Self::Output {
-            Self(self.0 - rhs)
-        }
-    }
-
-
-    impl rtfm::Monotonic for Instant {
-        type Instant = Self;
-
-        fn ratio() -> Fraction {
-            Fraction {
-                numerator: 8,
-                denominator: 125,
-            }
-        }
-
-        fn now() -> Self::Instant {
-            <Self as instant_trait::Instant>::now()
-        }
-
-        unsafe fn reset() {
-            (&SYSTEM_TICKS).lock(|ticks| match ticks {
-                Some(ticks) => {
-                    ticks.low.tasks_clear.write(|write| write.bits(1));
-                    ticks.high.tasks_clear.write(|write| write.bits(1));
-                }
-                None => (),
-            });
-        }
-
-        fn zero() -> Self::Instant {
-            Self(0.nanoseconds())
-        }
-    }
-
-    impl Display for Instant {
-        fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-            self.0.fmt(f)
-        }
-    }
 }
 
 use nrf52832_hal::target;
+use rtfm::Fraction;
 
 struct SystemTime {
     low: target::TIMER0,
@@ -122,6 +33,8 @@ struct SystemTime {
 }
 
 impl SystemTime {
+    const PERIOD: Ratio<u64> = Ratio::new(1, 16_000_000);
+
     pub fn new(low: target::TIMER0, high: target::TIMER1, capture_task: target::EGU0) -> Self {
         low.tasks_start.write(|write| unsafe { write.bits(1) });
         high.tasks_start.write(|write| unsafe { write.bits(1) });
@@ -131,9 +44,42 @@ impl SystemTime {
             capture_task,
         }
     }
-    pub fn read(&mut self) -> u64 {
+
+    fn read(&mut self) -> u64 {
         self.capture_task.tasks_trigger[0].write(|write| unsafe { write.bits(1) });
         self.low.cc[0].read().bits() as u64 | ((self.high.cc[0].read().bits() as u64) << 32)
+    }
+}
+
+impl rtfm::Monotonic for SystemTime {
+    type Instant = embedded_time::Instant;
+
+    fn ratio() -> Fraction {
+        Fraction {
+            numerator: 8,
+            denominator: 125,
+        }
+    }
+
+    fn now() -> Self::Instant {
+        Duration((&SYSTEM_TICKS).lock(|system_ticks| match system_ticks {
+            Some(system_ticks) => (system_ticks.read() * Self::ratio()).nanoseconds(),
+            None => 0.seconds(),
+        }))
+    }
+
+    unsafe fn reset() {
+        (&SYSTEM_TICKS).lock(|ticks| match ticks {
+            Some(ticks) => {
+                ticks.low.tasks_clear.write(|write| write.bits(1));
+                ticks.high.tasks_clear.write(|write| write.bits(1));
+            }
+            None => (),
+        });
+    }
+
+    fn zero() -> Self::Instant {
+        Self(0.nanoseconds())
     }
 }
 

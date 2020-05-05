@@ -1,31 +1,21 @@
 #![cfg_attr(not(test), no_std)]
 #![feature(const_fn)]
 #![feature(const_trait_impl)]
+#![feature(const_generics)]
+#![feature(associated_type_bounds)]
+#![feature(type_alias_impl_trait)]
 #![allow(incomplete_features)]
 
 mod duration;
+mod instant;
 mod numerical_traits;
 mod ratio;
 
 pub use duration::Duration;
+pub use instant::Clock;
+pub use instant::Instant;
+pub use ratio::IntTrait;
 pub use ratio::Ratio;
-
-pub mod instant_trait {
-    use core::ops;
-
-    pub trait Instant:
-        Copy
-        + ops::Add<crate::Duration>
-        + ops::Sub<Output = crate::Duration>
-        + ops::Sub<crate::Duration>
-    {
-        fn now() -> Self;
-
-        fn elapsed(self) -> crate::Duration;
-
-        fn duration_since_epoch(self) -> crate::Duration;
-    }
-}
 
 /// A collection of imports that are widely useful.
 ///
@@ -38,8 +28,13 @@ pub mod instant_trait {
 /// major releases.
 pub mod prelude {
     // Rename traits to `_` to avoid any potential name conflicts.
-    pub use crate::instant_trait::Instant as _;
-    pub use crate::numerical_traits::NumericalDuration as _;
+    pub use crate::duration::AbsSigned as _AbsSigned;
+    pub use crate::duration::AbsUnsigned as _AbsUnsigned;
+    pub use crate::numerical_traits::NumericalDuration as _NumericalDuration;
+    pub use crate::ratio::IntTrait as _IntTrait;
+    pub use num_traits::PrimInt as _PrimInt;
+    pub use num_traits::Signed as _Signed;
+    pub use num_traits::Unsigned as _Unsigned;
 }
 
 #[cfg(test)]
@@ -48,52 +43,17 @@ mod tests {
     use core::fmt::{self, Display, Formatter};
     use core::ops;
 
-    #[derive(Debug, Copy, Clone)]
-    struct Instant(Duration);
+    struct MockClock;
 
-    impl Instant {}
+    impl Clock for MockClock {
+        type Rep = i64;
+        const PERIOD: Ratio<Self::Rep> = Ratio::<Self::Rep>::new(1, 1_000);
 
-    impl instant_trait::Instant for Instant {
-        fn now() -> Self {
-            Self(5_025_678_910_111_i64.nanoseconds())
-        }
-
-        fn elapsed(self) -> Duration {
-            unimplemented!()
-        }
-
-        fn duration_since_epoch(self) -> Duration {
-            self.0
-        }
-    }
-
-    impl ops::Add<Duration> for Instant {
-        type Output = Duration;
-
-        fn add(self, rhs: Duration) -> Self::Output {
-            self.0 + rhs
-        }
-    }
-
-    impl ops::Sub for Instant {
-        type Output = Duration;
-
-        fn sub(self, rhs: Self) -> Self::Output {
-            self.0 - rhs.0
-        }
-    }
-
-    impl ops::Sub<Duration> for Instant {
-        type Output = Self;
-
-        fn sub(self, rhs: Duration) -> Self::Output {
-            Self(self.0 - rhs)
-        }
-    }
-
-    impl Display for Instant {
-        fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-            self.0.fmt(f)
+        fn now() -> Instant<Self>
+        where
+            Self: Sized,
+        {
+            Instant::<Self>(Duration::<Self::Rep>::new(5_025_678_910_111, Self::Period))
         }
     }
 

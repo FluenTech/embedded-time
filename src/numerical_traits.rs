@@ -1,4 +1,6 @@
+use crate::ratio::{IntTrait, Integer};
 use crate::Duration;
+use num_traits::PrimInt;
 
 /// Create `Duration`s from primitive and core numeric types.
 ///
@@ -13,135 +15,175 @@ use crate::Duration;
 ///
 /// ```rust
 /// # use embedded_time::{Duration, prelude::*};
-/// assert_eq!(5.nanoseconds(), Duration::from_nanos(5));
-/// assert_eq!(5.microseconds(), Duration::from_micros(5));
+/// //assert_eq!(5.nanoseconds(), Duration::from_nanos(5));
+/// //assert_eq!(5.microseconds(), Duration::from_micros(5));
 /// assert_eq!(5.milliseconds(), Duration::from_millis(5));
 /// assert_eq!(5.seconds(), Duration::from_secs(5));
-/// assert_eq!(5.minutes(), Duration::from_mins(5));
-/// assert_eq!(5.hours(), Duration::from_hours(5));
+/// //assert_eq!(5.minutes(), Duration::from_mins(5));
+/// //assert_eq!(5.hours(), Duration::from_hours(5));
 /// ```
 ///
 /// Signed integers work as well!
 ///
 /// ```rust
 /// # use embedded_time::{Duration, prelude::*};
-/// assert_eq!((-5).nanoseconds(), Duration::from_nanos(-5));
-/// assert_eq!((-5).microseconds(), Duration::from_micros(-5));
+/// //assert_eq!((-5).nanoseconds(), Duration::from_nanos(-5));
+/// //assert_eq!((-5).microseconds(), Duration::from_micros(-5));
 /// assert_eq!((-5).milliseconds(), Duration::from_millis(-5));
 /// assert_eq!((-5).seconds(), Duration::from_secs(-5));
-/// assert_eq!((-5).minutes(), Duration::from_mins(-5));
-/// assert_eq!((-5).hours(), Duration::from_hours(-5));
+/// //assert_eq!((-5).minutes(), Duration::from_mins(-5));
+/// //assert_eq!((-5).hours(), Duration::from_hours(-5));
 /// ```
 ///
 /// Just like any other `Duration`, they can be added, subtracted, etc.
 ///
 /// ```rust
 /// # use embedded_time::prelude::*;
-/// assert_eq!(2.seconds() + 500.milliseconds(), 2_500.milliseconds());
-/// assert_eq!(2.seconds() - 500.milliseconds(), 1_500.milliseconds());
+/// //assert_eq!(2.seconds() + 500.milliseconds(), 2_500.milliseconds());
+/// //assert_eq!(2.seconds() - 500.milliseconds(), 1_500.milliseconds());
 /// ```
 ///
 /// When called on floating point values, any remainder of the floating point
 /// value will be truncated. Keep in mind that floating point numbers are
 /// inherently imprecise and have limited capacity.
-pub trait NumericalDuration {
-    /// Create a `Duration` from the number of nanoseconds.
-    fn nanoseconds(self) -> Duration;
-    /// Create a `Duration` from the number of microseconds.
-    fn microseconds(self) -> Duration;
+pub trait NumericalDuration: IntTrait {
+    // /// Create a `Duration` from the number of nanoseconds.
+    // fn nanoseconds(self) -> Duration<Self>;
+    // /// Create a `Duration` from the number of microseconds.
+    // fn microseconds(self) -> Duration<Self>;
     /// Create a `Duration` from the number of milliseconds.
-    fn milliseconds(self) -> Duration;
+    fn milliseconds(self) -> Duration<Self>;
     /// Create a `Duration` from the number of seconds.
-    fn seconds(self) -> Duration;
-    /// Create a `Duration` from the number of minutes.
-    fn minutes(self) -> Duration;
-    /// Create a `Duration` from the number of hours.
-    fn hours(self) -> Duration;
+    fn seconds(self) -> Duration<Self>;
+    // /// Create a `Duration` from the number of minutes.
+    // fn minutes(self) -> Duration<Self>;
+    // /// Create a `Duration` from the number of hours.
+    // fn hours(self) -> Duration<Self>;
 }
+
+// impl NumericalDuration for i32
+// where
+//     i32: IntTrait,
+// {
+//     // at least 40 bits
+//     #[inline(always)]
+//     fn milliseconds(self) -> Duration<i32> {
+//         Duration::from_millis(self)
+//     }
+//
+//     // at least 30 bits
+//     #[inline(always)]
+//     fn seconds(self) -> Duration<i32> {
+//         Duration::from_secs(self)
+//     }
+// }
+
+// impl<T: IntTrait> NumericalDuration for T {
+//     // at least 40 bits
+//     #[inline(always)]
+//     fn milliseconds(self) -> Duration<T> {
+//         Duration::from_millis(self)
+//     }
+//
+//     // at least 30 bits
+//     #[inline(always)]
+//     fn seconds(self) -> Duration<T> {
+//         Duration::from_secs(self)
+//     }
+// }
 
 macro_rules! impl_numerical_duration {
     ($($type:ty),* $(,)?) => {
         $(
-            impl const NumericalDuration for $type {
-                #[inline(always)]
-                fn nanoseconds(self) -> Duration {
-                    Duration::from_nanos(self as i64)
-                }
-
-                #[inline(always)]
-                fn microseconds(self) -> Duration {
-                    Duration::from_micros(self as i64)
-                }
-
-                #[inline(always)]
-                fn milliseconds(self) -> Duration {
-                    Duration::from_millis(self as i64)
-                }
-
-                #[inline(always)]
-                fn seconds(self) -> Duration {
-                    Duration::from_secs(self as i64)
-                }
-
-                #[inline(always)]
-                fn minutes(self) -> Duration {
-                    Duration::from_mins(self as i64)
-                }
-
-                #[inline(always)]
-                fn hours(self) -> Duration {
-                    Duration::from_hours(self as i64)
-                }
-            }
-        )*
-    };
-}
-
-macro_rules! impl_numerical_duration_nonzero {
-    ($($type:ty),* $(,)?) => {
-        $(
+            /// Create a duration from a primitive integer type
+            /// Duration storage ensures at least +/- 10 years range
             impl NumericalDuration for $type {
+                // // at least 64 bits
+                // #[inline(always)]
+                // fn nanoseconds(self) -> Duration<$type> {
+                //     Duration::from_nanos(self)
+                // }
+                //
+                // // at least 50 bits
+                // #[inline(always)]
+                // fn microseconds(self) -> Duration<$type> {
+                //     Duration::from_micros(self)
+                // }
+
+                // at least 40 bits
                 #[inline(always)]
-                fn nanoseconds(self) -> Duration {
-                    Duration::from_nanos(self.get() as i64)
+                fn milliseconds(self) -> Duration<$type> {
+                    Duration::from_millis(self)
                 }
 
+                // at least 30 bits
                 #[inline(always)]
-                fn microseconds(self) -> Duration {
-                    Duration::from_micros(self.get() as i64)
+                fn seconds(self) -> Duration<$type> {
+                    Duration::from_secs(self)
                 }
 
-                #[inline(always)]
-                fn milliseconds(self) -> Duration {
-                    Duration::from_millis(self.get() as i64)
-                }
-
-                #[inline(always)]
-                fn seconds(self) -> Duration {
-                    Duration::from_secs(self.get() as i64)
-                }
-
-                #[inline(always)]
-                fn minutes(self) -> Duration {
-                    Duration::from_mins(self.get() as i64)
-                }
-
-                #[inline(always)]
-                fn hours(self) -> Duration {
-                    Duration::from_hours(self.get() as i64)
-                }
+                // // at least 24 bits
+                // #[inline(always)]
+                // fn minutes(self) -> Duration<$type> {
+                //     Duration::from_mins(self)
+                // }
+                //
+                // /// at least 18 bits
+                // #[inline(always)]
+                // fn hours(self) -> Duration<$type> {
+                //     Duration::from_hours(self)
+                // }
             }
         )*
     };
 }
+
+// macro_rules! impl_numerical_duration_nonzero {
+//     ($($type:ty),* $(,)?) => {
+//         $(
+//             impl NumericalDuration for $type {
+// //                 #[inline(always)]
+// //                 fn nanoseconds(self) -> Duration {
+// //                     Duration::from_nanos(self.get() as i64)
+// //                 }
+// //
+// //                 #[inline(always)]
+// //                 fn microseconds(self) -> Duration {
+// //                     Duration::from_micros(self.get() as i64)
+// //                 }
+//
+//                 #[inline(always)]
+//                 fn milliseconds(self) -> Duration<Self> {
+//                     Duration::from_millis(self)
+//                 }
+//
+// //                 #[inline(always)]
+// //                 fn seconds(self) -> Duration {
+// //                     Duration::from_secs(self.get() as i64)
+// //                 }
+// //
+// //                 #[inline(always)]
+// //                 fn minutes(self) -> Duration {
+// //                     Duration::from_mins(self.get() as i64)
+// //                 }
+// //
+// //                 #[inline(always)]
+// //                 fn hours(self) -> Duration {
+// //                     Duration::from_hours(self.get() as i64)
+// //                 }
+//             }
+//         )*
+//     };
+// }
 
 impl_numerical_duration![u8, u16, u32, i8, i16, i32, i64];
-impl_numerical_duration_nonzero![
-    core::num::NonZeroU8,
-    core::num::NonZeroU16,
-    core::num::NonZeroU32,
-    core::num::NonZeroI8,
-    core::num::NonZeroI16,
-    core::num::NonZeroI32,
-    core::num::NonZeroI64,
-];
+
+// impl_numerical_duration_nonzero![
+//     core::num::NonZeroU8,
+//     core::num::NonZeroU16,
+//     core::num::NonZeroU32,
+//     core::num::NonZeroI8,
+//     core::num::NonZeroI16,
+//     core::num::NonZeroI32,
+//     core::num::NonZeroI64,
+// ];
