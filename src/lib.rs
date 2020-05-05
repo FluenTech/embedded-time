@@ -14,8 +14,8 @@ mod ratio;
 pub use duration::Duration;
 pub use instant::Clock;
 pub use instant::Instant;
-pub use ratio::IntTrait;
-pub use ratio::Ratio;
+pub use num::rational::Ratio;
+pub use ratio::{IntTrait, Integer};
 
 /// A collection of imports that are widely useful.
 ///
@@ -30,32 +30,31 @@ pub mod prelude {
     // Rename traits to `_` to avoid any potential name conflicts.
     pub use crate::numerical_traits::NumericalDuration as _NumericalDuration;
     pub use crate::ratio::IntTrait as _IntTrait;
-    pub use num_traits::PrimInt as _PrimInt;
+    pub use num::Integer as _Integer;
 }
 
 #[cfg(test)]
 mod tests {
     use super::{prelude::*, *};
-    use core::fmt::{self, Display, Formatter};
-    use core::ops;
 
+    #[derive(Copy, Clone)]
     struct MockClock;
 
     impl Clock for MockClock {
         type Rep = i64;
-        const PERIOD: Ratio<Self::Rep> = Ratio::<Self::Rep>::new(1, 1_000);
+        const PERIOD: Ratio<Self::Rep> = Ratio::<Self::Rep>::new_raw(1, 1_000_000_000);
 
         fn now() -> Instant<Self>
         where
             Self: Sized,
         {
-            Instant::<Self>(Duration::<Self::Rep>::new(5_025_678_910_111, Self::Period))
+            Instant(Duration::<Self::Rep>::new(5_025_678_910_111, Self::PERIOD))
         }
     }
 
     #[test]
     fn it_works() {
-        let now = Instant::now();
+        let now = Instant::<MockClock>::now();
         assert_eq!(
             now.duration_since_epoch(),
             5_025_678_910_111_i64.nanoseconds()

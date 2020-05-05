@@ -15,7 +15,7 @@ pub trait Clock {
 }
 
 #[derive(Debug, Copy, Clone)]
-pub struct Instant<C: Clock>(Duration<C::Rep>);
+pub struct Instant<C: Clock>(pub Duration<C::Rep>);
 
 impl<C: Clock> Instant<C> {
     pub fn now() -> Self {

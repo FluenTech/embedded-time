@@ -1,13 +1,12 @@
 use crate::numerical_traits::NumericalDuration;
-use crate::ratio::{IntTrait, Integer};
+use crate::ratio::IntTrait;
 use crate::Ratio;
-use core::fmt;
-use core::ops;
+use core::{fmt, ops};
 
 /// A time duration with a fractional period in seconds
 ///
 /// It replicates many of the `as_` and `from_` methods found on the [`core::time::Duration`](https://doc.rust-lang.org/core/time/struct.Duration.html) type.
-#[derive(Clone, Copy, Debug, Default, Eq, Ord, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialOrd)]
 pub struct Duration<R: IntTrait> {
     value: R,
     period: Ratio<R>,
@@ -15,33 +14,32 @@ pub struct Duration<R: IntTrait> {
 
 impl<R: IntTrait + NumericalDuration> Duration<R> {
     /// The number of seconds in one minute.
-    const SECONDS_PER_MINUTE: u8 = 60;
+    const SECONDS_PER_MINUTE: i16 = 60;
 
     /// The number of seconds in one hour.
-    const SECONDS_PER_HOUR: u8 = 60 * Self::SECONDS_PER_MINUTE;
+    const SECONDS_PER_HOUR: i16 = 60 * Self::SECONDS_PER_MINUTE;
 
     pub const fn new(value: R, period: Ratio<R>) -> Self {
         Self { value, period }
     }
 
-    // /// Equivalent to `0.seconds()`.
-    // ///
-    // /// ```rust
-    // /// # use embedded_time::{Duration, prelude::*};
-    // /// assert_eq!(Duration::zero(), 0.seconds());
-    // /// ```
-    // #[inline(always)]
-    // pub const fn zero() -> Self {
-    //     Self::from_secs(0)
-    // }
+    /// Equivalent to `0.seconds()`.
+    ///
+    /// ```rust
+    /// # use embedded_time::{Duration, prelude::*};
+    /// assert_eq!(Duration::zero(), 0.seconds());
+    /// ```
+    #[inline(always)]
+    pub fn zero() -> Self {
+        Self::from_secs(R::zero())
+    }
 
     /// The maximum possible duration. Adding any positive duration to this will
     /// cause an overflow.
     ///
     /// ```rust
-    /// use embedded_time::{Ratio, Duration};
-    /// let max = Duration::max_value(Ratio::new(1,1));
-    /// assert_eq!(max.as_secs(), i32::MAX);
+    /// # use embedded_time::{Ratio, Duration};
+    /// assert_eq!(Duration::max_value(Ratio::new(1,1)).as_secs(), i32::MAX);
     /// ```
     ///
     /// The value returned by this method may change at any time.
@@ -53,68 +51,86 @@ impl<R: IntTrait + NumericalDuration> Duration<R> {
         }
     }
 
-    // /// The minimum possible duration. Adding any negative duration to this will
-    // /// cause an overflow.
-    // ///
-    // /// The value returned by this method may change at any time.
-    // #[inline(always)]
-    // pub const fn min_value() -> Self {
-    //     Self {
-    //         value: Integer::min_value(),
-    //     }
-    // }
+    /// The minimum possible duration. Adding any negative duration to this will
+    /// cause an overflow.
+    ///
+    /// ```rust
+    /// # use embedded_time::{Ratio, Duration};
+    /// assert_eq!(Duration::min_value(Ratio::new(1,1)).as_secs(), i32::MIN);
+    /// ```
+    ///
+    /// The value returned by this method may change at any time.
+    #[inline(always)]
+    pub fn min_value(period: Ratio<R>) -> Self {
+        Self {
+            value: R::min_value(),
+            period,
+        }
+    }
 
-    // /// Create a new `Duration` with the given number of hours. Equivalent to
-    // /// `Duration::seconds(hours * 3_600)`.
-    // ///
-    // /// ```rust
-    // /// # use embedded_time::{Duration, prelude::*};
-    // /// assert_eq!(Duration::from_hours(1), 3_600.seconds());
-    // /// ```
-    // #[inline(always)]
-    // pub const fn from_hours(hours: i64) -> Self {
-    //     Self::from_secs(hours * Self::SECONDS_PER_HOUR)
-    // }
-    //
-    // /// Get the number of whole hours in the duration.
-    // ///
-    // /// ```rust
-    // /// # use embedded_time::{Duration, prelude::*};
-    // /// assert_eq!(1.hours().as_hours(), 1);
-    // /// assert_eq!((-1).hours().as_hours(), -1);
-    // /// assert_eq!(59.minutes().as_hours(), 0);
-    // /// assert_eq!((-59).minutes().as_hours(), 0);
-    // /// ```
-    // #[inline(always)]
-    // pub const fn as_hours(self) -> i64 {
-    //     self.as_secs() / Self::SECONDS_PER_HOUR
-    // }
-    //
-    // /// Create a new `Duration` with the given number of minutes. Equivalent to
-    // /// `Duration::seconds(minutes * 60)`.
-    // ///
-    // /// ```rust
-    // /// # use embedded_time::{Duration, prelude::*};
-    // /// assert_eq!(Duration::from_mins(1), 60.seconds());
-    // /// ```
-    // #[inline(always)]
-    // pub const fn from_mins(minutes: i64) -> Self {
-    //     Self::from_secs(minutes * Self::SECONDS_PER_MINUTE)
-    // }
-    //
-    // /// Get the number of whole minutes in the duration.
-    // ///
-    // /// ```rust
-    // /// # use embedded_time::{Duration, prelude::*};
-    // /// assert_eq!(1.minutes().as_mins(), 1);
-    // /// assert_eq!((-1).minutes().as_mins(), -1);
-    // /// assert_eq!(59.seconds().as_mins(), 0);
-    // /// assert_eq!((-59).seconds().as_mins(), 0);
-    // /// ```
-    // #[inline(always)]
-    // pub const fn as_mins(self) -> i64 {
-    //     self.as_secs() / Self::SECONDS_PER_MINUTE
-    // }
+    /// Create a new `Duration` with the given number of hours. Equivalent to
+    /// `Duration::seconds(hours * 3_600)`.
+    ///
+    /// ```rust
+    /// # use embedded_time::{Duration, prelude::*};
+    /// assert_eq!(Duration::from_hours(1), 3_600.seconds());
+    /// ```
+    #[inline(always)]
+    pub fn from_hours(hours: R) -> Self {
+        Self {
+            value: hours,
+            period: Ratio::<R>::new(R::from(Self::SECONDS_PER_HOUR).unwrap(), R::one()),
+        }
+    }
+
+    /// Get the number of whole hours in the duration.
+    ///
+    /// ```rust
+    /// # use embedded_time::{Duration, prelude::*};
+    /// assert_eq!(1.hours().as_hours(), 1);
+    /// assert_eq!((-1).hours().as_hours(), -1);
+    /// assert_eq!(59.minutes().as_hours(), 0);
+    /// assert_eq!((-59).minutes().as_hours(), 0);
+    /// ```
+    #[inline(always)]
+    pub fn as_hours(self) -> R {
+        let hours = Ratio::from_integer(self.value)
+            / Ratio::new(R::from(Self::SECONDS_PER_HOUR).unwrap(), R::one())
+            * self.period;
+        hours.to_integer()
+    }
+
+    /// Create a new `Duration` with the given number of minutes. Equivalent to
+    /// `Duration::seconds(minutes * 60)`.
+    ///
+    /// ```rust
+    /// # use embedded_time::{Duration, prelude::*};
+    /// assert_eq!(Duration::from_mins(1), 60.seconds());
+    /// ```
+    #[inline(always)]
+    pub fn from_mins(minutes: R) -> Self {
+        Self {
+            value: minutes,
+            period: Ratio::<R>::new(R::from(Self::SECONDS_PER_MINUTE).unwrap(), R::one()),
+        }
+    }
+
+    /// Get the number of whole minutes in the duration.
+    ///
+    /// ```rust
+    /// # use embedded_time::{Duration, prelude::*};
+    /// assert_eq!(1.minutes().as_mins(), 1);
+    /// assert_eq!((-1).minutes().as_mins(), -1);
+    /// assert_eq!(59.seconds().as_mins(), 0);
+    /// assert_eq!((-59).seconds().as_mins(), 0);
+    /// ```
+    #[inline(always)]
+    pub fn as_mins(self) -> R {
+        let mins = Ratio::from_integer(self.value)
+            / Ratio::new(R::from(Self::SECONDS_PER_MINUTE).unwrap(), R::one())
+            * self.period;
+        mins.to_integer()
+    }
 
     /// Create a new `Duration` with the given number of seconds.
     ///
@@ -126,7 +142,7 @@ impl<R: IntTrait + NumericalDuration> Duration<R> {
     pub fn from_secs(seconds: R) -> Self {
         Self {
             value: seconds,
-            period: Ratio::new(R::from(1).unwrap(), R::from(1).unwrap()),
+            period: Ratio::new(R::one(), R::one()),
         }
     }
 
@@ -136,11 +152,11 @@ impl<R: IntTrait + NumericalDuration> Duration<R> {
     /// # use embedded_time::prelude::*;
     /// assert_eq!(1.seconds().as_secs(), 1);
     /// assert_eq!((-1).seconds().as_secs(), -1);
-    /// //assert_eq!(1.minutes().as_secs(), 60);
-    /// //assert_eq!((-1).minutes().as_secs(), -60);
+    /// assert_eq!(1.minutes().as_secs(), 60);
+    /// assert_eq!((-1).minutes().as_secs(), -60);
     /// ```
     #[inline(always)]
-    pub const fn as_secs(self) -> R {
+    pub fn as_secs(self) -> R {
         self.value
     }
 
@@ -156,7 +172,7 @@ impl<R: IntTrait + NumericalDuration> Duration<R> {
     pub fn from_millis(milliseconds: R) -> Self {
         Self {
             value: milliseconds,
-            period: Ratio::<R>::new(R::from(1).unwrap(), R::from(1_000).unwrap()),
+            period: Ratio::<R>::new(R::one(), R::from(1_000).unwrap()),
         }
     }
 
@@ -171,84 +187,95 @@ impl<R: IntTrait + NumericalDuration> Duration<R> {
     /// ```
     #[inline(always)]
     pub fn as_millis(self) -> R {
-        let millis = Integer(self.value) / Ratio::new(R::from(1).unwrap(), R::from(1_000).unwrap())
+        let millis = Ratio::from_integer(self.value)
+            / Ratio::new(R::one(), R::from(1_000).unwrap())
             * self.period;
-        *millis
+        millis.to_integer()
     }
 
-    // /// Create a new `Duration` with the given number of microseconds.
-    // ///
-    // /// ```rust
-    // /// # use embedded_time::{Duration, prelude::*};
-    // /// assert_eq!(Duration::from_micros(1), 1_000.nanoseconds());
-    // /// assert_eq!(Duration::from_micros(-1), (-1_000).nanoseconds());
-    // /// ```
-    // #[inline(always)]
-    // #[allow(clippy::cast_possible_truncation)]
-    // pub const fn from_micros(microseconds: Integer) -> Self {
-    //     Self {
-    //         value: microseconds,
-    //     }
-    // }
-    //
-    // /// Get the number of whole microseconds in the duration.
-    // ///
-    // /// ```rust
-    // /// # use embedded_time::prelude::*;
-    // /// assert_eq!(1.milliseconds().as_micros(), 1_000);
-    // /// assert_eq!((-1).milliseconds().as_micros(), -1_000);
-    // /// assert_eq!(1.microseconds().as_micros(), 1);
-    // /// assert_eq!((-1).microseconds().as_micros(), -1);
-    // /// ```
-    // #[inline(always)]
-    // pub const fn as_micros(self) -> Integer {
-    //     self.value
-    // }
-    //
-    // /// Create a new `Duration` with the given number of nanoseconds.
-    // ///
-    // /// ```rust
-    // /// # use embedded_time::{Duration, prelude::*};
-    // /// assert_eq!(Duration::from_nanos(1), 1.microseconds() / 1_000);
-    // /// assert_eq!(Duration::from_nanos(-1), (-1).microseconds() / 1_000);
-    // /// ```
-    // #[inline(always)]
-    // #[allow(clippy::cast_possible_truncation)]
-    // pub const fn from_nanos(nanoseconds: Integer) -> Self {
-    //     Self { value: nanoseconds }
-    // }
-    //
-    // /// Get the number of nanoseconds in the duration.
-    // ///
-    // /// ```rust
-    // /// # use embedded_time::prelude::*;
-    // /// assert_eq!(1.microseconds().as_nanos(), 1_000);
-    // /// assert_eq!((-1).microseconds().as_nanos(), -1_000);
-    // /// assert_eq!(1.nanoseconds().as_nanos(), 1);
-    // /// assert_eq!((-1).nanoseconds().as_nanos(), -1);
-    // /// ```
-    // #[inline(always)]
-    // pub const fn as_nanos(self) -> Integer {
-    //     self.value
-    // }
-
-    /// Computes `self + rhs`, returning `None` if an overflow occurred.
+    /// Create a new `Duration` with the given number of microseconds.
     ///
     /// ```rust
-    /// # use embedded_time::{Duration, prelude::*, Ratio};
-    /// assert_eq!(5.seconds().checked_add(5.seconds()), Some(10.seconds()));
-    /// assert_eq!(Duration::max_value(Ratio::new(1,1_000)).checked_add(1.milliseconds()), None);
-    /// assert_eq!((-5).seconds().checked_add(5.seconds()), Some(0.seconds()));
+    /// # use embedded_time::{Duration, prelude::*};
+    /// assert_eq!(Duration::from_micros(1), 1_000.nanoseconds());
+    /// assert_eq!(Duration::from_micros(-1), (-1_000).nanoseconds());
     /// ```
-    #[inline]
-    pub fn checked_add(self, rhs: Self) -> Option<Self> {
-        let value = self.value.checked_add(&rhs.value)?;
-
-        Some(Self {
-            value,
-            period: self.period,
-        })
+    #[inline(always)]
+    #[allow(clippy::cast_possible_truncation)]
+    pub fn from_micros(microseconds: R) -> Self {
+        Self {
+            value: microseconds,
+            period: Ratio::<R>::new(R::one(), R::from(1_000_000).unwrap()),
+        }
     }
+
+    /// Get the number of whole microseconds in the duration.
+    ///
+    /// ```rust
+    /// # use embedded_time::prelude::*;
+    /// assert_eq!(1.milliseconds().as_micros(), 1_000);
+    /// assert_eq!((-1).milliseconds().as_micros(), -1_000);
+    /// assert_eq!(1.microseconds().as_micros(), 1);
+    /// assert_eq!((-1).microseconds().as_micros(), -1);
+    /// ```
+    #[inline(always)]
+    pub fn as_micros(self) -> R {
+        let micros = Ratio::from_integer(self.value)
+            / Ratio::new(R::one(), R::from(1_000_000).unwrap())
+            * self.period;
+        micros.to_integer()
+    }
+
+    /// Create a new `Duration` with the given number of nanoseconds.
+    ///
+    /// ```rust
+    /// # use embedded_time::{Duration, prelude::*};
+    /// assert_eq!(Duration::from_nanos(1_000), 1.microseconds());
+    /// assert_eq!(Duration::from_nanos(-1_000), (-1).microseconds());
+    /// ```
+    #[inline(always)]
+    #[allow(clippy::cast_possible_truncation)]
+    pub fn from_nanos(nanoseconds: R) -> Self {
+        Self {
+            value: nanoseconds,
+            period: Ratio::<R>::new(R::one(), R::from(1_000_000_000).unwrap()),
+        }
+    }
+
+    /// Get the number of nanoseconds in the duration.
+    ///
+    /// ```rust
+    /// # use embedded_time::prelude::*;
+    /// assert_eq!(1.microseconds().as_nanos(), 1_000);
+    /// assert_eq!((-1).microseconds().as_nanos(), -1_000);
+    /// assert_eq!(1.nanoseconds().as_nanos(), 1);
+    /// assert_eq!((-1).nanoseconds().as_nanos(), -1);
+    /// ```
+    #[inline(always)]
+    pub fn as_nanos(self) -> R {
+        let nanos = Ratio::from_integer(self.value)
+            / Ratio::new(R::one(), R::from(1_000_000_000).unwrap())
+            * self.period;
+        nanos.to_integer()
+    }
+
+    // /// Computes `self + rhs`, returning `None` if an overflow occurred.
+    // ///
+    // /// ```rust
+    // /// # use embedded_time::{Duration, prelude::*, Ratio};
+    // /// assert_eq!(5.seconds().checked_add(5.seconds()), Some(10.seconds()));
+    // /// assert_eq!(Duration::max_value(Ratio::new(1,1_000)).checked_add(1.milliseconds()), None);
+    // /// assert_eq!((-5).seconds().checked_add(5.seconds()), Some(0.seconds()));
+    // /// ```
+    // #[inline]
+    // pub fn checked_add(self, rhs: Self) -> Option<Self> {
+    //     let value = self.value.checked_add(&rhs.value)?;
+    //
+    //     Some(Self {
+    //         value,
+    //         period: self.period,
+    //     })
+    // }
 
     // /// Computes `self - rhs`, returning `None` if an overflow occurred.
     // ///
@@ -307,24 +334,41 @@ impl<R: IntTrait> PartialEq for Duration<R> {
     /// assert_eq!((-1_000).milliseconds(), (-1).seconds());
     /// ```
     fn eq(&self, other: &Self) -> bool {
-        (self.value * self.period.numerator * other.period.denominator)
-            == (other.value * other.period.numerator * self.period.denominator)
+        (Ratio::from_integer(self.value) * self.period)
+            == (Ratio::from_integer(other.value) * other.period)
     }
 }
 
 impl<R: IntTrait + NumericalDuration> fmt::Display for Duration<R> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let milliseconds = (*self).as_millis().milliseconds();
-        write!(f, "{}", milliseconds.as_millis())
+        let hours = self.as_hours().hours();
+        let minutes = self.as_mins().minutes() - hours;
+        let seconds = self.as_secs().seconds() - minutes - hours;
+        let milliseconds = self.as_millis().milliseconds() - seconds - minutes - hours;
+        write!(
+            f,
+            "{:02}:{:02}:{:02}.{:03}",
+            hours.as_hours(),
+            minutes.as_mins(),
+            seconds.as_secs(),
+            milliseconds.as_millis(),
+        )
     }
 }
 
+/// ```rust
+/// # use embedded_time::prelude::*;
+/// assert_eq!(2.seconds() + 500.milliseconds(), 2_500.milliseconds());
+/// ```
 impl<R: IntTrait + NumericalDuration> ops::Add for Duration<R> {
     type Output = Self;
 
     #[inline]
     fn add(self, rhs: Self) -> Self::Output {
-        self.checked_add(rhs).unwrap()
+        Self {
+            value: self.value + rhs.value,
+            period: self.period,
+        }
     }
 }
 
@@ -344,12 +388,19 @@ impl<R: IntTrait> ops::Neg for Duration<R> {
     }
 }
 
+/// ```rust
+/// # use embedded_time::prelude::*;
+/// assert_eq!(2.seconds() - 500.milliseconds(), 1_500.milliseconds());
+/// ```
 impl<R: IntTrait> ops::Sub for Duration<R> {
     type Output = Self;
 
     #[inline]
     fn sub(self, rhs: Self) -> Self::Output {
-        let value = self.value.checked_sub(&rhs.value).unwrap();
+        let fraction = (Ratio::from_integer(self.value) * self.period)
+            - (Ratio::from_integer(rhs.value) * rhs.period);
+        let value = (fraction / self.period).to_integer();
+
         Self {
             value,
             period: self.period,
@@ -378,16 +429,6 @@ impl<R: IntTrait> ops::Mul<R> for Duration<R> {
         }
     }
 }
-
-// impl<R: IntTrait> ops::Mul<Duration<R>> for Integer<R> {
-//     type Output = Self;
-//
-//     #[inline(always)]
-//     #[allow(trivial_numeric_casts)]
-//     fn mul(self, rhs: Duration<R>) -> Self::Output {
-//         self * rhs.value
-//     }
-// }
 
 impl<R: IntTrait> ops::MulAssign<R> for Duration<R> {
     #[inline(always)]
