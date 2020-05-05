@@ -2,7 +2,6 @@ use crate::ratio::IntTrait;
 use crate::Duration;
 use crate::Ratio;
 use core::{fmt, ops};
-use num_traits::PrimInt;
 
 pub trait Clock {
     /// The type of the internal representation of time

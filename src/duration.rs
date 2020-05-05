@@ -2,18 +2,7 @@ use crate::numerical_traits::NumericalDuration;
 use crate::ratio::{IntTrait, Integer};
 use crate::Ratio;
 use core::fmt;
-use core::ops::{self, Deref};
-use num_traits::{Bounded, PrimInt, Signed, Unsigned};
-
-pub trait AbsSigned {
-    fn abs(self) -> Self;
-}
-
-pub trait AbsUnsigned: Sized {
-    fn abs(self) -> Self {
-        self
-    }
-}
+use core::ops;
 
 /// A time duration with a fractional period in seconds
 ///
@@ -48,6 +37,12 @@ impl<R: IntTrait + NumericalDuration> Duration<R> {
 
     /// The maximum possible duration. Adding any positive duration to this will
     /// cause an overflow.
+    ///
+    /// ```rust
+    /// use embedded_time::{Ratio, Duration};
+    /// let max = Duration::max_value(Ratio::new(1,1));
+    /// assert_eq!(max.as_secs(), i32::MAX);
+    /// ```
     ///
     /// The value returned by this method may change at any time.
     #[inline(always)]
@@ -131,7 +126,7 @@ impl<R: IntTrait + NumericalDuration> Duration<R> {
     pub fn from_secs(seconds: R) -> Self {
         Self {
             value: seconds,
-            period: Ratio::<R>::new(R::from(1).unwrap(), R::from(1).unwrap()),
+            period: Ratio::new(R::from(1).unwrap(), R::from(1).unwrap()),
         }
     }
 
@@ -178,7 +173,7 @@ impl<R: IntTrait + NumericalDuration> Duration<R> {
     pub fn as_millis(self) -> R {
         let millis = Integer(self.value) / Ratio::new(R::from(1).unwrap(), R::from(1_000).unwrap())
             * self.period;
-        *millis.deref()
+        *millis
     }
 
     // /// Create a new `Duration` with the given number of microseconds.
@@ -304,30 +299,6 @@ impl<R: IntTrait + NumericalDuration> Duration<R> {
     //     Some(Self { value })
     // }
 }
-
-impl<R: IntTrait + Signed> AbsSigned for Duration<R> {
-    /// ```rust
-    /// use embedded_time::Duration;
-    /// use num_traits::Signed;
-    /// use embedded_time::prelude::*;
-    /// assert_eq!((-1).seconds().abs(), 1.seconds());
-    /// ```
-    fn abs(self) -> Self
-    where
-        R: Signed,
-    {
-        Self {
-            value: self.value * R::from(-1).unwrap(),
-            period: self.period,
-        }
-    }
-}
-
-/// ```rust
-/// # use embedded_time::{Duration, IntTrait, prelude::*};
-/// assert_eq!(1_u32.seconds().abs(), 1_u32.seconds());
-/// ```
-impl<R: IntTrait + Unsigned> AbsUnsigned for Duration<R> {}
 
 impl<R: IntTrait> PartialEq for Duration<R> {
     /// ```rust

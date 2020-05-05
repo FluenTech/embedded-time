@@ -1,6 +1,5 @@
-use crate::ratio::{IntTrait, Integer};
+use crate::ratio::IntTrait;
 use crate::Duration;
-use num_traits::PrimInt;
 
 /// Create `Duration`s from primitive and core numeric types.
 ///
@@ -176,7 +175,7 @@ macro_rules! impl_numerical_duration {
 //     };
 // }
 
-impl_numerical_duration![u8, u16, u32, i8, i16, i32, i64];
+impl_numerical_duration![i8, i16, i32, i64];
 
 // impl_numerical_duration_nonzero![
 //     core::num::NonZeroU8,

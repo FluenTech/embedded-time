@@ -1,10 +1,7 @@
-use crate::numerical_traits::NumericalDuration;
-use crate::Duration;
-
 #[allow(unused_imports)]
 use core::convert::{TryFrom, TryInto};
 
-use core::{cmp, fmt, ops};
+use core::{fmt, ops};
 use num_traits::PrimInt;
 
 pub trait IntTrait: PrimInt + fmt::Display {}
@@ -33,12 +30,17 @@ impl<T: IntTrait> ops::Deref for Integer<T> {
 
 /// A simple rational number
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
-pub struct Ratio<T: Copy> {
-    pub(crate) numerator: T,
-    pub(crate) denominator: T,
+pub struct Ratio<T: IntTrait> {
+    pub numerator: T,
+    pub denominator: T,
 }
 
 impl<T: IntTrait> Ratio<T> {
+    /// ```rust
+    /// # use embedded_time::Ratio;
+    /// assert_eq!(Ratio::new(1,1).numerator, 1);
+    /// assert_eq!(Ratio::<i64>::new(1,1).numerator, 1_i64);
+    /// ```
     pub const fn new(numerator: T, denominator: T) -> Self {
         Self {
             numerator,

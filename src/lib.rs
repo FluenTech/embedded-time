@@ -28,13 +28,9 @@ pub use ratio::Ratio;
 /// major releases.
 pub mod prelude {
     // Rename traits to `_` to avoid any potential name conflicts.
-    pub use crate::duration::AbsSigned as _AbsSigned;
-    pub use crate::duration::AbsUnsigned as _AbsUnsigned;
     pub use crate::numerical_traits::NumericalDuration as _NumericalDuration;
     pub use crate::ratio::IntTrait as _IntTrait;
     pub use num_traits::PrimInt as _PrimInt;
-    pub use num_traits::Signed as _Signed;
-    pub use num_traits::Unsigned as _Unsigned;
 }
 
 #[cfg(test)]
