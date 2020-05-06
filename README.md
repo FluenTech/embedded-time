@@ -10,7 +10,9 @@ Provide a comprehensive library for implementing `Clock`s to use with `Instant`s
 
 ## Definitions
 **Clock** - A trait for abstracting over the hardware clock(s)/timer(s) used.
+
 **Instant** - A specific instant in time ("time-point") returned by calling `Clock::now()`. An `Instant` is also the result of an add/sub operation with a `Duration`.
+
 **Duration** - The difference of two instances. 
 
 ## Notes
