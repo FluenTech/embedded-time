@@ -1,5 +1,4 @@
 use crate::duration::IntTrait;
-use crate::Duration;
 
 /// Create `Duration`s from primitive and core numeric types.
 ///
@@ -13,7 +12,7 @@ use crate::Duration;
 /// Basic construction of `Duration`s.
 ///
 /// ```rust
-/// # use embedded_time::{Duration, prelude::*};
+/// //# use embedded_time::{Duration, prelude::*};
 /// //assert_eq!(5.nanoseconds(), Duration::from_nanos(5));
 /// //assert_eq!(5.microseconds(), Duration::from_micros(5));
 /// //assert_eq!(5.milliseconds(), Duration::from_millis(5));
@@ -25,7 +24,7 @@ use crate::Duration;
 /// Signed integers work as well!
 ///
 /// ```rust
-/// # use embedded_time::{Duration, prelude::*};
+/// //# use embedded_time::{Duration, prelude::*};
 /// //assert_eq!((-5).nanoseconds(), Duration::from_nanos(-5));
 /// //assert_eq!((-5).microseconds(), Duration::from_micros(-5));
 /// //assert_eq!((-5).milliseconds(), Duration::from_millis(-5));

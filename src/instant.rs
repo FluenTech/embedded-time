@@ -1,31 +1,26 @@
+use crate::duration::{Period, Time};
+use crate::numerical_traits::NumericalDuration;
+use crate::IntTrait;
 use crate::Ratio;
-use crate::{Duration, IntTrait};
+use core::marker::PhantomData;
 use core::{fmt, ops};
 
 pub trait Clock {
     /// The type of the internal representation of time
-    type Rep: IntTrait;
-    const PERIOD: Ratio<Self::Rep>;
+    type Rep: IntTrait + NumericalDuration;
+    const PERIOD: Period;
 
     /// Get the current Instant
-    fn now() -> Instant<Self>
+    fn now<U: Time<Self::Rep>>() -> Instant<U>
     where
         Self: Sized;
 }
 
 #[derive(Debug, Copy, Clone)]
-pub struct Instant<C: Clock>(pub Duration<C::Rep>);
+pub struct Instant<T>(pub T);
 
-impl<C: Clock> Instant<C> {
-    pub fn now() -> Self {
-        C::now()
-    }
-
-    pub fn elapsed(self) -> Duration<C::Rep> {
-        todo!()
-    }
-
-    pub fn duration_since_epoch(self) -> Duration<C::Rep> {
+impl<T> Instant<T> {
+    pub fn duration_since_epoch(self) -> T {
         self.0
     }
 }
@@ -58,11 +53,11 @@ impl<C: Clock> Instant<C> {
 //     }
 // }
 
-impl<C: Clock> fmt::Display for Instant<C>
-where
-    Duration<C::Rep>: fmt::Display,
-{
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.0.fmt(f)
-    }
-}
+// impl<C: Clock> fmt::Display for Instant<C>
+// where
+//     Duration<C::Rep>: fmt::Display,
+// {
+//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+//         self.0.fmt(f)
+//     }
+// }
