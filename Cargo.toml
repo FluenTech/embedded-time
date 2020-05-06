@@ -12,6 +12,7 @@ readme = "README.md"
 [dependencies]
 num = { version = "0.2.1", default-features = false }
 
+
 [[example]]
 name = "nrf52_dk"
 

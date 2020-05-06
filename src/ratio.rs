@@ -2,30 +2,6 @@
 use core::convert::{TryFrom, TryInto};
 use core::{fmt, ops};
 
-pub trait IntTrait: num::Integer + num::PrimInt + fmt::Display {}
-
-impl IntTrait for i8 {}
-impl IntTrait for i16 {}
-impl IntTrait for i32 {}
-impl IntTrait for i64 {}
-// impl IntTrait for i128 {}
-impl IntTrait for u8 {}
-impl IntTrait for u16 {}
-impl IntTrait for u32 {}
-// impl IntTrait for u64 {}
-// impl IntTrait for u128 {}
-
-#[derive(Copy, Clone, Debug, Default)]
-pub struct Integer<T: IntTrait>(pub T);
-
-impl<T: IntTrait> ops::Deref for Integer<T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
 // /// A simple rational number
 // #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
 // pub struct Ratio<T: IntTrait> {

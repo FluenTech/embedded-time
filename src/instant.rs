@@ -1,6 +1,5 @@
-use crate::ratio::IntTrait;
-use crate::Duration;
 use crate::Ratio;
+use crate::{Duration, IntTrait};
 use core::{fmt, ops};
 
 pub trait Clock {
@@ -31,33 +30,33 @@ impl<C: Clock> Instant<C> {
     }
 }
 
-impl<C: Clock> ops::Add<Duration<C::Rep>> for Instant<C>
-where
-    C::Rep: ops::Add,
-    Duration<C::Rep>: ops::Add<Output = Duration<C::Rep>>,
-{
-    type Output = Self;
-
-    fn add(self, rhs: Duration<C::Rep>) -> Self::Output {
-        Self(self.0 + rhs)
-    }
-}
-
-impl<C: Clock> ops::Sub for Instant<C> {
-    type Output = Duration<C::Rep>;
-
-    fn sub(self, rhs: Self) -> Self::Output {
-        self.0 - rhs.0
-    }
-}
-
-impl<C: Clock> ops::Sub<Duration<C::Rep>> for Instant<C> {
-    type Output = Self;
-
-    fn sub(self, rhs: Duration<C::Rep>) -> Self::Output {
-        Self(self.0 - rhs)
-    }
-}
+// impl<C: Clock> ops::Add<Duration<C::Rep>> for Instant<C>
+// where
+//     C::Rep: ops::Add,
+//     Duration<C::Rep>: ops::Add<Output = Duration<C::Rep>>,
+// {
+//     type Output = Self;
+//
+//     fn add(self, rhs: Duration<C::Rep>) -> Self::Output {
+//         Self(self.0 + rhs)
+//     }
+// }
+//
+// impl<C: Clock> ops::Sub for Instant<C> {
+//     type Output = Duration<C::Rep>;
+//
+//     fn sub(self, rhs: Self) -> Self::Output {
+//         self.0 - rhs.0
+//     }
+// }
+//
+// impl<C: Clock> ops::Sub<Duration<C::Rep>> for Instant<C> {
+//     type Output = Self;
+//
+//     fn sub(self, rhs: Duration<C::Rep>) -> Self::Output {
+//         Self(self.0 - rhs)
+//     }
+// }
 
 impl<C: Clock> fmt::Display for Instant<C>
 where
