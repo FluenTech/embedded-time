@@ -4,17 +4,18 @@
 #![feature(const_generics)]
 #![feature(associated_type_bounds)]
 #![feature(type_alias_impl_trait)]
+#![feature(associated_type_defaults)]
 #![allow(incomplete_features)]
+#![warn(missing_doc_code_examples)]
 
 pub mod duration;
 mod instant;
-mod numerical_traits;
-// mod ratio;
+mod integer;
+mod numerical_duration;
 
-// pub use duration::Duration;
-pub use duration::{IntTrait, Integer};
-// pub use instant::Clock;
-// pub use instant::Instant;
+pub use instant::Clock;
+pub use instant::Instant;
+pub use integer::{IntTrait, Integer};
 pub use num::rational::Ratio;
 
 /// A collection of imports that are widely useful.
@@ -28,9 +29,9 @@ pub use num::rational::Ratio;
 /// major releases.
 pub mod prelude {
     // Rename traits to `_` to avoid any potential name conflicts.
-    pub use crate::duration::IntTrait as _IntTrait;
     pub use crate::duration::Time as _Time;
-    pub use crate::numerical_traits::NumericalDuration as _NumericalDuration;
+    pub use crate::integer::IntTrait as _IntTrait;
+    pub use crate::numerical_duration::NumericalDuration as _NumericalDuration;
     pub use num::Integer as _Integer;
 }
 

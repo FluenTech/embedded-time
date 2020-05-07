@@ -1,5 +1,5 @@
 use crate::duration::{Period, Time};
-use crate::numerical_traits::NumericalDuration;
+use crate::numerical_duration::NumericalDuration;
 use crate::IntTrait;
 use crate::Ratio;
 use core::marker::PhantomData;

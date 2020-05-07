@@ -1,4 +1,5 @@
-use crate::duration::IntTrait;
+use crate::duration::{Milliseconds, Seconds};
+use crate::integer::IntTrait;
 
 /// Create `Duration`s from primitive and core numeric types.
 ///
@@ -12,11 +13,12 @@ use crate::duration::IntTrait;
 /// Basic construction of `Duration`s.
 ///
 /// ```rust
-/// //# use embedded_time::{Duration, prelude::*};
+/// # use embedded_time::{prelude::*};
+/// # use embedded_time::duration::{Seconds, Milliseconds};
 /// //assert_eq!(5.nanoseconds(), Duration::from_nanos(5));
 /// //assert_eq!(5.microseconds(), Duration::from_micros(5));
-/// //assert_eq!(5.milliseconds(), Duration::from_millis(5));
-/// //assert_eq!(5.seconds(), Duration::from_secs(5));
+/// assert_eq!(5.milliseconds(), Milliseconds(5));
+/// assert_eq!(5.seconds(), Seconds(5));
 /// //assert_eq!(5.minutes(), Duration::from_mins(5));
 /// //assert_eq!(5.hours(), Duration::from_hours(5));
 /// ```
@@ -24,35 +26,25 @@ use crate::duration::IntTrait;
 /// Signed integers work as well!
 ///
 /// ```rust
-/// //# use embedded_time::{Duration, prelude::*};
+/// # use embedded_time::{prelude::*};
+/// # use embedded_time::duration::{Seconds, Milliseconds};
 /// //assert_eq!((-5).nanoseconds(), Duration::from_nanos(-5));
 /// //assert_eq!((-5).microseconds(), Duration::from_micros(-5));
-/// //assert_eq!((-5).milliseconds(), Duration::from_millis(-5));
-/// //assert_eq!((-5).seconds(), Duration::from_secs(-5));
+/// assert_eq!((-5).milliseconds(), Milliseconds(-5));
+/// assert_eq!((-5).seconds(), Seconds(-5));
 /// //assert_eq!((-5).minutes(), Duration::from_mins(-5));
 /// //assert_eq!((-5).hours(), Duration::from_hours(-5));
 /// ```
 ///
-/// Just like any other `Duration`, they can be added, subtracted, etc.
-///
-/// ```rust
-/// # use embedded_time::prelude::*;
-/// //assert_eq!(2.seconds() + 500.milliseconds(), 2_500.milliseconds());
-/// //assert_eq!(2.seconds() - 500.milliseconds(), 1_500.milliseconds());
-/// ```
-///
-/// When called on floating point values, any remainder of the floating point
-/// value will be truncated. Keep in mind that floating point numbers are
-/// inherently imprecise and have limited capacity.
 pub trait NumericalDuration: IntTrait {
     // /// Create a `Duration` from the number of nanoseconds.
     // fn nanoseconds(self) -> Duration<Self>;
     // /// Create a `Duration` from the number of microseconds.
     // fn microseconds(self) -> Duration<Self>;
-    // /// Create a `Duration` from the number of milliseconds.
-    // fn milliseconds(self) -> Duration<Self>;
-    // /// Create a `Duration` from the number of seconds.
-    // fn seconds(self) -> Duration<Self>;
+    /// Create a `Duration` from the number of milliseconds.
+    fn milliseconds(self) -> Milliseconds<Self>;
+    /// Create a `Duration` from the number of seconds.
+    fn seconds(self) -> Seconds<Self>;
     // /// Create a `Duration` from the number of minutes.
     // fn minutes(self) -> Duration<Self>;
     // /// Create a `Duration` from the number of hours.
@@ -76,19 +68,19 @@ macro_rules! impl_numerical_duration {
                 // fn microseconds(self) -> Duration<$type> {
                 //     Duration::from_micros(self)
                 // }
-                //
-                // // at least 40 bits
-                // #[inline(always)]
-                // fn milliseconds(self) -> Duration<$type> {
-                //     Duration::from_millis(self)
-                // }
-                //
-                // // at least 30 bits
-                // #[inline(always)]
-                // fn seconds(self) -> Duration<$type> {
-                //     Duration::from_secs(self)
-                // }
-                //
+
+                // at least 40 bits
+                #[inline(always)]
+                fn milliseconds(self) -> Milliseconds<$type> {
+                    Milliseconds(self)
+                }
+
+                // at least 30 bits
+                #[inline(always)]
+                fn seconds(self) -> Seconds<$type> {
+                    Seconds(self)
+                }
+
                 // // at least 24 bits
                 // #[inline(always)]
                 // fn minutes(self) -> Duration<$type> {

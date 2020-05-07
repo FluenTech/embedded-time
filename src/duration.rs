@@ -1,36 +1,13 @@
-use crate::numerical_traits::NumericalDuration;
+use crate::integer::{IntTrait, Integer};
+use crate::numerical_duration::NumericalDuration;
 use crate::Ratio;
-use core::ops::Deref;
-use core::{fmt, ops};
+use core::convert::{TryFrom, TryInto};
+use core::fmt::Formatter;
+use core::num::TryFromIntError;
+use core::{convert, fmt, ops};
 
-pub trait IntTrait: num::Integer + num::PrimInt + From<i32> {}
-
-// impl IntTrait for i8 {}
-// impl IntTrait for i16 {}
-impl IntTrait for i32 {}
-impl IntTrait for i64 {}
-// impl IntTrait for i128 {}
-// impl IntTrait for u8 {}
-// impl IntTrait for u16 {}
-// impl IntTrait for u32 {}
-// impl IntTrait for u64 {}
-// impl IntTrait for u128 {}
-
-#[derive(Copy, Clone, Debug, Default)]
-pub struct Integer<T: IntTrait>(pub T);
-
-impl<T: IntTrait> ops::Deref for Integer<T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-pub(crate) type Period = Ratio<i32>;
-
-pub trait Time<R: IntTrait + NumericalDuration>: Sized {
-    const PERIOD: Period = Period::new_raw(1, 1);
+pub trait Time<R: IntTrait + NumericalDuration>: Sized + fmt::Display {
+    const PERIOD: Period;
 
     fn new(value: R) -> Self;
 
@@ -70,34 +47,68 @@ pub trait Time<R: IntTrait + NumericalDuration>: Sized {
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
-pub struct Seconds<R: IntTrait + NumericalDuration>(pub R);
+pub struct Seconds<T: IntTrait + NumericalDuration>(pub T);
 
-impl<R: IntTrait + NumericalDuration> Time<R> for Seconds<R> {
+impl<T: IntTrait + NumericalDuration> Time<T> for Seconds<T> {
     const PERIOD: Period = Period::new_raw(1, 1);
 
-    fn new(value: R) -> Self {
+    fn new(value: T) -> Self {
         Self(value)
     }
 
-    fn count(self) -> R {
+    fn count(self) -> T {
         self.0
     }
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
-pub struct Milliseconds<R: IntTrait + NumericalDuration>(pub R);
+pub struct Milliseconds<T: IntTrait + NumericalDuration>(pub T);
 
-impl<R: IntTrait + NumericalDuration> Time<R> for Milliseconds<R> {
+impl<T: IntTrait + NumericalDuration> Time<T> for Milliseconds<T> {
     const PERIOD: Period = Period::new_raw(1, 1_000);
 
-    fn new(value: R) -> Self {
+    fn new(value: T) -> Self {
         Self(value)
     }
 
-    fn count(self) -> R {
+    fn count(self) -> T {
         self.0
     }
 }
+
+/// ```rust
+/// use embedded_time::duration::{Seconds, Milliseconds};
+/// use core::convert::TryFrom;
+/// assert_eq!(Milliseconds::from(Seconds(1_000)), Milliseconds(1_000_000));
+/// assert_eq!(Milliseconds(1_000_000), Seconds(1_000).into());
+/// ```
+impl<T: IntTrait + NumericalDuration> convert::From<Seconds<T>> for Milliseconds<T> {
+    fn from(other: Seconds<T>) -> Self {
+        Milliseconds(*(Integer(other.0) / Self::PERIOD))
+    }
+}
+
+impl<T: IntTrait + NumericalDuration> fmt::Display for Milliseconds<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        // let hours = self.as_hours().hours();
+        // let minutes = self.as_mins().minutes() - hours;
+        let seconds = Seconds::from_dur(*self);
+        let milliseconds = *self - Milliseconds::from_dur(seconds);
+        write!(f, "{:02}:{:03}", seconds.count(), milliseconds.count(),)
+    }
+}
+
+impl<T: IntTrait + NumericalDuration> fmt::Display for Seconds<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        // let hours = self.as_hours().hours();
+        // let minutes = self.as_mins().minutes() - hours;
+        // let seconds = self.as_secs().seconds() - minutes - hours;
+        // let milliseconds = self.as_millis().milliseconds() - seconds - minutes - hours;
+        write!(f, "{:02}", self.count())
+    }
+}
+
+pub(crate) type Period = Ratio<i32>;
 
 impl<T: IntTrait> ops::Mul<Period> for Integer<T> {
     type Output = Self;
@@ -450,43 +461,60 @@ impl<T: IntTrait> ops::Div<Period> for Integer<T> {
 //     }
 // }
 
-// impl<T, R> fmt::Display for T
-// where
-//     T: Time<R>,
-// {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         // let hours = self.as_hours().hours();
-//         // let minutes = self.as_mins().minutes() - hours;
-//         // let seconds = self.as_secs().seconds() - minutes - hours;
-//         // let milliseconds = self.as_millis().milliseconds() - seconds - minutes - hours;
-//         // write!(
-//         //     f,
-//         //     "{:02}:{:02}:{:02}.{:03}",
-//         //     hours.as_hours(),
-//         //     minutes.as_mins(),
-//         //     seconds.as_secs(),
-//         //     milliseconds.as_millis(),
-//         // )
-//         todo!()
-//     }
-// }
+/// ```rust
+/// # use embedded_time::prelude::*;
+/// use embedded_time::duration::{Seconds, Milliseconds};
+/// assert_eq!((Seconds(3_i32) + Seconds(2_i32)).count(), 5_i32);
+/// assert_eq!((Seconds(3_i64) + Seconds(2_i64)).count(), 5_i64);
+/// ```
+impl<T> ops::Add for Seconds<T>
+where
+    T: IntTrait + NumericalDuration,
+{
+    type Output = Self;
 
-// /// ```rust
-// /// # use embedded_time::prelude::*;
-// /// assert_eq!(2.seconds() + 500.milliseconds(), 2_500.milliseconds());
-// /// ```
-// impl<R: IntTrait + NumericalDuration> ops::Add for Duration<R> {
-//     type Output = Self;
-//
-//     #[inline]
-//     fn add(self, rhs: Self) -> Self::Output {
-//         Self {
-//             value: self.value + rhs.value,
-//             period: self.period,
-//         }
-//     }
-// }
-//
+    #[inline]
+    fn add(self, rhs: Self) -> Self::Output {
+        Self(self.0 + rhs.0)
+    }
+}
+
+/// ```rust
+/// # use embedded_time::prelude::*;
+/// use embedded_time::duration::{Seconds, Milliseconds};
+/// assert_eq!((Seconds(3_i32) - Seconds(2_i32)).count(), 1_i32);
+/// assert_eq!((Seconds(3_i64) - Seconds(2_i64)).count(), 1_i64);
+/// ```
+impl<T> ops::Sub for Seconds<T>
+where
+    T: IntTrait + NumericalDuration,
+{
+    type Output = Self;
+
+    #[inline]
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self(self.0 - rhs.0)
+    }
+}
+
+/// ```rust
+/// # use embedded_time::prelude::*;
+/// use embedded_time::duration::{Seconds, Milliseconds};
+/// assert_eq!((Milliseconds(3_i32) - Milliseconds(2_i32)).count(), 1_i32);
+/// assert_eq!((Milliseconds(3_i64) - Milliseconds(2_i64)).count(), 1_i64);
+/// ```
+impl<T> ops::Sub for Milliseconds<T>
+where
+    T: IntTrait + NumericalDuration,
+{
+    type Output = Self;
+
+    #[inline]
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self(self.0 - rhs.0)
+    }
+}
+
 // impl<R: IntTrait + NumericalDuration> ops::AddAssign for Duration<R> {
 //     #[inline(always)]
 //     fn add_assign(&mut self, rhs: Self) {
