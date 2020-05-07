@@ -1,27 +1,16 @@
 use crate::integer::{IntTrait, Integer};
 use crate::numerical_duration::NumericalDuration;
 use crate::Ratio;
-use core::convert::{TryFrom, TryInto};
+use core::convert::TryInto;
 use core::fmt::Formatter;
-use core::num::TryFromIntError;
 use core::{convert, fmt, ops};
 
-pub trait Time<R: IntTrait + NumericalDuration>: Sized + fmt::Display {
+pub trait Duration<T: IntTrait + NumericalDuration>: Sized + fmt::Display {
     const PERIOD: Period;
 
-    fn new(value: R) -> Self;
+    fn new(value: T) -> Self;
 
-    fn count(self) -> R;
-
-    /// ```rust
-    /// use embedded_time::prelude::*;
-    /// use embedded_time::duration::{Seconds, Milliseconds};
-    /// assert_eq!(Seconds::from_dur(Milliseconds(2_000)), Seconds(2_i64));
-    /// ```
-    fn from_dur<T: Time<R>>(other: T) -> Self {
-        let value = Integer(other.count()) * T::PERIOD / Self::PERIOD;
-        Self::new(*value)
-    }
+    fn count(self) -> T;
 
     fn period() -> Period {
         Self::PERIOD
@@ -32,8 +21,8 @@ pub trait Time<R: IntTrait + NumericalDuration>: Sized + fmt::Display {
     /// # use embedded_time::duration::Seconds;
     /// assert_eq!(Seconds::<i32>::min_value(), i32::MIN);
     /// ```
-    fn min_value() -> R {
-        R::min_value()
+    fn min_value() -> T {
+        T::min_value()
     }
 
     /// ```rust
@@ -41,72 +30,59 @@ pub trait Time<R: IntTrait + NumericalDuration>: Sized + fmt::Display {
     /// # use embedded_time::duration::Seconds;
     /// assert_eq!(Seconds::<i32>::max_value(), i32::MAX);
     /// ```
-    fn max_value() -> R {
-        R::max_value()
+    fn max_value() -> T {
+        T::max_value()
+    }
+
+    /// ```rust
+    /// # use embedded_time::duration::{Seconds, Milliseconds, Microseconds, Duration};
+    /// assert_eq!(Milliseconds::from_dur(Seconds(1_000)), Milliseconds(1_000_000));
+    /// assert_eq!(Seconds::from_dur(Milliseconds(1_234)), Seconds(1));
+    /// assert_eq!(Microseconds::from_dur(Milliseconds(1_234)), Microseconds(1_234_000));
+    /// ```
+    fn from_dur<U: Duration<T>>(other: U) -> Self {
+        Self::new(*(Integer(other.count()) * (U::PERIOD / Self::PERIOD)))
+    }
+
+    /// ```rust
+    /// # use embedded_time::duration::{Seconds, Milliseconds, Microseconds, Duration};
+    /// assert_eq!(Milliseconds(1_000_000), Seconds(1_000).into_dur());
+    /// assert_eq!(Seconds(2), Milliseconds(2_345).into_dur());
+    /// ```
+    fn into_dur<U: Duration<T>>(self) -> U {
+        U::new(*(Integer(self.count()) * (Self::PERIOD / U::PERIOD)))
     }
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
-pub struct Seconds<T: IntTrait + NumericalDuration>(pub T);
+macro_rules! durations {
+    ( $( $name:ident, ($numer:expr, $denom:expr) );+ ) => {
+        $(
+            #[derive(Copy, Clone, Eq, PartialEq, Debug)]
+            pub struct $name<T: IntTrait + NumericalDuration>(pub T);
 
-impl<T: IntTrait + NumericalDuration> Time<T> for Seconds<T> {
-    const PERIOD: Period = Period::new_raw(1, 1);
+            impl<T: IntTrait + NumericalDuration> Duration<T> for $name<T> {
+                const PERIOD: Period = Period::new_raw($numer, $denom);
 
-    fn new(value: T) -> Self {
-        Self(value)
-    }
+                fn new(value: T) -> Self {
+                    Self(value)
+                }
 
-    fn count(self) -> T {
-        self.0
-    }
+                fn count(self) -> T {
+                    self.0
+                }
+            }
+
+            impl<T: IntTrait + NumericalDuration> fmt::Display for $name<T> {
+                fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+                    write!(f, "{}", self.count())
+                }
+            }
+
+         )+
+     };
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
-pub struct Milliseconds<T: IntTrait + NumericalDuration>(pub T);
-
-impl<T: IntTrait + NumericalDuration> Time<T> for Milliseconds<T> {
-    const PERIOD: Period = Period::new_raw(1, 1_000);
-
-    fn new(value: T) -> Self {
-        Self(value)
-    }
-
-    fn count(self) -> T {
-        self.0
-    }
-}
-
-/// ```rust
-/// use embedded_time::duration::{Seconds, Milliseconds};
-/// use core::convert::TryFrom;
-/// assert_eq!(Milliseconds::from(Seconds(1_000)), Milliseconds(1_000_000));
-/// assert_eq!(Milliseconds(1_000_000), Seconds(1_000).into());
-/// ```
-impl<T: IntTrait + NumericalDuration> convert::From<Seconds<T>> for Milliseconds<T> {
-    fn from(other: Seconds<T>) -> Self {
-        Milliseconds(*(Integer(other.0) / Self::PERIOD))
-    }
-}
-
-impl<T: IntTrait + NumericalDuration> fmt::Display for Milliseconds<T> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        // let hours = self.as_hours().hours();
-        // let minutes = self.as_mins().minutes() - hours;
-        let seconds = Seconds::from_dur(*self);
-        let milliseconds = *self - Milliseconds::from_dur(seconds);
-        write!(f, "{:02}:{:03}", seconds.count(), milliseconds.count(),)
-    }
-}
-
-impl<T: IntTrait + NumericalDuration> fmt::Display for Seconds<T> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        // let hours = self.as_hours().hours();
-        // let minutes = self.as_mins().minutes() - hours;
-        // let seconds = self.as_secs().seconds() - minutes - hours;
-        // let milliseconds = self.as_millis().milliseconds() - seconds - minutes - hours;
-        write!(f, "{:02}", self.count())
-    }
-}
+durations![Seconds, (1, 1); Milliseconds, (1, 1_000); Microseconds, (1, 1_000_000)];
 
 pub(crate) type Period = Ratio<i32>;
 

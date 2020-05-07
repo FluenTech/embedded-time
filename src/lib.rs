@@ -29,7 +29,7 @@ pub use num::rational::Ratio;
 /// major releases.
 pub mod prelude {
     // Rename traits to `_` to avoid any potential name conflicts.
-    pub use crate::duration::Time as _Time;
+    pub use crate::duration::Duration as _Time;
     pub use crate::integer::IntTrait as _IntTrait;
     pub use crate::numerical_duration::NumericalDuration as _NumericalDuration;
     pub use num::Integer as _Integer;
@@ -38,7 +38,7 @@ pub mod prelude {
 #[cfg(test)]
 mod tests {
     use super::{prelude::*, *};
-    use crate::duration::{Milliseconds, Period, Seconds, Time};
+    use crate::duration::{Duration, Milliseconds, Period, Seconds};
     use crate::instant::{Clock, Instant};
 
     #[derive(Copy, Clone)]
@@ -48,7 +48,7 @@ mod tests {
         type Rep = i64;
         const PERIOD: Period = Period::new_raw(1, 1_000);
 
-        fn now<U: Time<Self::Rep>>() -> Instant<U>
+        fn now<U: Duration<Self::Rep>>() -> Instant<U>
         where
             Self: Sized,
         {
@@ -68,6 +68,11 @@ mod tests {
         assert_eq!(
             Seconds::from_dur(now.duration_since_epoch()).count(),
             5_025_678_910
+        );
+        assert_eq!(format!("{}", now.duration_since_epoch()), "5025678910111");
+        assert_eq!(
+            format!("{}", Seconds::from_dur(now.duration_since_epoch())),
+            "5025678910"
         );
         // assert_eq!(format!("{}", now), "01:23:45.678");
         // assert_eq!(format!("{}", now.duration_since_epoch()), "01:23:45.678");

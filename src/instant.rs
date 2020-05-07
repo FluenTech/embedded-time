@@ -1,4 +1,4 @@
-use crate::duration::{Period, Time};
+use crate::duration::{Duration, Period};
 use crate::numerical_duration::NumericalDuration;
 use crate::IntTrait;
 use crate::Ratio;
@@ -11,7 +11,7 @@ pub trait Clock {
     const PERIOD: Period;
 
     /// Get the current Instant
-    fn now<U: Time<Self::Rep>>() -> Instant<U>
+    fn now<U: Duration<Self::Rep>>() -> Instant<U>
     where
         Self: Sized;
 }
