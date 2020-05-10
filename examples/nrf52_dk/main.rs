@@ -8,34 +8,35 @@
 
 extern crate panic_rtt;
 use core::borrow::Borrow;
-use core::fmt::{self, Display, Formatter};
+use core::convert::TryInto;
 use core::prelude::v1::*;
 use cortex_m::mutex::CriticalSectionMutex as Mutex;
-use embedded_time::{prelude::*, Duration, Instant, Ratio};
-use mutex_trait::Mutex as _;
-use nrf52832_hal::gpio::{Level, OpenDrain, OpenDrainConfig, Output};
-use nrf52832_hal::prelude::*;
-
-pub mod nrf52 {
-    use super::*;
-    use core::ops;
-    use mutex_trait::Mutex;
-    use rtfm::Fraction;
-}
-
-use nrf52832_hal::target;
+use embedded_time::prelude::*;
+use embedded_time::time_units::*;
+use embedded_time::{Duration, Instant, Period};
+use mutex_trait::Mutex as _Mutex;
 use rtfm::Fraction;
 
-struct SystemTime {
-    low: target::TIMER0,
-    high: target::TIMER1,
-    capture_task: target::EGU0,
+pub mod nrf52 {
+    pub use nrf52832_hal::gpio;
+    pub use nrf52832_hal::prelude;
+    pub use nrf52832_hal::target as pac;
+}
+
+use nrf52::prelude::*;
+
+pub struct SystemTime {
+    low: nrf52::pac::TIMER0,
+    high: nrf52::pac::TIMER1,
+    capture_task: nrf52::pac::EGU0,
 }
 
 impl SystemTime {
-    const PERIOD: Ratio<u64> = Ratio::new(1, 16_000_000);
-
-    pub fn new(low: target::TIMER0, high: target::TIMER1, capture_task: target::EGU0) -> Self {
+    pub fn new(
+        low: nrf52::pac::TIMER0,
+        high: nrf52::pac::TIMER1,
+        capture_task: nrf52::pac::EGU0,
+    ) -> Self {
         low.tasks_start.write(|write| unsafe { write.bits(1) });
         high.tasks_start.write(|write| unsafe { write.bits(1) });
         Self {
@@ -51,8 +52,27 @@ impl SystemTime {
     }
 }
 
+impl embedded_time::Clock for SystemTime {
+    type Rep = i64;
+    const PERIOD: Period = Period::new_raw(1, 16_000_000);
+
+    fn now<U>() -> Instant<U>
+    where
+        U: Duration<Self::Rep>,
+    {
+        let ticks = (&SYSTEM_TICKS).lock(|system_ticks| match system_ticks {
+            Some(system_ticks) => system_ticks.read(),
+            None => 0,
+        });
+
+        let ticks = ticks.try_into().unwrap();
+
+        Instant(U::from_ticks(ticks, Self::PERIOD))
+    }
+}
+
 impl rtfm::Monotonic for SystemTime {
-    type Instant = embedded_time::Instant;
+    type Instant = embedded_time::Instant<Nanoseconds<i64>>;
 
     fn ratio() -> Fraction {
         Fraction {
@@ -62,10 +82,7 @@ impl rtfm::Monotonic for SystemTime {
     }
 
     fn now() -> Self::Instant {
-        Duration((&SYSTEM_TICKS).lock(|system_ticks| match system_ticks {
-            Some(system_ticks) => (system_ticks.read() * Self::ratio()).nanoseconds(),
-            None => 0.seconds(),
-        }))
+        <Self as embedded_time::Clock>::now()
     }
 
     unsafe fn reset() {
@@ -79,19 +96,19 @@ impl rtfm::Monotonic for SystemTime {
     }
 
     fn zero() -> Self::Instant {
-        Self(0.nanoseconds())
+        Instant(0.nanoseconds())
     }
 }
 
 static SYSTEM_TICKS: Mutex<Option<SystemTime>> = Mutex::new(None);
 
-#[rtfm::app(device = nrf52832_hal::pac, peripherals = true, monotonic = crate::nrf52::Instant)]
+#[rtfm::app(device = nrf52832_hal::pac, peripherals = true, monotonic = crate::SystemTime)]
 const APP: () = {
     struct Resources {
-        led1: nrf52832_hal::gpio::p0::P0_17<Output<OpenDrain>>,
-        led2: nrf52832_hal::gpio::p0::P0_18<Output<OpenDrain>>,
-        led3: nrf52832_hal::gpio::p0::P0_19<Output<OpenDrain>>,
-        led4: nrf52832_hal::gpio::p0::P0_20<Output<OpenDrain>>,
+        led1: nrf52::gpio::p0::P0_17<nrf52::gpio::Output<nrf52::gpio::OpenDrain>>,
+        led2: nrf52::gpio::p0::P0_18<nrf52::gpio::Output<nrf52::gpio::OpenDrain>>,
+        led3: nrf52::gpio::p0::P0_19<nrf52::gpio::Output<nrf52::gpio::OpenDrain>>,
+        led4: nrf52::gpio::p0::P0_20<nrf52::gpio::Output<nrf52::gpio::OpenDrain>>,
     }
 
     #[init(spawn = [turn_on_led1, turn_on_led2, turn_on_led3, turn_on_led4])]
@@ -121,30 +138,25 @@ const APP: () = {
         unsafe {
             cx.device.PPI.ch[0].eep.write(|w| {
                 w.bits(cx.device.TIMER0.events_compare[1].borrow()
-                    as *const nrf52832_hal::target::generic::Reg<_, _>
-                    as u32)
+                    as *const nrf52::pac::generic::Reg<_, _> as u32)
             });
             cx.device.PPI.ch[0].tep.write(|w| {
                 w.bits(cx.device.TIMER1.tasks_count.borrow()
-                    as *const nrf52832_hal::target::generic::Reg<_, _>
-                    as u32)
+                    as *const nrf52::pac::generic::Reg<_, _> as u32)
             });
             cx.device.PPI.chen.modify(|_, w| w.ch0().enabled());
 
             cx.device.PPI.ch[1].eep.write(|w| {
                 w.bits(cx.device.EGU0.events_triggered[0].borrow()
-                    as *const nrf52832_hal::target::generic::Reg<_, _>
-                    as u32)
+                    as *const nrf52::pac::generic::Reg<_, _> as u32)
             });
             cx.device.PPI.ch[1].tep.write(|w| {
                 w.bits(cx.device.TIMER0.tasks_capture[0].borrow()
-                    as *const nrf52832_hal::target::generic::Reg<_, _>
-                    as u32)
+                    as *const nrf52::pac::generic::Reg<_, _> as u32)
             });
             cx.device.PPI.fork[1].tep.write(|w| {
                 w.bits(cx.device.TIMER1.tasks_capture[0].borrow()
-                    as *const nrf52832_hal::target::generic::Reg<_, _>
-                    as u32)
+                    as *const nrf52::pac::generic::Reg<_, _> as u32)
             });
             cx.device.PPI.chen.modify(|_, w| w.ch1().enabled());
         }
@@ -152,23 +164,27 @@ const APP: () = {
         let system_ticks = SystemTime::new(cx.device.TIMER0, cx.device.TIMER1, cx.device.EGU0);
         (&SYSTEM_TICKS).lock(|ticks| *ticks = Some(system_ticks));
 
-        let port0 = nrf52832_hal::gpio::p0::Parts::new(cx.device.P0);
+        let port0 = nrf52::gpio::p0::Parts::new(cx.device.P0);
 
-        let led1 = port0
-            .p0_17
-            .into_open_drain_output(OpenDrainConfig::Standard0Disconnect1, Level::High);
+        let led1 = port0.p0_17.into_open_drain_output(
+            nrf52::gpio::OpenDrainConfig::Standard0Disconnect1,
+            nrf52::gpio::Level::High,
+        );
 
-        let led2 = port0
-            .p0_18
-            .into_open_drain_output(OpenDrainConfig::Standard0Disconnect1, Level::High);
+        let led2 = port0.p0_18.into_open_drain_output(
+            nrf52::gpio::OpenDrainConfig::Standard0Disconnect1,
+            nrf52::gpio::Level::High,
+        );
 
-        let led3 = port0
-            .p0_19
-            .into_open_drain_output(OpenDrainConfig::Standard0Disconnect1, Level::High);
+        let led3 = port0.p0_19.into_open_drain_output(
+            nrf52::gpio::OpenDrainConfig::Standard0Disconnect1,
+            nrf52::gpio::Level::High,
+        );
 
-        let led4 = port0
-            .p0_20
-            .into_open_drain_output(OpenDrainConfig::Standard0Disconnect1, Level::High);
+        let led4 = port0.p0_20.into_open_drain_output(
+            nrf52::gpio::OpenDrainConfig::Standard0Disconnect1,
+            nrf52::gpio::Level::High,
+        );
 
         init::LateResources {
             led1,
