@@ -85,6 +85,7 @@ macro_rules! impl_numerical_duration {
                 fn hours(self) -> Hours<$type> {
                     Hours(self)
                 }
+
             }
         )*
     };

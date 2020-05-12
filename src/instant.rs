@@ -1,4 +1,5 @@
-use crate::duration::{Duration, Time};
+use crate::duration::time_units::{TryMapFrom, TryMapInto, *};
+use crate::duration::{Duration, Time, TryMapFromError};
 use crate::integer::IntTrait;
 use crate::numerical_duration::TimeRep;
 use crate::Period;
@@ -20,7 +21,28 @@ pub trait Clock: Sized {
 
 /// Represents an instant in time
 ///
-/// `T` is a type implementing the `Duration<_>` trait
+/// Comparisons can be performed between different precisions but not between different representations/widths
+///
+/// # Examples
+/// ```
+/// # use embedded_time::Instant;
+/// # use embedded_time::time_units::*;
+/// # use embedded_time::duration::time_units::{TryMapInto, TryMapFrom};
+/// assert!(Instant::new(Seconds(1)) == Instant::new(Milliseconds(1_000)));
+/// assert!(Instant::new(Seconds(1)) != Instant::new(Milliseconds(1_001)));
+/// assert!(Instant::new(Seconds(1)) < Instant::new(Milliseconds(1_001)));
+/// assert!(Instant::new(Seconds(1)) > Instant::new(Milliseconds(999)));
+///
+/// assert!(Instant::new(Microseconds(119_900_000)) < Instant::new(Minutes(2)));
+///
+/// // assert!(Instant::new(Seconds(1_i32)) < Instant::new(Milliseconds(1_001_i64))); <- doesn't compile
+/// assert!(Instant::new(Seconds(1_i32)) < Instant::new(Milliseconds(1_001_i32)));
+/// let time = Instant::new(Seconds(1_i32));
+/// let time = i64::try_map_from(time);
+/// assert_eq!(time, Ok(Instant::new(Seconds(1_i64))));
+/// let time = time.unwrap().try_map_into();
+/// assert_eq!(time, Ok(Instant::new(Seconds(1_i32))));
+/// ```
 #[derive(Debug, Copy, Clone, Eq, Ord)]
 pub struct Instant<T, R>(pub T, PhantomData<R>)
 where
@@ -44,65 +66,88 @@ where
     }
 }
 
-// impl<D1, R1, D2, R2> TryFrom<Instant<D1, R1>> for Instant<D2, R2>
-// where
-//     R1: TimeRep,
-//     R2: TimeRep,
-//     D1: Duration<R1>,
-//     D2: Duration<R2>,
-// {
-//     type Error = ();
-//
-//     fn try_from(value: Instant<D1, R1>) -> Result<Self, Self::Error> {
-//         Ok(Self::new(D2::try_from(value.0).unwrap()))
-//     }
-// }
-
 /// ```rust
-/// use embedded_time::Instant;
-/// use embedded_time::time_units::*;
-/// assert!(Instant::new(Seconds(2)) == Instant::new(Milliseconds(2_000)));
-/// assert!(Instant::new(Seconds(1_i64)) != Instant::new(Milliseconds(1_001_i32)));
+/// # use embedded_time::prelude::*;
+/// # use embedded_time::time_units::*;
+/// # use embedded_time::Instant;
+/// let time = Instant::new(Seconds(23_000_i64));
+/// let time = i32::try_map_from(time);
+/// assert_eq!(time, Ok(Instant::new(Seconds(23_000_i32))));
+/// let time = i64::try_map_from(time.unwrap());
+/// assert_eq!(time, Ok(Instant::new(Seconds(23_000_i64))));
+/// let time = i64::try_map_from(time.unwrap());
+/// assert_eq!(time, Ok(Instant::new(Seconds(23_000_i64))));
+///
+/// //assert_eq!(i32::try_map_from(Milliseconds(23_000_i64)), Ok(Milliseconds(23_000_i32)));
 /// ```
-impl<T1, R1, T2, R2> PartialEq<Instant<T2, R2>> for Instant<T1, R1>
+impl<FromRep, ToRep> TryMapFrom<Instant<Seconds<FromRep>, FromRep>, FromRep> for ToRep
 where
-    R2: TimeRep,
-    R1: TimeRep,
-    T1: Duration<R1>,
-    T2: Duration<R2>,
-    // T1: PartialEq<T2>,
-    // T1: PartialEq,
-    R1: PartialEq<R2>,
-    // R2: PartialEq<R1>,
-    R2: TryInto<R1>,
-    R1: TryFrom<R2>,
-    TryFromIntError: From<<R2 as TryInto<R1>>::Error>,
+    FromRep: TimeRep,
+    ToRep: TimeRep + TryFrom<FromRep>,
+    TryMapFromError: From<<ToRep as TryFrom<FromRep>>::Error>,
 {
-    fn eq(&self, other: &Instant<T2, R2>) -> bool {
-        self.0 == other.0.map_into::<R1>().unwrap()
+    type Error = TryMapFromError;
+    type Output = Instant<Seconds<Self>, Self>;
+
+    fn try_map_from(
+        other: Instant<Seconds<FromRep>, FromRep>,
+    ) -> Result<Instant<Seconds<Self>, Self>, TryMapFromError> {
+        Ok(Instant::new(Self::try_map_from(other.0)?))
     }
 }
 
 /// ```rust
-/// use embedded_time::Instant;
-/// use embedded_time::time_units::*;
-/// //assert!(Instant::new(Seconds(1)) < Instant::new(Milliseconds(1_001)));
+/// # use embedded_time::prelude::*;
+/// # use embedded_time::time_units::*;
+/// # use embedded_time::Instant;
+/// let time = Instant::new(Seconds(23_000_i64));
+/// let time = time.try_map_into();
+/// assert_eq!(time, Ok(Instant::new(Seconds(23_000_i32))));
+/// //let time = i64::try_map_from(time);
+/// //assert_eq!(time, Ok(Seconds(23_000_i64)));
+/// //let time = i64::try_map_from(time);
+/// //assert_eq!(time, Ok(Seconds(23_000_i64)));
+///
+/// //assert_eq!(Milliseconds(23_000_i64).try_map_into(), Ok(Milliseconds(23_000_i32)));
 /// ```
-impl<T1, R1, T2, R2> PartialOrd<Instant<T2, R2>> for Instant<T1, R1>
+impl<FromRep, ToRep> TryMapInto<Instant<Seconds<ToRep>, ToRep>, ToRep>
+    for Instant<Seconds<FromRep>, FromRep>
 where
-    R2: TimeRep,
+    FromRep: TimeRep,
+    ToRep: TimeRep,
+    ToRep: TryMapFrom<
+        Instant<Seconds<FromRep>, FromRep>,
+        FromRep,
+        Output = Instant<Seconds<ToRep>, ToRep>,
+    >,
+{
+    type Error = <ToRep as TryMapFrom<Instant<Seconds<FromRep>, FromRep>, FromRep>>::Error;
+
+    fn try_map_into(self) -> Result<Instant<Seconds<ToRep>, ToRep>, Self::Error> {
+        Ok(ToRep::try_map_from(self)?)
+    }
+}
+impl<T1, R1, T2> PartialEq<Instant<T2, R1>> for Instant<T1, R1>
+where
+    T1: Duration<R1>,
+    T1: PartialEq<T2>,
+    R1: TimeRep,
+    T2: Duration<R1>,
+{
+    fn eq(&self, other: &Instant<T2, R1>) -> bool {
+        self.0 == other.0
+    }
+}
+
+impl<T1, R1, T2> PartialOrd<Instant<T2, R1>> for Instant<T1, R1>
+where
     R1: TimeRep,
     T1: Duration<R1>,
-    T2: Duration<R2>,
-    T1: PartialOrd,
-    R1: PartialEq<R2>,
-    R2: TryInto<R1>,
-    R1: TryFrom<R2>,
-    TryFromIntError: From<<R2 as TryInto<R1>>::Error>,
+    T2: Duration<R1>,
+    T1: PartialOrd<T2>,
 {
-    fn partial_cmp(&self, other: &Instant<T2, R2>) -> Option<Ordering> {
-        self.0.partial_cmp(&other.0.try_into::<_, R1>().unwrap())
-        // unimplemented!()
+    fn partial_cmp(&self, other: &Instant<T2, R1>) -> Option<Ordering> {
+        self.0.partial_cmp(&other.0)
     }
 }
 
