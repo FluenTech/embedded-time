@@ -1,20 +1,21 @@
-use crate::duration::time_units::{TryMapFrom, TryMapInto, *};
+use crate::duration::time_units::{TryConvertFrom, TryConvertInto, *};
 use crate::duration::{Duration, Time, TryMapFromError};
 use crate::integer::IntTrait;
 use crate::numerical_duration::TimeRep;
-use crate::Period;
+use crate::{Period, Wrapper};
 use core::convert::TryInto;
 use core::marker::PhantomData;
 use core::num::TryFromIntError;
 use core::{cmp::Ordering, convert::TryFrom, fmt, ops};
+use num::rational::Ratio;
 
 pub trait Clock: Sized {
     /// The type of the internal representation of time
     type Rep: TimeRep;
-    const PERIOD: Period;
+    const PERIOD: Ratio<i32>;
 
     /// Get the current Instant
-    fn now<U: Duration<Self::Rep>>() -> Instant<U, Self::Rep>
+    fn now<Dur: Copy>() -> Instant<Dur>
     where
         Self: Sized;
 }
@@ -27,41 +28,34 @@ pub trait Clock: Sized {
 /// ```
 /// # use embedded_time::Instant;
 /// # use embedded_time::time_units::*;
-/// # use embedded_time::duration::time_units::{TryMapInto, TryMapFrom};
-/// assert!(Instant::new(Seconds(1)) == Instant::new(Milliseconds(1_000)));
-/// assert!(Instant::new(Seconds(1)) != Instant::new(Milliseconds(1_001)));
-/// assert!(Instant::new(Seconds(1)) < Instant::new(Milliseconds(1_001)));
-/// assert!(Instant::new(Seconds(1)) > Instant::new(Milliseconds(999)));
+/// # use embedded_time::duration::time_units::{TryConvertInto, TryConvertFrom};
+/// assert!(Instant(Seconds(1)) == Instant(Milliseconds(1_000)));
+/// assert!(Instant(Seconds(1)) != Instant(Milliseconds(1_001)));
+/// assert!(Instant(Seconds(1)) < Instant(Milliseconds(1_001)));
+/// assert!(Instant(Seconds(1)) > Instant(Milliseconds(999)));
+/// assert!(Instant(Microseconds(119_900_000)) < Instant(Minutes(2)));
 ///
-/// assert!(Instant::new(Microseconds(119_900_000)) < Instant::new(Minutes(2)));
+/// //assert!(Instant(Seconds(1_i32)) == Instant(Seconds(1_i64)));  <- won't compile
 ///
-/// // assert!(Instant::new(Seconds(1_i32)) < Instant::new(Milliseconds(1_001_i64))); <- doesn't compile
-/// assert!(Instant::new(Seconds(1_i32)) < Instant::new(Milliseconds(1_001_i32)));
-/// let time = Instant::new(Seconds(1_i32));
-/// let time = i64::try_map_from(time);
-/// assert_eq!(time, Ok(Instant::new(Seconds(1_i64))));
-/// let time = time.unwrap().try_map_into();
-/// assert_eq!(time, Ok(Instant::new(Seconds(1_i32))));
+/// let time = Instant(Seconds(1_i32));
+/// let time = i64::try_convert_from(time);
+/// assert_eq!(time, Ok(Instant(Seconds(1_i64))));
+/// let time = time.unwrap().try_convert_into();
+/// assert_eq!(time, Ok(Instant(Seconds(1_i32))));
 /// ```
 #[derive(Debug, Copy, Clone, Eq, Ord)]
-pub struct Instant<T, R>(pub T, PhantomData<R>)
-where
-    T: Duration<R>,
-    R: TimeRep;
+pub struct Instant<T: Copy>(pub T);
 
-impl<T, R> Instant<T, R>
-where
-    T: Duration<R>,
-    R: TimeRep,
-{
-    pub fn new(duration: T) -> Self
-    where
-        T: Duration<R>,
-    {
-        Self(duration, PhantomData)
-    }
-
+impl<T: Copy> Instant<T> {
     pub fn duration_since_epoch(self) -> T {
+        self.0
+    }
+}
+
+impl<Dur: Copy> Wrapper for Instant<Dur> {
+    type Rep = Dur;
+
+    fn unwrap(self) -> Self::Rep {
         self.0
     }
 }
@@ -70,29 +64,29 @@ where
 /// # use embedded_time::prelude::*;
 /// # use embedded_time::time_units::*;
 /// # use embedded_time::Instant;
-/// let time = Instant::new(Seconds(23_000_i64));
-/// let time = i32::try_map_from(time);
-/// assert_eq!(time, Ok(Instant::new(Seconds(23_000_i32))));
-/// let time = i64::try_map_from(time.unwrap());
-/// assert_eq!(time, Ok(Instant::new(Seconds(23_000_i64))));
-/// let time = i64::try_map_from(time.unwrap());
-/// assert_eq!(time, Ok(Instant::new(Seconds(23_000_i64))));
+/// let time = Instant(Seconds(23_000_i64));
+/// let time = i32::try_convert_from(time);
+/// assert_eq!(time, Ok(Instant(Seconds(23_000_i32))));
+/// let time = i64::try_convert_from(time.unwrap());
+/// assert_eq!(time, Ok(Instant(Seconds(23_000_i64))));
+/// let time = i64::try_convert_from(time.unwrap());
+/// assert_eq!(time, Ok(Instant(Seconds(23_000_i64))));
 ///
-/// //assert_eq!(i32::try_map_from(Milliseconds(23_000_i64)), Ok(Milliseconds(23_000_i32)));
+/// //assert_eq!(i32::try_convert_from(Milliseconds(23_000_i64)), Ok(Milliseconds(23_000_i32)));
 /// ```
-impl<FromRep, ToRep> TryMapFrom<Instant<Seconds<FromRep>, FromRep>, FromRep> for ToRep
+impl<FromRep, ToRep> TryConvertFrom<Instant<Seconds<FromRep>>, FromRep> for ToRep
 where
     FromRep: TimeRep,
     ToRep: TimeRep + TryFrom<FromRep>,
     TryMapFromError: From<<ToRep as TryFrom<FromRep>>::Error>,
 {
     type Error = TryMapFromError;
-    type Output = Instant<Seconds<Self>, Self>;
+    type Output = Instant<Seconds<Self>>;
 
-    fn try_map_from(
-        other: Instant<Seconds<FromRep>, FromRep>,
-    ) -> Result<Instant<Seconds<Self>, Self>, TryMapFromError> {
-        Ok(Instant::new(Self::try_map_from(other.0)?))
+    fn try_convert_from(
+        other: Instant<Seconds<FromRep>>,
+    ) -> Result<Instant<Seconds<Self>>, TryMapFromError> {
+        Ok(Instant(Self::try_convert_from(other.0)?))
     }
 }
 
@@ -100,54 +94,44 @@ where
 /// # use embedded_time::prelude::*;
 /// # use embedded_time::time_units::*;
 /// # use embedded_time::Instant;
-/// let time = Instant::new(Seconds(23_000_i64));
-/// let time = time.try_map_into();
-/// assert_eq!(time, Ok(Instant::new(Seconds(23_000_i32))));
-/// //let time = i64::try_map_from(time);
-/// //assert_eq!(time, Ok(Seconds(23_000_i64)));
-/// //let time = i64::try_map_from(time);
-/// //assert_eq!(time, Ok(Seconds(23_000_i64)));
+/// let time = Instant(Seconds(23_000_i64));
+/// let time = time.try_convert_into();
+/// assert_eq!(time, Ok(Instant(Seconds(23_000_i32))));
+/// let time = i64::try_convert_from(time.unwrap());
+/// assert_eq!(time, Ok(Instant(Seconds(23_000_i64))));
+/// let time = i64::try_convert_from(time.unwrap());
+/// assert_eq!(time, Ok(Instant(Seconds(23_000_i64))));
 ///
-/// //assert_eq!(Milliseconds(23_000_i64).try_map_into(), Ok(Milliseconds(23_000_i32)));
+/// assert_eq!(Milliseconds(23_000_i64).try_convert_into(), Ok(Milliseconds(23_000_i32)));
 /// ```
-impl<FromRep, ToRep> TryMapInto<Instant<Seconds<ToRep>, ToRep>, ToRep>
-    for Instant<Seconds<FromRep>, FromRep>
+impl<FromRep, ToRep> TryConvertInto<Instant<Seconds<ToRep>>, ToRep> for Instant<Seconds<FromRep>>
 where
     FromRep: TimeRep,
     ToRep: TimeRep,
-    ToRep: TryMapFrom<
-        Instant<Seconds<FromRep>, FromRep>,
-        FromRep,
-        Output = Instant<Seconds<ToRep>, ToRep>,
-    >,
+    ToRep: TryConvertFrom<Instant<Seconds<FromRep>>, FromRep, Output = Instant<Seconds<ToRep>>>,
 {
-    type Error = <ToRep as TryMapFrom<Instant<Seconds<FromRep>, FromRep>, FromRep>>::Error;
+    type Error = <ToRep as TryConvertFrom<Instant<Seconds<FromRep>>, FromRep>>::Error;
 
-    fn try_map_into(self) -> Result<Instant<Seconds<ToRep>, ToRep>, Self::Error> {
-        Ok(ToRep::try_map_from(self)?)
-    }
-}
-impl<T1, R1, T2> PartialEq<Instant<T2, R1>> for Instant<T1, R1>
-where
-    T1: Duration<R1>,
-    T1: PartialEq<T2>,
-    R1: TimeRep,
-    T2: Duration<R1>,
-{
-    fn eq(&self, other: &Instant<T2, R1>) -> bool {
-        self.0 == other.0
+    fn try_convert_into(self) -> Result<Instant<Seconds<ToRep>>, Self::Error> {
+        Ok(ToRep::try_convert_from(self)?)
     }
 }
 
-impl<T1, R1, T2> PartialOrd<Instant<T2, R1>> for Instant<T1, R1>
+impl<Dur1: Copy, Dur2: Copy> PartialEq<Instant<Dur2>> for Instant<Dur1>
 where
-    R1: TimeRep,
-    T1: Duration<R1>,
-    T2: Duration<R1>,
+    Dur1: PartialEq<Dur2>,
+{
+    fn eq(&self, other: &Instant<Dur2>) -> bool {
+        (*self).unwrap() == (*other).unwrap()
+    }
+}
+
+impl<T1: Copy, T2: Copy> PartialOrd<Instant<T2>> for Instant<T1>
+where
     T1: PartialOrd<T2>,
 {
-    fn partial_cmp(&self, other: &Instant<T2, R1>) -> Option<Ordering> {
-        self.0.partial_cmp(&other.0)
+    fn partial_cmp(&self, other: &Instant<T2>) -> Option<Ordering> {
+        self.unwrap().partial_cmp(&other.unwrap())
     }
 }
 

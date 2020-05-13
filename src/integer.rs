@@ -1,6 +1,6 @@
 use core::{fmt, ops};
 
-pub trait IntTrait: num::Integer + num::PrimInt + From<i32> + fmt::Display {}
+pub trait IntTrait: num::Integer + num::PrimInt + From<i32> + fmt::Display + fmt::Debug {}
 
 impl IntTrait for i32 {}
 impl IntTrait for i64 {}
