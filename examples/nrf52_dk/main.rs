@@ -15,6 +15,7 @@ use embedded_time::prelude::*;
 use embedded_time::time_units::*;
 use embedded_time::{Duration, Instant, Period};
 use mutex_trait::Mutex as _Mutex;
+use num::rational::Ratio;
 use rtfm::Fraction;
 
 pub mod nrf52 {
@@ -54,7 +55,6 @@ impl SystemTime {
 
 impl embedded_time::Clock for SystemTime {
     type Rep = i64;
-    const PERIOD: Period = Period::new_raw(1, 16_000_000);
 
     fn now<U>() -> Instant<U>
     where
@@ -69,6 +69,10 @@ impl embedded_time::Clock for SystemTime {
 
         Instant(U::from_ticks(ticks, Self::PERIOD))
     }
+}
+
+impl Period for SystemTime {
+    const PERIOD: Ratio<i32> = Ratio::<i32>::new_raw(1, 16_000_000);
 }
 
 impl rtfm::Monotonic for SystemTime {

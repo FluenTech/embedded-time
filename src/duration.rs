@@ -12,25 +12,17 @@ pub trait Time {}
 pub struct TryFromDurError;
 
 #[derive(Debug, Eq, PartialEq)]
-pub struct TryMapFromError;
+pub struct TryConvertFromError;
 
-impl From<TryFromIntError> for TryMapFromError {
+impl From<TryFromIntError> for TryConvertFromError {
     fn from(_: TryFromIntError) -> Self {
-        TryMapFromError
+        TryConvertFromError
     }
 }
 
-// impl<FromRep: TimeRep, ToRep: TimeRep> From<<ToRep as core::convert::TryFrom<FromRep>>::Error>
-//     for TryMapFromError
-// {
-//     fn from(_: <ToRep as core::convert::TryFrom<FromRep>>::Error) -> Self {
-//         TryMapFromError
-//     }
-// }
-
-impl From<Infallible> for TryMapFromError {
+impl From<Infallible> for TryConvertFromError {
     fn from(_: Infallible) -> Self {
-        TryMapFromError
+        TryConvertFromError
     }
 }
 
@@ -144,20 +136,17 @@ where
 
 pub mod time_units {
     use super::Period;
-    use crate::duration::{Duration, Time, TryFromDurError, TryMapFromError};
-    use crate::integer::{IntTrait, Integer};
+    use crate::duration::{Duration, Time, TryConvertFromError};
+    use crate::integer::Integer;
     use crate::numerical_duration::TimeRep;
     use crate::Wrapper;
-    use core::convert::TryInto;
     use core::{
         cmp,
         convert::TryFrom,
         fmt::{self, Formatter},
-        num::TryFromIntError,
         ops,
     };
     use num::rational::Ratio;
-    // use crate::Period;
 
     macro_rules! durations {
         ( $( $name:ident, ($numer:expr, $denom:expr) );+ ) => {
@@ -234,13 +223,14 @@ pub mod time_units {
                 impl<Rep, Dur2> cmp::PartialEq<Dur2> for $name<Rep>
                 where
                     Rep: TimeRep,
-                    Dur2: Duration<Rep>,
+                    Dur2: Wrapper + Period + TryConvertInto<Self> + TryConvertFrom<Self> + Copy,
+                    Dur2::Rep: PartialEq,
                 {
                     fn eq(&self, other: &Dur2) -> bool {
                         if Self::PERIOD < Dur2::PERIOD {
-                            self.count() == Self::from_dur::<Dur2>(*other).count()
+                            self.count() == (*other).try_convert_into().unwrap().count()
                         } else {
-                            self.into_dur::<Dur2>().count() == other.count()
+                            Dur2::try_convert_from(*self).unwrap().unwrap() == other.unwrap()
                         }
                     }
                 }
@@ -248,43 +238,49 @@ pub mod time_units {
                 impl<Rep, OtherDur> PartialOrd<OtherDur> for $name<Rep>
                 where
                     Rep: TimeRep,
-                    OtherDur: Duration<Rep>,
+                    OtherDur: Wrapper + Period + TryConvertInto<Self> + TryConvertFrom<Self> + Copy,
+                    OtherDur::Rep: PartialEq + Ord,
                 {
                     fn partial_cmp(&self, other: &OtherDur) -> Option<core::cmp::Ordering> {
                         if Self::PERIOD < OtherDur::PERIOD {
-                            Some(self.count().cmp(&Self::from_dur(*other).count()))
+                            Some(self.count().cmp(&other.try_convert_into().unwrap().count()))
                         } else {
-                            Some(OtherDur::from_dur(*self).count().cmp(&other.count()))
+                            Some(
+                                OtherDur::try_convert_from(*self)
+                                    .unwrap()
+                                    .unwrap()
+                                    .cmp(&other.unwrap()),
+                            )
                         }
                     }
                 }
 
-                impl<FromRep, ToRep> TryConvertFrom<$name<FromRep>, FromRep> for ToRep
+                impl<Rep, Source> TryConvertFrom<Source> for $name<Rep>
                 where
-                    FromRep: TimeRep,
-                    ToRep: TimeRep + TryFrom<FromRep>,
-                    TryMapFromError: From<<Self as TryFrom<FromRep>>::Error>,
+                    Source: Wrapper + Period,
+                    Rep: TimeRep + TryFrom<Source::Rep>,
+                    TryConvertFromError: From<<Rep as TryFrom<Source::Rep>>::Error>,
                 {
-                    type Error = TryMapFromError;
-                    type Output = $name<Self>;
+                    type Error = TryConvertFromError;
 
-                    fn try_convert_from(other: $name<FromRep>) -> Result<$name<Self>, TryMapFromError> {
-                        Ok($name::new(Self::try_from(other.count())?))
+                    fn try_convert_from(
+                        other: Source,
+                    ) -> Result<Self, <Self as TryConvertFrom<Source>>::Error> {
+                        let source_count = Rep::try_from(other.unwrap())?;
+                        let converted_count = *(Integer(source_count) * (Source::PERIOD / Self::PERIOD));
+                        Ok($name(converted_count))
                     }
                 }
 
-                impl<FromRep, ToDur, ToRep> TryConvertInto<ToDur, ToRep> for $name<FromRep>
+                impl<Rep, Dest> TryConvertInto<Dest> for $name<Rep>
                 where
-                    FromRep: TimeRep,
-                    ToDur: Duration<ToRep>,
-                    ToRep: TimeRep + TryConvertFrom<$name<FromRep>, FromRep, Output = ToDur>,
+                    Rep: TimeRep,
+                    Dest: TryConvertFrom<Self>,
                 {
-                    type Error = <ToRep as TryConvertFrom<$name<FromRep>, FromRep>>::Error;
+                    type Error = <Dest as TryConvertFrom<Self>>::Error;
 
-                    fn try_convert_into(
-                        self,
-                    ) -> Result<ToDur, <ToRep as TryConvertFrom<$name<FromRep>, FromRep>>::Error> {
-                        ToRep::try_convert_from(self)
+                    fn try_convert_into(self) -> Result<Dest, <Dest as TryConvertFrom<Self>>::Error> {
+                        Dest::try_convert_from(self)
                     }
                 }
              )+
@@ -399,17 +395,19 @@ pub mod time_units {
     /// assert_ne!(Milliseconds(123_001), Seconds(123));
     /// assert_ne!(Milliseconds(123_001_i64), Seconds(123_i64));
     /// assert_ne!(Seconds(123_i64), Milliseconds(123_001_i64));
+    /// assert_ne!(Seconds(123_i64), Milliseconds(123_001_i32));
     /// ```
     impl<Rep, Dur2> cmp::PartialEq<Dur2> for Seconds<Rep>
     where
         Rep: TimeRep,
-        Dur2: Duration<Rep>,
+        Dur2: Wrapper + Period + TryConvertInto<Self> + TryConvertFrom<Self> + Copy,
+        Dur2::Rep: PartialEq,
     {
         fn eq(&self, other: &Dur2) -> bool {
             if Self::PERIOD < Dur2::PERIOD {
-                self.count() == Self::from_dur::<Dur2>(*other).count()
+                self.count() == (*other).try_convert_into().unwrap().count()
             } else {
-                self.into_dur::<Dur2>().count() == other.count()
+                Dur2::try_convert_from(*self).unwrap().unwrap() == other.unwrap()
             }
         }
     }
@@ -421,17 +419,26 @@ pub mod time_units {
     /// assert!(Seconds(2) < Milliseconds(2_001));
     /// assert!(Seconds(2) == Milliseconds(2_000));
     /// assert!(Seconds(2) > Milliseconds(1_999));
+    ///
+    /// assert!(Seconds(2_i32) < Milliseconds(2_001_i64));
+    /// assert!(Seconds(2_i64) < Milliseconds(2_001_i32));
     /// ```
     impl<Rep, OtherDur> PartialOrd<OtherDur> for Seconds<Rep>
     where
         Rep: TimeRep,
-        OtherDur: Duration<Rep>,
+        OtherDur: Wrapper + Period + TryConvertInto<Self> + TryConvertFrom<Self> + Copy,
+        OtherDur::Rep: PartialEq + Ord,
     {
         fn partial_cmp(&self, other: &OtherDur) -> Option<core::cmp::Ordering> {
             if Self::PERIOD < OtherDur::PERIOD {
-                Some(self.count().cmp(&Self::from_dur(*other).count()))
+                Some(self.count().cmp(&other.try_convert_into().unwrap().count()))
             } else {
-                Some(OtherDur::from_dur(*self).count().cmp(&other.count()))
+                Some(
+                    OtherDur::try_convert_from(*self)
+                        .unwrap()
+                        .unwrap()
+                        .cmp(&other.unwrap()),
+                )
             }
         }
     }
@@ -439,48 +446,37 @@ pub mod time_units {
     /// ```rust
     /// # use embedded_time::prelude::*;
     /// # use embedded_time::time_units::*;
-    /// assert_eq!(i32::try_convert_from(Seconds(23_000_i64)), Ok(Seconds(23_000_i32)));
-    /// assert_eq!(i32::try_convert_from(Seconds(23_000_i32)), Ok(Seconds(23_000_i32)));
-    /// assert_eq!(i64::try_convert_from(Seconds(23_000_i32)), Ok(Seconds(23_000_i64)));
-    ///
-    /// assert_eq!(i32::try_convert_from(Milliseconds(23_000_i64)), Ok(Milliseconds(23_000_i32)));
+    /// assert_eq!(Seconds::<i32>::try_convert_from(Milliseconds(23_000_i64)), Ok(Seconds(23_i32)));
+    /// assert_eq!(Seconds::<i64>::try_convert_from(Milliseconds(23_000_i32)), Ok(Seconds(23_i64)));
     /// ```
-    impl<FromRep, ToRep> TryConvertFrom<Seconds<FromRep>, FromRep> for ToRep
+    impl<Rep, Source> TryConvertFrom<Source> for Seconds<Rep>
     where
-        FromRep: TimeRep,
-        ToRep: TimeRep + TryFrom<FromRep>,
-        TryMapFromError: From<<Self as TryFrom<FromRep>>::Error>,
+        Source: Wrapper + Period,
+        Rep: TimeRep + TryFrom<Source::Rep>,
+        TryConvertFromError: From<<Rep as TryFrom<Source::Rep>>::Error>,
     {
-        type Error = TryMapFromError;
-        type Output = Seconds<Self>;
+        type Error = TryConvertFromError;
 
         fn try_convert_from(
-            other: Seconds<FromRep>,
-        ) -> Result<Seconds<Self>, <Self as TryConvertFrom<Seconds<FromRep>, FromRep>>::Error>
-        {
-            Ok(Seconds::new(Self::try_from(other.count())?))
+            other: Source,
+        ) -> Result<Self, <Self as TryConvertFrom<Source>>::Error> {
+            let source_count = Rep::try_from(other.unwrap())?;
+            let converted_count = *(Integer(source_count) * (Source::PERIOD / Self::PERIOD));
+            Ok(Seconds(converted_count))
         }
     }
 
-    pub trait TryConvertFrom<FromDur, FromRep>: TimeRep + TryFrom<FromRep>
-    where
-        FromRep: TimeRep,
-    {
-        type Error: From<<Self as TryFrom<FromRep>>::Error>;
-        type Output;
+    pub trait TryConvertFrom<Source>: Sized {
+        type Error: fmt::Debug;
 
-        fn try_convert_from(
-            other: FromDur,
-        ) -> Result<
-            <Self as TryConvertFrom<FromDur, FromRep>>::Output,
-            <Self as TryConvertFrom<FromDur, FromRep>>::Error,
-        >;
+        fn try_convert_from(other: Source)
+            -> Result<Self, <Self as TryConvertFrom<Source>>::Error>;
     }
 
-    pub trait TryConvertInto<ToDur, ToRep> {
-        type Error;
+    pub trait TryConvertInto<Dest> {
+        type Error: fmt::Debug;
 
-        fn try_convert_into(self) -> Result<ToDur, Self::Error>;
+        fn try_convert_into(self) -> Result<Dest, Self::Error>;
     }
 
     /// ```rust
@@ -490,22 +486,66 @@ pub mod time_units {
     /// assert_eq!(Seconds(23_000_i32).try_convert_into(), Ok(Seconds(23_000_i32)));
     /// assert_eq!(Ok(Seconds(23_000_i64)), (Seconds(23_000_i32).try_convert_into()));
     ///
-    /// assert_eq!(Milliseconds(23_000_i64).try_convert_into(), Ok(Milliseconds(23_000_i32)));
+    /// assert_eq!(Milliseconds(23_000_i64).try_convert_into(), Ok(Seconds(23_i32)));
+    /// assert_eq!(Milliseconds(23_000_i32).try_convert_into(), Ok(Seconds(23_i64)));
     /// ```
-    impl<FromRep, ToRep> TryConvertInto<Seconds<ToRep>, ToRep> for Seconds<FromRep>
+    impl<Rep, Dest> TryConvertInto<Dest> for Seconds<Rep>
     where
-        FromRep: TimeRep,
-        ToRep: TimeRep + TryConvertFrom<Seconds<FromRep>, FromRep, Output = Seconds<ToRep>>,
+        Rep: TimeRep,
+        Dest: TryConvertFrom<Self>,
     {
-        type Error = <ToRep as TryConvertFrom<Seconds<FromRep>, FromRep>>::Error;
+        type Error = <Dest as TryConvertFrom<Self>>::Error;
 
-        fn try_convert_into(
-            self,
-        ) -> Result<Seconds<ToRep>, <ToRep as TryConvertFrom<Seconds<FromRep>, FromRep>>::Error>
-        {
-            ToRep::try_convert_from(self)
+        fn try_convert_into(self) -> Result<Dest, <Dest as TryConvertFrom<Self>>::Error> {
+            Dest::try_convert_from(self)
         }
     }
+
+    // todo
+    // /// ```rust
+    // /// # use embedded_time::prelude::*;
+    // /// # use embedded_time::time_units::*;
+    // /// use std::convert::TryFrom;
+    // /// //assert_eq!(i32::try_convert_from(Seconds(23_000_i64)), Ok(Seconds(23_000_i32)));
+    // /// //assert_eq!(i32::try_convert_from(Seconds(23_000_i32)), Ok(Seconds(23_000_i32)));
+    // /// //assert_eq!(i64::try_convert_from(Seconds(23_000_i32)), Ok(Seconds(23_000_i64)));
+    // /// // todo
+    // /// assert_eq!(Seconds::<i32>::try_from(Milliseconds(23_000_i64)), Ok(Seconds(23_i32)));
+    // /// assert_eq!(Seconds::<i64>::try_from(Milliseconds(23_000_i32)), Ok(Seconds(23_i64)));
+    // /// assert_eq!(Seconds::<i64>::try_from(Seconds(23_i32)), Ok(Seconds(23_i64)));
+    // /// assert_eq!(Seconds::<i32>::try_from(Seconds(23_i64)), Ok(Seconds(23_i32)));
+    // /// ```
+    // impl<Rep, Rep2> TryFrom<Milliseconds<Rep2>> for Seconds<Rep>
+    // where
+    //     Rep2: TimeRep,
+    //     Rep: TimeRep + TryFrom<Rep2>,
+    //     TryConvertFromError: From<<Rep as TryFrom<Rep2>>::Error>,
+    // {
+    //     type Error = TryConvertFromError;
+    //
+    //     fn try_from(
+    //         source: Milliseconds<Rep2>,
+    //     ) -> Result<Self, <Self as TryFrom<Milliseconds<Rep2>>>::Error> {
+    //         let source_count = Rep::try_from(source.unwrap())?;
+    //         let converted_count =
+    //             *(Integer(source_count) * (Milliseconds::<Rep2>::PERIOD / Self::PERIOD));
+    //         Ok(Seconds(converted_count))
+    //     }
+    // }
+    // impl TryFrom<Seconds<i32>> for Seconds<i64> {
+    //     type Error = Infallible;
+    //
+    //     fn try_from(source: Seconds<i32>) -> Result<Self, Self::Error> {
+    //         Ok(Seconds(source.unwrap().into()))
+    //     }
+    // }
+    // impl TryFrom<Seconds<i64>> for Seconds<i32> {
+    //     type Error = <i32 as TryFrom<i64>>::Error;
+    //
+    //     fn try_from(source: Seconds<i64>) -> Result<Self, Self::Error> {
+    //         Ok(Seconds(i32::try_from(source.unwrap())?))
+    //     }
+    // }
 }
 
 impl<T> ops::Mul<Ratio<i32>> for Integer<T>
