@@ -4,14 +4,15 @@ use core::{fmt, ops};
 
 pub trait IntTrait:
     From<i32>
-    + TryFrom<i32>
+    + TryFrom<Self, Error: fmt::Debug>
+    + TryFrom<i32, Error: fmt::Debug>
     + num::PrimInt
-    + TryInto<i32>
+    + TryInto<i32, Error: fmt::Debug>
     + fmt::Display
     + fmt::Debug
     + Into<i64>
-    + TryInto<i64>
-    + TryFrom<i64>
+    + TryInto<i64, Error: fmt::Debug>
+    + TryFrom<i64, Error: fmt::Debug>
 {
 }
 

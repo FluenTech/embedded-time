@@ -1,5 +1,4 @@
 use crate::duration::time_units::{TryConvertFrom, TryConvertInto};
-use crate::duration::TryConvertFromError;
 use crate::numerical_duration::TimeRep;
 use crate::{Duration, Period, Wrapper};
 use core::{cmp::Ordering, fmt, ops};
@@ -11,7 +10,8 @@ pub trait Clock: Sized + Period {
     /// Get the current Instant
     fn now<Dur>() -> Instant<Dur>
     where
-        Dur: Duration<Rep = Self::Rep>;
+        Dur: Duration,
+        Dur::Rep: TimeRep;
 }
 
 /// Represents an instant in time
@@ -58,9 +58,8 @@ impl<Dur, Source> TryConvertFrom<Instant<Source>> for Instant<Dur>
 where
     Source: Duration,
     Dur: Duration + TryConvertFrom<Source>,
-    TryConvertFromError: From<<Dur as TryConvertFrom<Source>>::Error>,
 {
-    type Error = TryConvertFromError;
+    type Error = <Dur as TryConvertFrom<Source>>::Error;
 
     fn try_convert_from(
         other: Instant<Source>,

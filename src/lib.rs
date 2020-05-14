@@ -58,14 +58,11 @@ pub mod prelude {
 
 #[cfg(test)]
 mod tests {
-    use crate::duration::TryConvertFromError;
     use crate::numerical_duration::TimeRep;
     use crate::prelude::*;
     use crate::time_units::*;
     use crate::Ratio;
     use crate::{Clock, Duration, Instant, Period};
-    use core::convert::TryFrom;
-    use core::convert::TryInto;
 
     struct MockClock64;
     impl Clock for MockClock64 {
@@ -73,7 +70,8 @@ mod tests {
 
         fn now<Dur>() -> Instant<Dur>
         where
-            Dur: Duration<Rep = Self::Rep>,
+            Dur: Duration,
+            Dur::Rep: TimeRep,
         {
             Instant(Dur::from_ticks(48_000_i64, MockClock64::PERIOD))
         }
@@ -88,7 +86,8 @@ mod tests {
 
         fn now<Dur>() -> Instant<Dur>
         where
-            Dur: Duration<Rep = Self::Rep>,
+            Dur: Duration,
+            Dur::Rep: TimeRep,
         {
             Instant(Dur::from_ticks(192_000_i32, MockClock32::PERIOD))
         }
@@ -101,38 +100,21 @@ mod tests {
     where
         M: Clock,
         M::Rep: TimeRep,
-        TryConvertFromError: From<<M::Rep as TryFrom<i64>>::Error>,
-        TryConvertFromError: From<<M::Rep as TryFrom<i32>>::Error>,
     {
-        assert_eq!(M::now::<Milliseconds<_>>(), Instant(Milliseconds(3_i64)));
+        assert_eq!(M::now::<Milliseconds<i32>>(), Instant(Milliseconds(3_i64)));
     }
 
     #[test]
     fn common_types() {
-        let then = MockClock32::now::<Nanoseconds<_>>();
-        let now = MockClock64::now::<Milliseconds<_>>();
-        // let now32 = i32::try_convert_from().unwrap();
+        let then = MockClock32::now::<Nanoseconds<i64>>();
+        let now = MockClock64::now::<Milliseconds<i32>>();
 
-        let then = then - Seconds(1);
         get_time::<MockClock64>();
         get_time::<MockClock32>();
 
+        let then = then - Seconds(1);
         assert_ne!(then, now);
         assert!(then < now);
-    }
-
-    #[test]
-    fn clock_32() {
-        let then = MockClock64::now::<Microseconds<_>>();
-        let now = MockClock32::now::<Nanoseconds<_>>();
-        // let instant: Instant<Microseconds<<MockClock32 as Clock>::Rep>> = now;
-
-        if then < now {
-            assert_ne!(then, now);
-        }
-        if now > then {
-            assert!(then < now);
-        }
     }
 
     #[test]
