@@ -1,5 +1,5 @@
 use crate::duration::time_units::{TryConvertFrom, TryConvertInto};
-use crate::duration::{Time, TryConvertFromError};
+use crate::duration::TryConvertFromError;
 use crate::numerical_duration::TimeRep;
 use crate::{Duration, Period, Wrapper};
 use core::{cmp::Ordering, fmt, ops};
@@ -11,7 +11,7 @@ pub trait Clock: Sized + Period {
     /// Get the current Instant
     fn now<Dur>() -> Instant<Dur>
     where
-        Dur: Duration<Self::Rep>;
+        Dur: Duration<Rep = Self::Rep>;
 }
 
 /// Represents an instant in time
@@ -19,7 +19,7 @@ pub trait Clock: Sized + Period {
 /// Comparisons can be performed between different precisions but not between different representations/widths
 ///
 /// # Examples
-/// ```
+/// ```rust
 /// # use embedded_time::Instant;
 /// # use embedded_time::time_units::*;
 /// # use embedded_time::duration::time_units::{TryConvertInto, TryConvertFrom};
@@ -32,15 +32,15 @@ pub trait Clock: Sized + Period {
 /// assert!(Instant(Seconds(1_i32)) == Instant(Milliseconds(1_000_i64)));
 /// ```
 #[derive(Debug, Copy, Clone, Eq, Ord)]
-pub struct Instant<T: Copy>(pub T);
+pub struct Instant<Dur: Duration>(pub Dur);
 
-impl<Dur: Copy> Instant<Dur> {
+impl<Dur: Duration> Instant<Dur> {
     pub fn duration_since_epoch(self) -> Dur {
         self.0
     }
 }
 
-impl<Dur: Copy> Wrapper for Instant<Dur> {
+impl<Dur: Duration> Wrapper for Instant<Dur> {
     type Rep = Dur;
 
     fn unwrap(self) -> Self::Rep {
@@ -52,17 +52,19 @@ impl<Dur: Copy> Wrapper for Instant<Dur> {
 /// # use embedded_time::prelude::*;
 /// # use embedded_time::time_units::*;
 /// # use embedded_time::Instant;
-/// assert_eq!(Instant::<Seconds::<i32>>::try_convert_from(Instant(Milliseconds(23_000_i64))), Ok(Instant(Seconds(23_i32))));
+/// assert_eq!(Instant::<Seconds<i32>>::try_convert_from(Instant(Milliseconds(23_000_i64))), Ok(Instant(Seconds(23_i32))));
 /// ```
-impl<Dur, Source> TryConvertFrom<Source> for Instant<Dur>
+impl<Dur, Source> TryConvertFrom<Instant<Source>> for Instant<Dur>
 where
-    Source: Wrapper,
-    Dur: TryConvertFrom<Source::Rep> + Copy,
-    TryConvertFromError: From<<Dur as TryConvertFrom<Source::Rep>>::Error>,
+    Source: Duration,
+    Dur: Duration + TryConvertFrom<Source>,
+    TryConvertFromError: From<<Dur as TryConvertFrom<Source>>::Error>,
 {
     type Error = TryConvertFromError;
 
-    fn try_convert_from(other: Source) -> Result<Self, <Self as TryConvertFrom<Source>>::Error> {
+    fn try_convert_from(
+        other: Instant<Source>,
+    ) -> Result<Self, <Self as TryConvertFrom<Instant<Source>>>::Error> {
         Ok(Instant(Dur::try_convert_from(other.unwrap())?))
     }
 }
@@ -73,32 +75,52 @@ where
 /// # use embedded_time::Instant;
 /// assert_eq!(Instant(Milliseconds(23_000_i64)).try_convert_into(), Ok(Instant(Seconds(23_i32))));
 /// ```
-impl<Dur, Dest> TryConvertInto<Dest> for Instant<Dur>
+impl<Dur, Dest> TryConvertInto<Instant<Dest>> for Instant<Dur>
 where
-    Dur: Copy,
-    Dest: TryConvertFrom<Self>,
+    Dur: Duration,
+    Dest: Duration,
+    Instant<Dest>: TryConvertFrom<Self>,
 {
-    type Error = <Dest as TryConvertFrom<Self>>::Error;
+    type Error = <Instant<Dest> as TryConvertFrom<Self>>::Error;
 
-    fn try_convert_into(self) -> Result<Dest, Self::Error> {
-        Ok(Dest::try_convert_from(self)?)
+    fn try_convert_into(self) -> Result<Instant<Dest>, Self::Error> {
+        Ok(Instant::<Dest>::try_convert_from(self)?)
     }
 }
 
-impl<Dur1: Copy, Dur2: Copy> PartialEq<Instant<Dur2>> for Instant<Dur1>
+/// ```rust
+/// # use embedded_time::Instant;
+/// # use embedded_time::time_units::*;
+/// assert_eq!(Instant(Milliseconds(1_123_i32)), Instant(Microseconds(1_123_000_i64)));
+/// assert_ne!(Instant(Milliseconds(1_123_i32)), Instant(Seconds(1_i64)));
+/// ```
+impl<Dur1, Dur2> PartialEq<Instant<Dur2>> for Instant<Dur1>
 where
-    Dur1: PartialEq<Dur2>,
+    Dur1: Duration + PartialEq<Dur2>,
+    Dur2: Duration,
 {
     fn eq(&self, other: &Instant<Dur2>) -> bool {
         (*self).unwrap() == (*other).unwrap()
     }
 }
 
-impl<T1: Copy, T2: Copy> PartialOrd<Instant<T2>> for Instant<T1>
+/// ```
+/// # use embedded_time::Instant;
+/// # use embedded_time::time_units::*;
+/// assert!(Instant(Seconds(2)) <  Instant(Seconds(3)));
+/// assert!(Instant(Seconds(2)) <  Instant(Milliseconds(2_001)));
+/// assert!(Instant(Seconds(2)) == Instant(Milliseconds(2_000)));
+/// assert!(Instant(Seconds(2)) >  Instant(Milliseconds(1_999)));
+///
+/// assert!(Instant(Seconds(2_i32)) < Instant(Milliseconds(2_001_i64)));
+/// assert!(Instant(Seconds(2_i64)) < Instant(Milliseconds(2_001_i32)));
+/// ```
+impl<Dur, RhsDur> PartialOrd<Instant<RhsDur>> for Instant<Dur>
 where
-    T1: PartialOrd<T2>,
+    Dur: Duration + PartialOrd<RhsDur>,
+    RhsDur: Duration,
 {
-    fn partial_cmp(&self, other: &Instant<T2>) -> Option<Ordering> {
+    fn partial_cmp(&self, other: &Instant<RhsDur>) -> Option<Ordering> {
         self.unwrap().partial_cmp(&other.unwrap())
     }
 }
@@ -110,13 +132,14 @@ where
 /// assert_eq!(Instant(Seconds(-1)) + Milliseconds(5_123), Instant(Seconds(4)));
 /// assert_eq!(Instant(Seconds(1)) + Milliseconds(700), Instant(Seconds(1)));
 /// ```
-impl<T, U> ops::Add<U> for Instant<T>
+impl<Dur, AddDur> ops::Add<AddDur> for Instant<Dur>
 where
-    T: ops::Add<U, Output = T> + Copy,
+    Dur: Duration + ops::Add<AddDur, Output = Dur>,
+    AddDur: Duration,
 {
     type Output = Self;
 
-    fn add(self, rhs: U) -> Self::Output {
+    fn add(self, rhs: AddDur) -> Self::Output {
         Self(self.0 + rhs)
     }
 }
@@ -127,11 +150,11 @@ where
 /// assert_eq!(Instant(Seconds(5)) - Instant(Seconds(3)), Seconds(2));
 /// assert_eq!(Instant(Seconds(3)) - Instant(Seconds(5)), Seconds(-2));
 /// ```
-impl<T> ops::Sub for Instant<T>
+impl<Dur> ops::Sub for Instant<Dur>
 where
-    T: Copy + ops::Sub<Output = T>,
+    Dur: Duration + ops::Sub<Output = Dur>,
 {
-    type Output = T;
+    type Output = Dur;
 
     fn sub(self, rhs: Self) -> Self::Output {
         self.0 - rhs.0
@@ -145,21 +168,21 @@ where
 /// assert_eq!(Instant(Seconds(3)) - Milliseconds(5_000), Instant(Seconds(-2)));
 /// assert_eq!(Instant(Seconds(1)) - Milliseconds(700), Instant(Seconds(1)));
 /// ```
-impl<T, U> ops::Sub<U> for Instant<T>
+impl<Dur, SubDur> ops::Sub<SubDur> for Instant<Dur>
 where
-    T: Copy + ops::Sub<U, Output = T>,
-    U: Time,
+    Dur: Duration + ops::Sub<SubDur, Output = Dur>,
+    SubDur: Duration,
 {
     type Output = Self;
 
-    fn sub(self, rhs: U) -> Self::Output {
+    fn sub(self, rhs: SubDur) -> Self::Output {
         Self(self.0 - rhs)
     }
 }
 
-impl<T> fmt::Display for Instant<T>
+impl<Dur> fmt::Display for Instant<Dur>
 where
-    T: fmt::Display + Copy,
+    Dur: Duration,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.0.fmt(f)

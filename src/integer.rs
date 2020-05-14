@@ -1,6 +1,19 @@
+use core::convert::TryFrom;
+use core::convert::TryInto;
 use core::{fmt, ops};
 
-pub trait IntTrait: num::Integer + num::PrimInt + From<i32> + fmt::Display + fmt::Debug {}
+pub trait IntTrait:
+    From<i32>
+    + TryFrom<i32>
+    + num::PrimInt
+    + TryInto<i32>
+    + fmt::Display
+    + fmt::Debug
+    + Into<i64>
+    + TryInto<i64>
+    + TryFrom<i64>
+{
+}
 
 impl IntTrait for i32 {}
 impl IntTrait for i64 {}

@@ -48,59 +48,105 @@ pub trait Wrapper: Sized {
 pub mod prelude {
     // Rename traits to `_` to avoid any potential name conflicts.
     pub use crate::duration::time_units::TryConvertFrom as _TryConvertFrom;
+    pub use crate::duration::time_units::TryConvertInto as _TryConvertInto;
     pub use crate::duration::Duration as _Duration;
     pub use crate::integer::IntTrait as _IntTrait;
     pub use crate::numerical_duration::TimeRep as _TimeRep;
+    pub use crate::Period as _Period;
     pub use num::Integer as _Integer;
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::duration::TryConvertFromError;
+    use crate::numerical_duration::TimeRep;
     use crate::prelude::*;
     use crate::time_units::*;
     use crate::Ratio;
     use crate::{Clock, Duration, Instant, Period};
+    use core::convert::TryFrom;
+    use core::convert::TryInto;
 
-    struct MockClock;
-
-    impl Clock for MockClock {
+    struct MockClock64;
+    impl Clock for MockClock64 {
         type Rep = i64;
 
         fn now<Dur>() -> Instant<Dur>
         where
-            Dur: Duration<Self::Rep>,
+            Dur: Duration<Rep = Self::Rep>,
         {
-            Instant(Dur::new(5_025_678_910_111))
+            Instant(Dur::from_ticks(48_000_i64, MockClock64::PERIOD))
         }
     }
+    impl Period for MockClock64 {
+        const PERIOD: Ratio<i32> = Ratio::new_raw(1, 16_000_000);
+    }
 
-    impl Period for MockClock {
-        const PERIOD: Ratio<i32> = Ratio::<i32>::new_raw(1, 1_000);
+    struct MockClock32;
+    impl Clock for MockClock32 {
+        type Rep = i32;
+
+        fn now<Dur>() -> Instant<Dur>
+        where
+            Dur: Duration<Rep = Self::Rep>,
+        {
+            Instant(Dur::from_ticks(192_000_i32, MockClock32::PERIOD))
+        }
+    }
+    impl Period for MockClock32 {
+        const PERIOD: Ratio<i32> = Ratio::new_raw(1, 64_000_000);
+    }
+
+    fn get_time<M>()
+    where
+        M: Clock,
+        M::Rep: TimeRep,
+        TryConvertFromError: From<<M::Rep as TryFrom<i64>>::Error>,
+        TryConvertFromError: From<<M::Rep as TryFrom<i32>>::Error>,
+    {
+        assert_eq!(M::now::<Milliseconds<_>>(), Instant(Milliseconds(3_i64)));
     }
 
     #[test]
     fn common_types() {
-        let then = Instant(Milliseconds::<i64>(5_025_678_910_110));
-        let now = MockClock::now::<Milliseconds<_>>();
-        let _now_seconds = MockClock::now::<Seconds<_>>();
-        // let now32 = i32::try_convert_from(MockClock::now::<Milliseconds<_>>()).unwrap();
+        let then = MockClock32::now::<Nanoseconds<_>>();
+        let now = MockClock64::now::<Milliseconds<_>>();
+        // let now32 = i32::try_convert_from().unwrap();
+
+        let then = then - Seconds(1);
+        get_time::<MockClock64>();
+        get_time::<MockClock32>();
 
         assert_ne!(then, now);
         assert!(then < now);
     }
 
     #[test]
+    fn clock_32() {
+        let then = MockClock64::now::<Microseconds<_>>();
+        let now = MockClock32::now::<Nanoseconds<_>>();
+        // let instant: Instant<Microseconds<<MockClock32 as Clock>::Rep>> = now;
+
+        if then < now {
+            assert_ne!(then, now);
+        }
+        if now > then {
+            assert!(then < now);
+        }
+    }
+
+    #[test]
     fn brute_force() {
         let mut time = 1_i64;
         time *= 60;
-        assert_eq!(Hours(1_i64), Minutes(time));
+        assert_eq!(Hours(1), Minutes(time));
         time *= 60;
-        assert_eq!(Hours(1_i64), Seconds(time));
+        assert_eq!(Hours(1), Seconds(time));
         time *= 1000;
-        assert_eq!(Hours(1_i64), Milliseconds(time));
+        assert_eq!(Hours(1), Milliseconds(time));
         time *= 1000;
-        assert_eq!(Hours(1_i64), Microseconds(time));
+        assert_eq!(Hours(1), Microseconds(time));
         time *= 1000;
-        assert_eq!(Hours(1_i64), Nanoseconds(time));
+        assert_eq!(Hours(1), Nanoseconds(time));
     }
 }
