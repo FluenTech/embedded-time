@@ -1,6 +1,7 @@
 # embedded-time
 
 ![Tests](https://github.com/PTaylor-FluenTech/embedded-time/workflows/Tests/badge.svg)
+![Clippy](https://github.com/PTaylor-FluenTech/embedded-time/workflows/Clippy/badge.svg)
 
 ## Motivation
 The handling of time on embedded systems is generally much different than that of OSs. For instance, on an OS, the time is measured against an arbitrary epoch. Embedded systems generally don't know (nor do they care) what the *real* time is, but rather how much time has passed since the system has started.
