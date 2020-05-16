@@ -5,6 +5,12 @@
 ## Motivation
 The handling of time on embedded systems is generally much different than that of OSs. For instance, on an OS, the time is measured against an arbitrary epoch. Embedded systems generally don't know (nor do they care) what the *real* time is, but rather how much time has passed since the system has started.
 
+### Drawbacks of the core::Duration type
+- The storage is `u64` seconds and `u32` nanoseconds.
+  - This is huge overkill and needless complexity for embedded systems.
+- Any read requires arithmetic to convert to the requested units
+  - This is much slower than this project's intended implementation of what may be anagolous to a tagged union of time units. For example, if your type is `Milliseconds`, a call to the `count()` method simply returns the stored value directly which is an integer representing the count of milliseconds. Conversion arithmetic is only performed when explicitly converting between time units.
+
 ## Intention
 Provide a comprehensive library for implementing `Clock`s to use with `Instant`s and using `Duration`s (`Seconds`, `Milliseconds`, etc) in embedded systems.
 
