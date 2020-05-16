@@ -1,10 +1,8 @@
 use crate::integer::{IntTrait, Integer};
 use crate::numerical_duration::TimeRep;
 use crate::Period;
-use core::convert::TryInto;
-use core::{fmt, ops, prelude::v1::*};
-use num::rational::Ratio;
-use num::Bounded;
+use core::{convert::TryFrom, fmt, mem::size_of, ops, prelude::v1::*};
+use num::{rational::Ratio, Bounded};
 
 pub trait Duration: Sized + Copy + fmt::Display + Period {
     type Rep: TimeRep;
@@ -32,17 +30,68 @@ pub trait Duration: Sized + Copy + fmt::Display + Period {
     /// # use embedded_time::time_units::*;
     /// # use num::rational::Ratio;
     /// assert_eq!(Microseconds::<i32>::from_ticks(5_i64, Ratio::<i32>::new_raw(1, 1_000)), Microseconds(5_000_i32));
+    /// assert_eq!(Microseconds::<i64>::from_ticks(i32::MAX, Ratio::<i32>::new_raw(1, 1_000)), Microseconds((i32::MAX as i64) * 1_000));
+    /// assert_eq!(Milliseconds::<i32>::from_ticks((i32::MAX as i64) + 1, Ratio::<i32>::new_raw(1, 1_000_000)), Milliseconds(((i32::MAX as i64) + 1) / 1_000));
     /// ```
     fn from_ticks<Rep>(ticks: Rep, period: Ratio<i32>) -> Self
     where
-        Rep: TimeRep + TryInto<Self::Rep, Error: fmt::Debug>,
+        Self::Rep: TimeRep + TryFrom<Rep, Error: fmt::Debug>,
+        Rep: TimeRep,
     {
-        let converted_ticks = ticks.try_into();
-        let converted_ticks: Self::Rep = converted_ticks.unwrap();
-        if period > Ratio::new_raw(1, 1) {
-            Self::new(*((Integer(converted_ticks) * period) / Self::PERIOD))
+        if size_of::<Self::Rep>() > size_of::<Rep>() {
+            let converted_ticks = Self::Rep::try_from(ticks).unwrap();
+
+            if period > Ratio::new_raw(1, 1) {
+                Self::new(*((Integer(converted_ticks) * period) / Self::PERIOD))
+            } else {
+                Self::new(*(Integer(converted_ticks) * (period / Self::PERIOD)))
+            }
         } else {
-            Self::new(*(Integer(converted_ticks) * (period / Self::PERIOD)))
+            let ticks = if period > Ratio::new_raw(1, 1) {
+                *((Integer(ticks) * period) / Self::PERIOD)
+            } else {
+                *(Integer(ticks) * (period / Self::PERIOD))
+            };
+
+            let converted_ticks = Self::Rep::try_from(ticks).unwrap();
+            Self::new(converted_ticks)
+        }
+    }
+
+    /// ```rust
+    /// # use embedded_time::prelude::*;
+    /// # use embedded_time::time_units::*;
+    /// # use num::rational::Ratio;
+    /// use core::convert::TryInto;
+    /// use core::convert::TryFrom;
+    /// use embedded_time::Instant;
+    /// assert_eq!(Microseconds(5_000_i32).into_ticks::<i32>(Ratio::<i32>::new_raw(1, 1_000)), Ok(5_i32));
+    /// assert_eq!(Microseconds(5_000_i32).into_ticks::<i32>(Ratio::<i32>::new_raw(1, 200)), Ok(1_i32));
+    /// assert_eq!(Microseconds::<i32>(i32::MAX).into_ticks::<i64>(Ratio::<i32>::new_raw(1, 2_000_000)), Ok((i32::MAX as i64) * 2));
+    /// assert_eq!(Microseconds::<i64>((i32::MAX as i64) + 2).into_ticks::<i32>(Ratio::new_raw(1, 500_000)), Ok(i32::MAX / 2 + 1));
+    /// assert_eq!(Microseconds::<i64>(i32::MAX as i64).into_ticks::<i32>(Ratio::<i32>::new_raw(1, 500_000)), Ok(i32::MAX / 2));
+    /// ```
+    fn into_ticks<Rep>(self, period: Ratio<i32>) -> Result<Rep, <Rep as TryFrom<Self::Rep>>::Error>
+    where
+        Self::Rep: TimeRep,
+        Rep: TimeRep + TryFrom<Self::Rep, Error: fmt::Debug>,
+    {
+        if size_of::<Rep>() > size_of::<Self::Rep>() {
+            let ticks = Rep::try_from(self.count())?;
+
+            if period > Ratio::new_raw(1, 1) {
+                Ok(*((Integer(ticks) * Self::PERIOD) / period))
+            } else {
+                Ok(*(Integer(ticks) * (Self::PERIOD / period)))
+            }
+        } else {
+            let ticks = if Self::PERIOD > Ratio::new_raw(1, 1) {
+                *((Integer(self.count()) * Self::PERIOD) / period)
+            } else {
+                *(Integer(self.count()) * (Self::PERIOD / period))
+            };
+
+            Rep::try_from(ticks)
         }
     }
 

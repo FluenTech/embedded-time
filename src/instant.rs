@@ -28,7 +28,6 @@ pub trait Clock: Sized + Period {
 /// assert!(Instant(Seconds(1)) < Instant(Milliseconds(1_001)));
 /// assert!(Instant(Seconds(1)) > Instant(Milliseconds(999)));
 /// assert!(Instant(Microseconds(119_900_000)) < Instant(Minutes(2)));
-///
 /// assert!(Instant(Seconds(1_i32)) == Instant(Milliseconds(1_000_i64)));
 /// ```
 #[derive(Debug, Copy, Clone, Eq, Ord)]
@@ -148,6 +147,9 @@ where
 /// # use embedded_time::time_units::*;
 /// assert_eq!(Instant(Seconds(5)) - Instant(Seconds(3)), Seconds(2));
 /// assert_eq!(Instant(Seconds(3)) - Instant(Seconds(5)), Seconds(-2));
+///
+/// // wrapping examples
+/// //assert_eq!(Instant(Seconds(1)) - Instant(Seconds(i32::MAX)), Seconds(2))
 /// ```
 impl<Dur> ops::Sub for Instant<Dur>
 where
