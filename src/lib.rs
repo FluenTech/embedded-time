@@ -18,13 +18,12 @@
 pub mod duration;
 mod instant;
 mod integer;
-pub mod numerical_duration;
+mod numerical_duration;
 
-pub use duration::time_units;
-pub use duration::Duration;
+pub use duration::{time_units, Duration};
 pub use instant::{Clock, Instant};
-
 pub use num::rational::Ratio;
+pub use numerical_duration::TimeRep;
 
 pub trait Period {
     const PERIOD: Ratio<i32>;
@@ -52,6 +51,7 @@ pub mod prelude {
     pub use crate::duration::Duration as _Duration;
     pub use crate::integer::IntTrait as _IntTrait;
     pub use crate::numerical_duration::TimeRep as _TimeRep;
+    pub use crate::Clock as _Clock;
     pub use crate::Period as _Period;
     pub use num::Integer as _Integer;
 }
