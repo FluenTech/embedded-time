@@ -1,6 +1,6 @@
 use crate::duration::time_units::{TryConvertFrom, TryConvertInto};
 use crate::numerical_duration::TimeRep;
-use crate::{Duration, Period, Wrapper};
+use crate::{Duration, Period};
 use core::{cmp::Ordering, fmt, ops};
 
 pub trait Clock: Sized + Period {
@@ -22,7 +22,6 @@ pub trait Clock: Sized + Period {
 /// ```rust
 /// # use embedded_time::Instant;
 /// # use embedded_time::time_units::*;
-/// # use embedded_time::duration::time_units::{TryConvertInto, TryConvertFrom};
 /// assert!(Instant(Seconds(1)) == Instant(Milliseconds(1_000)));
 /// assert!(Instant(Seconds(1)) != Instant(Milliseconds(1_001)));
 /// assert!(Instant(Seconds(1)) < Instant(Milliseconds(1_001)));
@@ -35,14 +34,6 @@ pub struct Instant<Dur: Duration>(pub Dur);
 
 impl<Dur: Duration> Instant<Dur> {
     pub fn duration_since_epoch(self) -> Dur {
-        self.0
-    }
-}
-
-impl<Dur: Duration> Wrapper for Instant<Dur> {
-    type Rep = Dur;
-
-    fn unwrap(self) -> Self::Rep {
         self.0
     }
 }
@@ -63,7 +54,7 @@ where
     fn try_convert_from(
         other: Instant<Source>,
     ) -> Result<Self, <Self as TryConvertFrom<Instant<Source>>>::Error> {
-        Ok(Instant(Dur::try_convert_from(other.unwrap())?))
+        Ok(Instant(Dur::try_convert_from(other.0)?))
     }
 }
 
@@ -98,11 +89,11 @@ where
     Dur2: Duration,
 {
     fn eq(&self, other: &Instant<Dur2>) -> bool {
-        (*self).unwrap() == (*other).unwrap()
+        self.0 == other.0
     }
 }
 
-/// ```
+/// ```rust
 /// # use embedded_time::Instant;
 /// # use embedded_time::time_units::*;
 /// assert!(Instant(Seconds(2)) <  Instant(Seconds(3)));
@@ -119,16 +110,17 @@ where
     RhsDur: Duration,
 {
     fn partial_cmp(&self, other: &Instant<RhsDur>) -> Option<Ordering> {
-        self.unwrap().partial_cmp(&other.unwrap())
+        self.0.partial_cmp(&other.0)
     }
 }
 
-/// ```
+/// ```rust
 /// # use embedded_time::Instant;
 /// # use embedded_time::time_units::*;
 /// assert_eq!(Instant(Seconds(1)) + Seconds(3), Instant(Seconds(4)));
 /// assert_eq!(Instant(Seconds(-1)) + Milliseconds(5_123), Instant(Seconds(4)));
 /// assert_eq!(Instant(Seconds(1)) + Milliseconds(700), Instant(Seconds(1)));
+/// assert_eq!(Instant(Seconds(1_i32)) + Milliseconds(700_i64), Instant(Seconds(1_i32)));
 /// ```
 impl<Dur, AddDur> ops::Add<AddDur> for Instant<Dur>
 where
@@ -142,27 +134,30 @@ where
     }
 }
 
-/// ```
+/// ```rust
 /// # use embedded_time::Instant;
 /// # use embedded_time::time_units::*;
 /// assert_eq!(Instant(Seconds(5)) - Instant(Seconds(3)), Seconds(2));
 /// assert_eq!(Instant(Seconds(3)) - Instant(Seconds(5)), Seconds(-2));
+/// assert_eq!(Instant(Milliseconds(5_000)) - Instant(Seconds(2)), Milliseconds(3_000));
+/// assert_eq!(Instant(Milliseconds(5_000_i32)) - Instant(Seconds(2_i64)), Milliseconds(3_000_i32));
 ///
 /// // wrapping examples
 /// //assert_eq!(Instant(Seconds(1)) - Instant(Seconds(i32::MAX)), Seconds(2))
 /// ```
-impl<Dur> ops::Sub for Instant<Dur>
+impl<Dur, RhsDur> ops::Sub<Instant<RhsDur>> for Instant<Dur>
 where
-    Dur: Duration + ops::Sub<Output = Dur>,
+    Dur: Duration + ops::Sub<RhsDur, Output = Dur>,
+    RhsDur: Duration,
 {
     type Output = Dur;
 
-    fn sub(self, rhs: Self) -> Self::Output {
+    fn sub(self, rhs: Instant<RhsDur>) -> Self::Output {
         self.0 - rhs.0
     }
 }
 
-/// ```
+/// ```rust
 /// # use embedded_time::Instant;
 /// # use embedded_time::time_units::*;
 /// assert_eq!(Instant(Seconds(3)) - Seconds(2), Instant(Seconds(1)));

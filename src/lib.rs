@@ -16,9 +16,9 @@
 //! #     fn now<Dur>() -> Instant<Dur> where Dur: Duration, Dur::Rep: TimeRep{ unimplemented!() } }
 //! # impl embedded_time::Period for SomeClock { const PERIOD: Ratio<i32> = Ratio::<i32>::new_raw(1, 16_000_000); }
 //! #
-//! let instant1 = SomeClock::now::<Microseconds<i64>>();
+//! let instant1 = SomeClock::now::<Milliseconds<i32>>();
 //! // ...
-//! let instant2 = SomeClock::now::<Milliseconds<i32>>();
+//! let instant2 = SomeClock::now::<Microseconds<i64>>();
 //! assert!(instant1 < instant2);    // instant1 is *before* instant2
 //!
 //! let duration: Microseconds<i64> = instant2 - instant1;    // duration is the difference between the instances
@@ -43,12 +43,6 @@ pub use numerical_duration::TimeRep;
 
 pub trait Period {
     const PERIOD: Ratio<i32>;
-}
-
-pub trait Wrapper: Sized {
-    type Rep;
-
-    fn unwrap(self) -> Self::Rep;
 }
 
 /// A collection of imports that are widely useful.
