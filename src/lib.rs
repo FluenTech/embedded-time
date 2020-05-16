@@ -1,13 +1,29 @@
-//! This crate provides a way to abstract over hardware-specific timing providers such as timers or counters
-//! In addition it provides comprehensive `Instant` and duration types (`Minutes`, `Seconds`, `Milliseconds`, etc.) along
-//! with intuitive interfaces.
+//! This crate provides a way using the [`Clock`](trait.Clock.html) trait to abstract over
+//! hardware-specific timing providers such as peripheral timers
+//! In addition it provides comprehensive [`Instant`](Instant) and duration types
+//! ([`Minutes`](time_units::Minutes), [`Seconds`](time_units::Seconds),
+//! [`Milliseconds`](time_units::Milliseconds), etc.) along with intuitive interfaces.
 //!
 //! # Example Usage
-//! ```rust
-//! use embedded_time::prelude::*;
-//! use embedded_time::time_units::*;
+//! ```rust,no_run
+//! # use embedded_time::prelude::*;
+//! # use embedded_time::time_units::*;
+//! # use embedded_time::{Ratio, Instant, Duration, TimeRep};
+//! #
+//! # struct SomeClock;
+//! # impl embedded_time::Clock for SomeClock {
+//! #     type Rep = i64;
+//! #     fn now<Dur>() -> Instant<Dur> where Dur: Duration, Dur::Rep: TimeRep{ unimplemented!() } }
+//! # impl embedded_time::Period for SomeClock { const PERIOD: Ratio<i32> = Ratio::<i32>::new_raw(1, 16_000_000); }
+//! #
+//! let instant1 = SomeClock::now::<Microseconds<i64>>();
+//! // ...
+//! let instant2 = SomeClock::now::<Milliseconds<i32>>();
+//! assert!(instant1 < instant2);    // instant1 is *before* instant2
 //!
+//! let duration: Microseconds<i64> = instant2 - instant1;    // duration is the difference between the instances
 //!
+//! assert_eq!(instant1 + duration, instant2);
 //! ```
 
 #![cfg_attr(not(test), no_std)]
@@ -46,14 +62,14 @@ pub trait Wrapper: Sized {
 /// major releases.
 pub mod prelude {
     // Rename traits to `_` to avoid any potential name conflicts.
-    pub use crate::duration::time_units::TryConvertFrom as _TryConvertFrom;
-    pub use crate::duration::time_units::TryConvertInto as _TryConvertInto;
-    pub use crate::duration::Duration as _Duration;
-    pub use crate::integer::IntTrait as _IntTrait;
-    pub use crate::numerical_duration::TimeRep as _TimeRep;
-    pub use crate::Clock as _Clock;
-    pub use crate::Period as _Period;
-    pub use num::Integer as _Integer;
+    pub use crate::duration::time_units::TryConvertFrom as _;
+    pub use crate::duration::time_units::TryConvertInto as _;
+    pub use crate::duration::Duration as _;
+    pub use crate::integer::IntTrait as _;
+    pub use crate::numerical_duration::TimeRep as _;
+    pub use crate::Clock as _;
+    pub use crate::Period as _;
+    pub use num::Integer as _;
 }
 
 #[cfg(test)]
