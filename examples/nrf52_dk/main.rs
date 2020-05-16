@@ -1,19 +1,18 @@
 #![cfg_attr(not(test), no_std)]
 #![cfg_attr(not(test), no_main)]
-#![feature(const_fn)]
-#![feature(const_loop)]
-#![feature(const_if_match)]
-#![feature(const_trait_impl)]
-#![allow(incomplete_features)]
+// #![feature(const_fn)]
+// #![feature(const_loop)]
+// #![feature(const_if_match)]
+// #![feature(const_trait_impl)]
+// #![allow(incomplete_features)]
 
 extern crate panic_rtt;
+
 use core::borrow::Borrow;
 use core::convert::TryInto;
 use core::prelude::v1::*;
 use cortex_m::mutex::CriticalSectionMutex as Mutex;
-use embedded_time::prelude::*;
-use embedded_time::time_units::*;
-use embedded_time::{Duration, Instant, Period};
+use embedded_time::{prelude::*, time_units::*, Duration, Instant, Period, TimeRep};
 use mutex_trait::Mutex as _Mutex;
 use num::rational::Ratio;
 use rtfm::Fraction;
@@ -23,6 +22,8 @@ pub mod nrf52 {
     pub use nrf52832_hal::prelude;
     pub use nrf52832_hal::target as pac;
 }
+
+use core::convert::TryFrom;
 
 use nrf52::prelude::*;
 
@@ -56,38 +57,37 @@ impl SystemTime {
 impl embedded_time::Clock for SystemTime {
     type Rep = i64;
 
-    fn now<U>() -> Instant<U>
-    where
-        U: Duration<Self::Rep>,
+    fn now<Dur>() -> Instant<Dur>
+        where
+            Dur: Duration,
+            Dur::Rep: TimeRep,
     {
         let ticks = (&SYSTEM_TICKS).lock(|system_ticks| match system_ticks {
             Some(system_ticks) => system_ticks.read(),
             None => 0,
         });
 
-        let ticks = ticks.try_into().unwrap();
-
-        Instant(U::from_ticks(ticks, Self::PERIOD))
+        Instant(Dur::from_ticks(ticks as Self::Rep, Self::PERIOD))
     }
 }
 
 impl Period for SystemTime {
-    const PERIOD: Ratio<i32> = Ratio::<i32>::new_raw(1, 16_000_000);
+    const PERIOD: Ratio<i32> = Ratio::new_raw(1, 16_000_000);
 }
 
 impl rtfm::Monotonic for SystemTime {
-    type Instant = embedded_time::Instant<Nanoseconds<i64>>;
+    // type Instant = embedded_time::Instant<Nanoseconds<i64>>;
 
-    fn ratio() -> Fraction {
-        Fraction {
-            numerator: 8,
-            denominator: 125,
-        }
-    }
+    // fn ratio() -> Fraction {
+    //     Fraction {
+    //         numerator: 8,
+    //         denominator: 125,
+    //     }
+    // }
 
-    fn now() -> Self::Instant {
-        <Self as embedded_time::Clock>::now()
-    }
+    // fn now() -> Self::Instant {
+    //     <Self as embedded_time::Clock>::now()
+    // }
 
     unsafe fn reset() {
         (&SYSTEM_TICKS).lock(|ticks| match ticks {
@@ -99,14 +99,17 @@ impl rtfm::Monotonic for SystemTime {
         });
     }
 
-    fn zero() -> Self::Instant {
-        Instant(0.nanoseconds())
-    }
+    // fn zero() -> Self::Instant {
+    //     Instant(0.nanoseconds())
+    // }
 }
 
 static SYSTEM_TICKS: Mutex<Option<SystemTime>> = Mutex::new(None);
 
-#[rtfm::app(device = nrf52832_hal::pac, peripherals = true, monotonic = crate::SystemTime)]
+use cortex_m::peripheral::DWT;
+use core::fmt;
+
+#[rtfm::app(device = nrf52832_hal::pac, peripherals = true, monotonic = rtfm::cyccnt::CYCCNT)]
 const APP: () = {
     struct Resources {
         led1: nrf52::gpio::p0::P0_17<nrf52::gpio::Output<nrf52::gpio::OpenDrain>>,
@@ -115,12 +118,15 @@ const APP: () = {
         led4: nrf52::gpio::p0::P0_20<nrf52::gpio::Output<nrf52::gpio::OpenDrain>>,
     }
 
-    #[init(spawn = [turn_on_led1, turn_on_led2, turn_on_led3, turn_on_led4])]
-    fn init(cx: init::Context) -> init::LateResources {
+    #[init(spawn = [turn_on_led1])]
+    fn init(mut cx: init::Context) -> init::LateResources {
+        // Initialize (enable) the monotonic timer (CYCCNT)
+        cx.core.DCB.enable_trace();
+        // required on Cortex-M7 devices that software lock the DWT (e.g. STM32F7)
+        DWT::unlock();
+        cx.core.DWT.enable_cycle_counter();
+
         cx.spawn.turn_on_led1().unwrap();
-        cx.spawn.turn_on_led2().unwrap();
-        cx.spawn.turn_on_led3().unwrap();
-        cx.spawn.turn_on_led4().unwrap();
 
         cx.device.TIMER0.mode.write(|w| w.mode().timer());
         cx.device.TIMER0.bitmode.write(|w| w.bitmode()._32bit());
@@ -204,18 +210,16 @@ const APP: () = {
         led1.set_low().unwrap();
 
         cx.schedule
-            .turn_off_led1(cx.scheduled + 1.seconds())
+            .turn_off_led1(cx.scheduled + 500.milliseconds())
             .unwrap();
     }
 
-    #[task(resources = [led1], schedule = [turn_on_led1])]
+    #[task(resources = [led1], spawn = [turn_on_led2])]
     fn turn_off_led1(cx: turn_off_led1::Context) {
         let led1 = cx.resources.led1;
         led1.set_high().unwrap();
 
-        cx.schedule
-            .turn_on_led1(cx.scheduled + 1.seconds())
-            .unwrap();
+        cx.spawn.turn_on_led2().unwrap();
     }
 
     #[task(resources = [led2], schedule = [turn_off_led2])]
@@ -223,17 +227,15 @@ const APP: () = {
         cx.resources.led2.set_low().unwrap();
 
         cx.schedule
-            .turn_off_led2(cx.scheduled + 2.seconds())
+            .turn_off_led2(cx.scheduled + 500.milliseconds())
             .unwrap();
     }
 
-    #[task(resources = [led2], schedule = [turn_on_led2])]
+    #[task(resources = [led2], spawn = [turn_on_led4])]
     fn turn_off_led2(cx: turn_off_led2::Context) {
         cx.resources.led2.set_high().unwrap();
 
-        cx.schedule
-            .turn_on_led2(cx.scheduled + 2.seconds())
-            .unwrap();
+        cx.spawn.turn_on_led4().unwrap();
     }
 
     #[task(resources = [led3], schedule = [turn_off_led3])]
@@ -241,17 +243,15 @@ const APP: () = {
         cx.resources.led3.set_low().unwrap();
 
         cx.schedule
-            .turn_off_led3(cx.scheduled + 3.seconds())
+            .turn_off_led3(cx.scheduled + 500.milliseconds())
             .unwrap();
     }
 
-    #[task(resources = [led3], schedule = [turn_on_led3])]
+    #[task(resources = [led3], spawn = [turn_on_led1])]
     fn turn_off_led3(cx: turn_off_led3::Context) {
         cx.resources.led3.set_high().unwrap();
 
-        cx.schedule
-            .turn_on_led3(cx.scheduled + 3.seconds())
-            .unwrap();
+        cx.spawn.turn_on_led1().unwrap();
     }
 
     #[task(resources = [led4], schedule = [turn_off_led4])]
@@ -259,17 +259,15 @@ const APP: () = {
         cx.resources.led4.set_low().unwrap();
 
         cx.schedule
-            .turn_off_led4(cx.scheduled + 4.seconds())
+            .turn_off_led4(cx.scheduled + 500.milliseconds())
             .unwrap();
     }
 
-    #[task(resources = [led4], schedule = [turn_on_led4])]
+    #[task(resources = [led4], spawn = [turn_on_led3])]
     fn turn_off_led4(cx: turn_off_led4::Context) {
         cx.resources.led4.set_high().unwrap();
 
-        cx.schedule
-            .turn_on_led4(cx.scheduled + 4.seconds())
-            .unwrap();
+        cx.spawn.turn_on_led3().unwrap();
     }
 
     // Interrupt handlers used to dispatch software tasks
