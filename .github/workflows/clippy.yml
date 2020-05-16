@@ -1,0 +1,28 @@
+name: Clippy
+
+on: {push, pull_request}
+
+jobs:
+  clippy_check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions-rs/toolchain@v1
+      with:
+          toolchain: nightly
+          components: clippy
+          override: true
+#     - uses: actions-rs/clippy-check@v1.0.5
+#       with:
+#         # GitHub token
+#         token: ${{ secrets.GITHUB_TOKEN }}
+#         # Toolchain to use (without the `+` sign, ex. `nightly`)
+#         toolchain: nightly
+#         # Use cross instead of cargo
+#         use-cross: false
+    - uses: actions-rs/cargo@v1.0.1
+      with:
+        # Cargo command to run (ex. `check` or `build`)
+        command: clippy
+        # Toolchain to use (without the `+` sign, ex. `nightly`)
+        toolchain: nightly
