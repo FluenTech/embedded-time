@@ -14,20 +14,10 @@ pub trait Clock: Sized + Period {
         Dur::Rep: TimeRep;
 }
 
-/// Represents an instant in time
-///
-/// Comparisons can be performed between different precisions but not between different representations/widths
-///
-/// # Examples
+/// # Example
 /// ```rust
-/// # use embedded_time::Instant;
-/// # use embedded_time::time_units::*;
-/// assert!(Instant(Seconds(1)) == Instant(Milliseconds(1_000)));
-/// assert!(Instant(Seconds(1)) != Instant(Milliseconds(1_001)));
-/// assert!(Instant(Seconds(1)) < Instant(Milliseconds(1_001)));
-/// assert!(Instant(Seconds(1)) > Instant(Milliseconds(999)));
-/// assert!(Instant(Microseconds(119_900_000)) < Instant(Minutes(2)));
-/// assert!(Instant(Seconds(1_i32)) == Instant(Milliseconds(1_000_i64)));
+/// # use embedded_time::{prelude::*, time_units::*, Instant};
+/// Instant(Milliseconds(23));
 /// ```
 #[derive(Debug, Copy, Clone, Eq, Ord)]
 pub struct Instant<Dur: Duration>(pub Dur);
@@ -38,12 +28,6 @@ impl<Dur: Duration> Instant<Dur> {
     }
 }
 
-/// ```rust
-/// # use embedded_time::prelude::*;
-/// # use embedded_time::time_units::*;
-/// # use embedded_time::Instant;
-/// assert_eq!(Instant::<Seconds<i32>>::try_convert_from(Instant(Milliseconds(23_000_i64))), Ok(Instant(Seconds(23_i32))));
-/// ```
 impl<Dur, Source> TryConvertFrom<Instant<Source>> for Instant<Dur>
 where
     Source: Duration,
@@ -51,6 +35,16 @@ where
 {
     type Error = <Dur as TryConvertFrom<Source>>::Error;
 
+    /// # Errors
+    ///
+    ///
+    /// # Examples
+    /// ```rust
+    /// # use embedded_time::prelude::*;
+    /// # use embedded_time::time_units::*;
+    /// # use embedded_time::Instant;
+    /// assert_eq!(Instant::<Seconds<i32>>::try_convert_from(Instant(Milliseconds(23_000_i64))), Ok(Instant(Seconds(23_i32))));
+    /// ```
     fn try_convert_from(
         other: Instant<Source>,
     ) -> Result<Self, <Self as TryConvertFrom<Instant<Source>>>::Error> {
@@ -58,6 +52,7 @@ where
     }
 }
 
+/// # Examples
 /// ```rust
 /// # use embedded_time::prelude::*;
 /// # use embedded_time::time_units::*;
@@ -77,6 +72,7 @@ where
     }
 }
 
+/// # Examples
 /// ```rust
 /// # use embedded_time::Instant;
 /// # use embedded_time::time_units::*;
@@ -93,6 +89,7 @@ where
     }
 }
 
+/// # Examples
 /// ```rust
 /// # use embedded_time::Instant;
 /// # use embedded_time::time_units::*;
@@ -100,7 +97,6 @@ where
 /// assert!(Instant(Seconds(2)) <  Instant(Milliseconds(2_001)));
 /// assert!(Instant(Seconds(2)) == Instant(Milliseconds(2_000)));
 /// assert!(Instant(Seconds(2)) >  Instant(Milliseconds(1_999)));
-///
 /// assert!(Instant(Seconds(2_i32)) < Instant(Milliseconds(2_001_i64)));
 /// assert!(Instant(Seconds(2_i64)) < Instant(Milliseconds(2_001_i32)));
 /// ```
@@ -114,6 +110,12 @@ where
     }
 }
 
+/// Add a duration to an instant resulting in a new, later instance
+///
+/// # Panics
+/// See [`impl Sub for Duration`](duration/time_units/index.html#addsub) for details
+///
+/// # Examples
 /// ```rust
 /// # use embedded_time::Instant;
 /// # use embedded_time::time_units::*;
@@ -134,6 +136,14 @@ where
     }
 }
 
+/// Calculates the difference between two `Instance`s resulting in a [`Duration`]
+///
+/// The returned [`Duration`] will be the type from the lhs `Instance`
+///
+/// # Panics
+/// See [`impl Sub for Duration`](duration/time_units/index.html#addsub) for details
+///
+/// # Examples
 /// ```rust
 /// # use embedded_time::Instant;
 /// # use embedded_time::time_units::*;
@@ -157,6 +167,12 @@ where
     }
 }
 
+/// Subtract a duration from an instant resulting in a new, earlier instance
+///
+/// # Panics
+/// See [`impl Sub for Duration`](duration/time_units/index.html#addsub) for details
+///
+/// # Examples
 /// ```rust
 /// # use embedded_time::Instant;
 /// # use embedded_time::time_units::*;

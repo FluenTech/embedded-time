@@ -1,6 +1,7 @@
-//! This crate provides a way using the [`Clock`](trait.Clock.html) trait to abstract over
+//! # Embedded Time
+//! `embedded-time` provides a way (using the [`Clock`](trait.Clock.html) trait) to abstract over
 //! hardware-specific timing providers such as peripheral timers
-//! In addition it provides comprehensive [`Instant`](Instant) and duration types
+//! In addition it provides comprehensive [`Instant`] and duration types
 //! ([`Minutes`](time_units::Minutes), [`Seconds`](time_units::Seconds),
 //! [`Milliseconds`](time_units::Milliseconds), etc.) along with intuitive interfaces.
 //!
@@ -9,7 +10,6 @@
 //! # use embedded_time::prelude::*;
 //! # use embedded_time::time_units::*;
 //! # use embedded_time::{Ratio, Instant, Duration, TimeRep};
-//! #
 //! # struct SomeClock;
 //! # impl embedded_time::Clock for SomeClock {
 //! #     type Rep = i64;
@@ -28,7 +28,7 @@
 
 #![cfg_attr(not(test), no_std)]
 #![feature(associated_type_bounds)]
-#![warn(missing_doc_code_examples)]
+#![deny(intra_doc_link_resolution_failure)]
 // #![warn(clippy::pedantic)]
 
 pub mod duration;
