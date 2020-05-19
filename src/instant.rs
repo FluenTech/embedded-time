@@ -1,4 +1,4 @@
-use crate::duration::time_units::{TryConvertFrom, TryConvertInto};
+use crate::duration::{TryConvertFrom, TryConvertInto};
 use crate::numerical_duration::TimeRep;
 use crate::{Duration, Period};
 use core::convert::TryFrom;

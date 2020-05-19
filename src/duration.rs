@@ -174,6 +174,74 @@ pub trait Duration: Sized + Copy + fmt::Display + Period {
     }
 }
 
+pub trait TryConvertFrom<Source>: Sized {
+    type Error: fmt::Debug;
+
+    fn try_convert_from(other: Source) -> Result<Self, Self::Error>;
+}
+
+pub trait TryConvertInto<Dest> {
+    type Error: fmt::Debug;
+
+    fn try_convert_into(self) -> Result<Dest, Self::Error>;
+}
+
+impl<Source, Dest> TryConvertFrom<Source> for Dest
+where
+    Dest: Duration,
+    Dest::Rep: TimeRep + TryFrom<Source::Rep, Error: fmt::Debug>,
+    Source: Duration,
+    Source::Rep: TimeRep,
+{
+    /// Type returned upon conversion failure
+    type Error = <Dest::Rep as TryFrom<Source::Rep>>::Error;
+
+    /// Attempt to convert from one duration type to another
+    ///
+    /// Both the underlying storage type and the LSb period can be converted
+    ///
+    /// # Errors
+    /// - unable to cast underlying types
+    /// - LSb period conversion overflow
+    ///
+    /// # Examples
+    /// ```rust
+    /// # use embedded_time::prelude::*;
+    /// # use embedded_time::time_units::*;
+    /// # use embedded_time::duration::TryConvertFrom;
+    /// assert_eq!(Seconds::<i32>::try_convert_from(Milliseconds(23_000_i64)), Ok(Seconds(23_i32)));
+    /// assert_eq!(Seconds::<i64>::try_convert_from(Milliseconds(23_000_i32)), Ok(Seconds(23_i64)));
+    /// ```
+    fn try_convert_from(source: Source) -> Result<Self, <Self as TryConvertFrom<Source>>::Error> {
+        Ok(Self::from_ticks(source.count(), Source::PERIOD))
+    }
+}
+
+/// The reciprocal of [`TryConvertFrom`]
+///
+/// # Examples
+/// ```rust
+/// # use embedded_time::prelude::*;
+/// # use embedded_time::time_units::*;
+/// # use embedded_time::duration::TryConvertInto;
+/// assert_eq!(Seconds(23_000_i64).try_convert_into(), Ok(Seconds(23_000_i32)));
+/// assert_eq!(Seconds(23_000_i32).try_convert_into(), Ok(Seconds(23_000_i32)));
+/// assert_eq!(Ok(Seconds(23_000_i64)), (Seconds(23_000_i32).try_convert_into()));
+/// assert_eq!(Milliseconds(23_000_i64).try_convert_into(), Ok(Seconds(23_i32)));
+/// assert_eq!(Milliseconds(23_000_i32).try_convert_into(), Ok(Seconds(23_i64)));
+/// ```
+impl<Source, Dest> TryConvertInto<Dest> for Source
+where
+    Source: Duration,
+    Dest: Duration + TryConvertFrom<Source>,
+{
+    type Error = <Dest as TryConvertFrom<Self>>::Error;
+
+    fn try_convert_into(self) -> Result<Dest, <Self as TryConvertInto<Dest>>::Error> {
+        Dest::try_convert_from(self)
+    }
+}
+
 pub mod time_units {
     //! Implementations of the [`Duration`] trait.
     //!
@@ -265,7 +333,7 @@ pub mod time_units {
     //! ```
 
     use super::Period;
-    use crate::duration::Duration;
+    use crate::duration::{Duration, TryConvertFrom};
     use crate::numerical_duration::TimeRep;
     use core::{
         cmp,
@@ -384,75 +452,6 @@ pub mod time_units {
         Microseconds, (1, 1_000_000);
         Nanoseconds,  (1, 1_000_000_000)
     ];
-
-    pub trait TryConvertFrom<Source>: Sized {
-        type Error: fmt::Debug;
-
-        fn try_convert_from(other: Source) -> Result<Self, Self::Error>;
-    }
-
-    pub trait TryConvertInto<Dest> {
-        type Error: fmt::Debug;
-
-        fn try_convert_into(self) -> Result<Dest, Self::Error>;
-    }
-
-    impl<Source, Dest> TryConvertFrom<Source> for Dest
-    where
-        Dest: Duration,
-        Dest::Rep: TimeRep + TryFrom<Source::Rep, Error: fmt::Debug>,
-        Source: Duration,
-        Source::Rep: TimeRep,
-    {
-        /// Type returned upon conversion failure
-        type Error = <Dest::Rep as TryFrom<Source::Rep>>::Error;
-
-        /// Attempt to convert from one duration type to another
-        ///
-        /// Both the underlying storage type and the LSb period can be converted
-        ///
-        /// # Errors
-        /// - unable to cast underlying types
-        /// - LSb period conversion overflow
-        ///
-        /// # Examples
-        /// ```rust
-        /// # use embedded_time::prelude::*;
-        /// # use embedded_time::time_units::*;
-        /// assert_eq!(Seconds::<i32>::try_convert_from(Milliseconds(23_000_i64)), Ok(Seconds(23_i32)));
-        /// assert_eq!(Seconds::<i64>::try_convert_from(Milliseconds(23_000_i32)), Ok(Seconds(23_i64)));
-        /// ```
-        fn try_convert_from(
-            source: Source,
-        ) -> Result<Self, <Self as TryConvertFrom<Source>>::Error> {
-            let source_count = Dest::Rep::try_from(source.count())?;
-            Ok(Self::from_ticks(source_count, Source::PERIOD))
-        }
-    }
-
-    /// The reciprocal of [`TryConvertFrom`]
-    ///
-    /// # Examples
-    /// ```rust
-    /// # use embedded_time::prelude::*;
-    /// # use embedded_time::time_units::*;
-    /// assert_eq!(Seconds(23_000_i64).try_convert_into(), Ok(Seconds(23_000_i32)));
-    /// assert_eq!(Seconds(23_000_i32).try_convert_into(), Ok(Seconds(23_000_i32)));
-    /// assert_eq!(Ok(Seconds(23_000_i64)), (Seconds(23_000_i32).try_convert_into()));
-    /// assert_eq!(Milliseconds(23_000_i64).try_convert_into(), Ok(Seconds(23_i32)));
-    /// assert_eq!(Milliseconds(23_000_i32).try_convert_into(), Ok(Seconds(23_i64)));
-    /// ```
-    impl<Source, Dest> TryConvertInto<Dest> for Source
-    where
-        Source: Duration,
-        Dest: Duration + TryConvertFrom<Source>,
-    {
-        type Error = <Dest as TryConvertFrom<Self>>::Error;
-
-        fn try_convert_into(self) -> Result<Dest, <Self as TryConvertInto<Dest>>::Error> {
-            Dest::try_convert_from(self)
-        }
-    }
 }
 
 impl<T> ops::Mul<Ratio<i32>> for Integer<T>

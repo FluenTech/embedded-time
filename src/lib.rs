@@ -56,9 +56,9 @@ pub trait Period {
 /// major releases.
 pub mod prelude {
     // Rename traits to `_` to avoid any potential name conflicts.
-    pub use crate::duration::time_units::TryConvertFrom as _;
-    pub use crate::duration::time_units::TryConvertInto as _;
     pub use crate::duration::Duration as _;
+    pub use crate::duration::TryConvertFrom as _;
+    pub use crate::duration::TryConvertInto as _;
     pub use crate::integer::IntTrait as _;
     pub use crate::numerical_duration::TimeRep as _;
     pub use crate::Clock as _;
