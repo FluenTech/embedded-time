@@ -4,7 +4,7 @@ use crate::integer::{IntTrait, Integer};
 use crate::numerical_duration::TimeRep;
 use crate::Period;
 use core::{convert::TryFrom, fmt, mem::size_of, ops, prelude::v1::*};
-use num::{rational::Ratio, Bounded};
+use num::{rational::Ratio, traits::WrappingSub, Bounded};
 
 /// A duration of time with generic storage
 ///
@@ -154,35 +154,23 @@ pub trait Duration: Sized + Copy + fmt::Display + Period {
         Self::Rep::max_value()
     }
 
+    /// Apply wrapping subtraction
+    ///
+    /// # Example
     /// ```rust
     /// # use embedded_time::prelude::*;
     /// # use embedded_time::time_units::*;
-    /// assert_eq!(Milliseconds::from_dur(Seconds(1_000)), Milliseconds(1_000_000));
-    /// assert_eq!(Seconds::from_dur(Milliseconds(1_234)), Seconds(1));
-    /// assert_eq!(Microseconds::from_dur(Milliseconds(1_234)), Microseconds(1_234_000));
-    /// assert_eq!(Microseconds::from_dur(Milliseconds(1_234_i64)), Microseconds(1_234_000_i64));
-    /// assert_eq!(Microseconds::from_dur(Nanoseconds(3_234_i64)), Microseconds(3_i64));
+    /// assert_eq!(Seconds(1).wrapping_sub(Seconds(u32::MAX as i32)), Seconds(2))
     /// ```
-    fn from_dur<FromDur>(other: FromDur) -> Self
+    fn wrapping_sub<Rhs>(self, rhs: Rhs) -> Self
     where
-        FromDur: Duration<Rep = Self::Rep>,
+        Self: TryConvertFrom<Rhs, Error: fmt::Debug>,
+        Self::Rep: TryFrom<Rhs::Rep, Error: fmt::Debug>,
+        Rhs::Rep: TimeRep,
+        Rhs: Duration,
     {
-        Self::new(*(Integer(other.count()) * (FromDur::PERIOD / Self::PERIOD)))
-    }
-
-    /// ```rust
-    /// # use embedded_time::prelude::*;
-    /// # use embedded_time::time_units::*;
-    /// let millis: Milliseconds<_> = Seconds(1_000).into_dur();
-    /// assert_eq!(millis, Milliseconds(1_000_000));
-    /// let seconds: Seconds<_> = Milliseconds(2_345).into_dur();
-    /// assert_eq!(seconds, Seconds(2));
-    /// ```
-    fn into_dur<DestDur>(self) -> DestDur
-    where
-        DestDur: Duration<Rep = Self::Rep>,
-    {
-        DestDur::new(*(Integer(self.count()) * (Self::PERIOD / DestDur::PERIOD)))
+        let rhs = Self::try_convert_from(rhs).unwrap();
+        Self::new(self.count().wrapping_sub(&rhs.count()))
     }
 }
 

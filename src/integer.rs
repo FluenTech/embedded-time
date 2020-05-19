@@ -10,6 +10,7 @@ pub trait IntTrait:
     + TryInto<i64, Error: fmt::Debug>
     + TryFrom<i64, Error: fmt::Debug>
     + Into<i64>
+    + num::traits::WrappingSub
     + num::PrimInt
     + fmt::Display
     + fmt::Debug
