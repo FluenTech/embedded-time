@@ -139,6 +139,26 @@ where
 {
     type Output = Self;
 
+    /// Add a duration to an instant resulting in a new, later instance
+    ///
+    /// # Panics
+    /// `Instant` + [`Duration`] does not wrap:
+    /// ```rust,should_panic
+    /// # use embedded_time::Instant;
+    /// # use embedded_time::time_units::*;
+    /// assert_eq!(Instant(Seconds(i32::MAX)) + Seconds(1), Instant(Seconds(i32::MIN)));
+    /// ```
+    /// See [`impl Add for Duration`](duration/time_units/index.html#addsub) for details
+    ///
+    /// # Examples
+    /// ```rust
+    /// # use embedded_time::Instant;
+    /// # use embedded_time::time_units::*;
+    /// assert_eq!(Instant(Seconds(1)) + Seconds(3), Instant(Seconds(4)));
+    /// assert_eq!(Instant(Seconds(-1)) + Milliseconds(5_123), Instant(Seconds(4)));
+    /// assert_eq!(Instant(Seconds(1)) + Milliseconds(700), Instant(Seconds(1)));
+    /// assert_eq!(Instant(Seconds(1_i32)) + Milliseconds(700_i64), Instant(Seconds(1_i32)));
+    /// ```
     fn add(self, rhs: AddDur) -> Self::Output {
         Self(self.0 + rhs)
     }
@@ -182,19 +202,6 @@ where
     }
 }
 
-/// Subtract a duration from an instant resulting in a new, earlier instance
-///
-/// # Panics
-/// See [`impl Sub for Duration`](duration/time_units/index.html#addsub) for details
-///
-/// # Examples
-/// ```rust
-/// # use embedded_time::Instant;
-/// # use embedded_time::time_units::*;
-/// assert_eq!(Instant(Seconds(3)) - Seconds(2), Instant(Seconds(1)));
-/// assert_eq!(Instant(Seconds(3)) - Milliseconds(5_000), Instant(Seconds(-2)));
-/// assert_eq!(Instant(Seconds(1)) - Milliseconds(700), Instant(Seconds(1)));
-/// ```
 impl<Dur, SubDur> ops::Sub<SubDur> for Instant<Dur>
 where
     Dur: Duration + ops::Sub<SubDur, Output = Dur>,
@@ -202,6 +209,25 @@ where
 {
     type Output = Self;
 
+    /// Subtract a duration from an instant resulting in a new, earlier instance
+    ///
+    /// # Panics
+    /// `Instant` - [`Duration`] does not wrap:
+    /// ```rust,should_panic
+    /// # use embedded_time::Instant;
+    /// # use embedded_time::time_units::*;
+    /// assert_eq!(Instant(Seconds(i32::MIN)) - Seconds(1), Instant(Seconds(i32::MAX)));
+    /// ```
+    /// See [`impl Sub for Duration`](duration/time_units/index.html#addsub) for details
+    ///
+    /// # Examples
+    /// ```rust
+    /// # use embedded_time::Instant;
+    /// # use embedded_time::time_units::*;
+    /// assert_eq!(Instant(Seconds(3)) - Seconds(2), Instant(Seconds(1)));
+    /// assert_eq!(Instant(Seconds(3)) - Milliseconds(5_000), Instant(Seconds(-2)));
+    /// assert_eq!(Instant(Seconds(1)) - Milliseconds(700), Instant(Seconds(1)));
+    /// ```
     fn sub(self, rhs: SubDur) -> Self::Output {
         Self(self.0 - rhs)
     }

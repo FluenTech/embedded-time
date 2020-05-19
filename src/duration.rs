@@ -367,14 +367,13 @@ pub mod time_units {
                     }
                 }
 
-                /// See module-level documentation for details about this type
                 impl<T: TimeRep> fmt::Display for $name<T> {
+                    /// See module-level documentation for details about this type
                     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
                         fmt::Display::fmt(&self.0, f)
                     }
                 }
 
-                /// See module-level documentation for details about this type
                 impl<Rep, RhsDur> ops::Add<RhsDur> for $name<Rep>
                 where
                     RhsDur: Duration,
@@ -383,13 +382,13 @@ pub mod time_units {
                 {
                     type Output = Self;
 
+                    /// See module-level documentation for details about this type
                     #[inline]
                     fn add(self, rhs: RhsDur) -> Self::Output {
                         Self(self.count() + Self::try_convert_from(rhs).unwrap().count())
                     }
                 }
 
-                /// See module-level documentation for details about this type
                 impl<Rep, RhsDur> ops::Sub<RhsDur> for $name<Rep>
                 where
                     Rep: TimeRep + TryFrom<RhsDur::Rep, Error: fmt::Debug>,
@@ -397,19 +396,20 @@ pub mod time_units {
                 {
                     type Output = Self;
 
+                    /// See module-level documentation for details about this type
                     #[inline]
                     fn sub(self, rhs: RhsDur) -> Self::Output {
                         Self(self.count() - Self::try_convert_from(rhs).unwrap().count())
                     }
                 }
 
-                /// See module-level documentation for details about this type
                 impl<Rep, OtherDur> cmp::PartialEq<OtherDur> for $name<Rep>
                 where
                     Rep: TimeRep + TryFrom<OtherDur::Rep, Error: fmt::Debug>,
                     OtherDur: Duration,
                     OtherDur::Rep: TryFrom<Rep, Error: fmt::Debug>,
                 {
+                    /// See module-level documentation for details about this type
                     fn eq(&self, other: &OtherDur) -> bool {
                         if Self::PERIOD < OtherDur::PERIOD {
                             self.count() == Self::try_convert_from(*other).unwrap().count()
@@ -419,13 +419,13 @@ pub mod time_units {
                     }
                 }
 
-                /// See module-level documentation for details about this type
                 impl<Rep, OtherDur> PartialOrd<OtherDur> for $name<Rep>
                 where
                     Rep: TimeRep + TryFrom<OtherDur::Rep, Error: fmt::Debug>,
                     OtherDur: Duration,
                     OtherDur::Rep: TryFrom<Rep, Error: fmt::Debug>,
                 {
+                    /// See module-level documentation for details about this type
                     fn partial_cmp(&self, other: &OtherDur) -> Option<core::cmp::Ordering> {
                         if Self::PERIOD < OtherDur::PERIOD {
                             Some(self.count().cmp(&Self::try_convert_from(*other).unwrap().count()))
