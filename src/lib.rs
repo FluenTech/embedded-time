@@ -13,12 +13,12 @@
 //! # struct SomeClock;
 //! # impl embedded_time::Clock for SomeClock {
 //! #     type Rep = i64;
-//! #     fn now<Dur>() -> Instant<Dur> where Dur: Duration, Dur::Rep: TimeRep{ unimplemented!() } }
+//! #     fn now() -> Instant<Self> { unimplemented!() } }
 //! # impl embedded_time::Period for SomeClock { const PERIOD: Ratio<i32> = Ratio::<i32>::new_raw(1, 16_000_000); }
 //! #
-//! let instant1 = SomeClock::now::<Milliseconds<i32>>();
+//! let instant1 = SomeClock::now();
 //! // ...
-//! let instant2 = SomeClock::now::<Microseconds<i64>>();
+//! let instant2 = SomeClock::now();
 //! assert!(instant1 < instant2);    // instant1 is *before* instant2
 //!
 //! let duration: Microseconds<i64> = instant2 - instant1;    // duration is the difference between the instances
@@ -28,14 +28,17 @@
 
 #![cfg_attr(not(test), no_std)]
 #![feature(associated_type_bounds)]
+#![feature(type_alias_impl_trait)]
 #![deny(intra_doc_link_resolution_failure)]
 // #![warn(clippy::pedantic)]
 
+mod clock;
 pub mod duration;
 mod instant;
 mod integer;
 mod numerical_duration;
 
+pub use clock::Clock;
 pub use duration::{time_units, Duration};
 pub use instant::{Clock, Instant};
 pub use num::rational::Ratio;
@@ -72,18 +75,14 @@ mod tests {
     use crate::prelude::*;
     use crate::time_units::*;
     use crate::Ratio;
-    use crate::{Clock, Duration, Instant, Period};
+    use crate::{Clock, Period};
 
     struct MockClock64;
     impl Clock for MockClock64 {
         type Rep = i64;
 
-        fn now<Dur>() -> Instant<Dur>
-        where
-            Dur: Duration,
-            Dur::Rep: TimeRep,
-        {
-            Instant(Dur::from_ticks(48_000_i64, MockClock64::PERIOD))
+        fn now() -> Instant<Self> {
+            Instant::new(128_000_000)
         }
     }
     impl Period for MockClock64 {
@@ -94,12 +93,8 @@ mod tests {
     impl Clock for MockClock32 {
         type Rep = i32;
 
-        fn now<Dur>() -> Instant<Dur>
-        where
-            Dur: Duration,
-            Dur::Rep: TimeRep,
-        {
-            Instant(Dur::from_ticks(192_000_i32, MockClock32::PERIOD))
+        fn now() -> Instant<Self> {
+            Instant::new(32_000_000)
         }
     }
     impl Period for MockClock32 {
@@ -116,8 +111,8 @@ mod tests {
 
     #[test]
     fn common_types() {
-        let then = MockClock32::now::<Nanoseconds<i64>>();
-        let now = MockClock64::now::<Milliseconds<i32>>();
+        let then = MockClock32::now();
+        let now = MockClock32::now();
 
         get_time::<MockClock64>();
         get_time::<MockClock32>();

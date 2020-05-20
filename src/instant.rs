@@ -2,19 +2,11 @@ use crate::duration::{TryConvertFrom, TryConvertInto};
 use crate::numerical_duration::TimeRep;
 use crate::{Duration, Period};
 use core::convert::TryFrom;
-use core::{cmp::Ordering, fmt, ops};
+use core::ops;
+use num::traits::{WrappingAdd, WrappingSub};
 
-pub trait Clock: Sized + Period {
-    /// The type of the internal representation of time
-    type Rep: TimeRep;
-
-    /// Get the current Instant
-    fn now<Dur>() -> Instant<Dur>
-    where
-        Dur: Duration,
-        Dur::Rep: TimeRep;
-}
-
+/// Represents an instant of time relative to a specific clock
+///
 /// # Example
 /// ```rust
 /// # use embedded_time::{prelude::*, time_units::*, Instant};
