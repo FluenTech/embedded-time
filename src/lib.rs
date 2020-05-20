@@ -69,6 +69,7 @@ pub mod prelude {
 }
 
 #[cfg(test)]
+#[allow(unused_imports)]
 mod tests {
     use crate::instant::Instant;
     use crate::prelude::*;
@@ -86,7 +87,7 @@ mod tests {
         }
     }
     impl Period for MockClock64 {
-        const PERIOD: Ratio<i32> = Ratio::new_raw(1, 16_000_000);
+        const PERIOD: Ratio<i32> = Ratio::new_raw(1, 64_000_000);
     }
 
     #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
@@ -99,7 +100,7 @@ mod tests {
         }
     }
     impl Period for MockClock32 {
-        const PERIOD: Ratio<i32> = Ratio::new_raw(1, 64_000_000);
+        const PERIOD: Ratio<i32> = Ratio::new_raw(1, 16_000_000);
     }
 
     fn get_time<M>()
