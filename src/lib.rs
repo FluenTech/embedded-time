@@ -1,7 +1,7 @@
 //! # Embedded Time
 //! `embedded-time` provides a way (using the [`Clock`](trait.Clock.html) trait) to abstract over
 //! hardware-specific timing providers such as peripheral timers
-//! In addition it provides comprehensive [`Instant`] and duration types
+//! In addition it provides comprehensive [`Instant`](instant::Instant) and duration types
 //! ([`Minutes`](time_units::Minutes), [`Seconds`](time_units::Seconds),
 //! [`Milliseconds`](time_units::Milliseconds), etc.) along with intuitive interfaces.
 //!
@@ -9,7 +9,9 @@
 //! ```rust,no_run
 //! # use embedded_time::prelude::*;
 //! # use embedded_time::time_units::*;
-//! # use embedded_time::{Ratio, Instant, Duration, TimeRep};
+//! # use embedded_time::{Ratio, Duration, TimeRep};
+//! # use embedded_time::instant::Instant;
+//! # #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 //! # struct SomeClock;
 //! # impl embedded_time::Clock for SomeClock {
 //! #     type Rep = i64;
@@ -21,9 +23,9 @@
 //! let instant2 = SomeClock::now();
 //! assert!(instant1 < instant2);    // instant1 is *before* instant2
 //!
-//! let duration: Microseconds<i64> = instant2 - instant1;    // duration is the difference between the instances
-//!
-//! assert_eq!(instant1 + duration, instant2);
+//! let duration: Option<Microseconds<i64>> = instant2.elapsed_since(instant1);    // duration is the difference between the instances
+//! assert!(duration.is_some());
+//! assert_eq!(instant1 + duration.unwrap(), instant2);
 //! ```
 
 #![cfg_attr(not(test), no_std)]
@@ -34,13 +36,11 @@
 
 mod clock;
 pub mod duration;
-mod instant;
-mod integer;
+pub mod instant;
 mod numerical_duration;
 
 pub use clock::Clock;
 pub use duration::{time_units, Duration};
-pub use instant::{Clock, Instant};
 pub use num::rational::Ratio;
 pub use numerical_duration::TimeRep;
 
@@ -62,7 +62,6 @@ pub mod prelude {
     pub use crate::duration::Duration as _;
     pub use crate::duration::TryConvertFrom as _;
     pub use crate::duration::TryConvertInto as _;
-    pub use crate::integer::IntTrait as _;
     pub use crate::numerical_duration::TimeRep as _;
     pub use crate::Clock as _;
     pub use crate::Period as _;
@@ -71,12 +70,13 @@ pub mod prelude {
 
 #[cfg(test)]
 mod tests {
-    use crate::numerical_duration::TimeRep;
+    use crate::instant::Instant;
     use crate::prelude::*;
     use crate::time_units::*;
     use crate::Ratio;
     use crate::{Clock, Period};
 
+    #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
     struct MockClock64;
     impl Clock for MockClock64 {
         type Rep = i64;
@@ -89,6 +89,7 @@ mod tests {
         const PERIOD: Ratio<i32> = Ratio::new_raw(1, 16_000_000);
     }
 
+    #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
     struct MockClock32;
     impl Clock for MockClock32 {
         type Rep = i32;
@@ -104,9 +105,8 @@ mod tests {
     fn get_time<M>()
     where
         M: Clock,
-        M::Rep: TimeRep,
     {
-        assert_eq!(M::now::<Milliseconds<i32>>(), Instant(Milliseconds(3_i64)));
+        assert_eq!(M::now().elapsed_since_epoch(), Some(Seconds(2)));
     }
 
     #[test]
