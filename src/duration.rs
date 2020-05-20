@@ -1,6 +1,5 @@
 //! Duration types/units creation and conversion.
 
-use crate::integer::{IntTrait, Integer};
 use crate::numerical_duration::TimeRep;
 use crate::Period;
 use core::{convert::TryFrom, fmt, mem::size_of, ops, prelude::v1::*};
@@ -79,15 +78,20 @@ pub trait Duration: Sized + Copy + fmt::Display + Period {
             let converted_ticks = Self::Rep::try_from(ticks).unwrap();
 
             if period > Ratio::new_raw(1, 1) {
-                Self::new(*((Integer(converted_ticks) * period) / Self::PERIOD))
+                Some(Self::new(TimeRep::checked_div(
+                    &converted_ticks.checked_mul(&period)?,
+                    &Self::PERIOD,
+                )?))
             } else {
-                Self::new(*(Integer(converted_ticks) * (period / Self::PERIOD)))
+                Some(Self::new(
+                    converted_ticks.checked_mul(&period.checked_div(&Self::PERIOD)?)?,
+                ))
             }
         } else {
             let ticks = if period > Ratio::new_raw(1, 1) {
-                *((Integer(ticks) * period) / Self::PERIOD)
+                TimeRep::checked_div(&TimeRep::checked_mul(&ticks, &period)?, &Self::PERIOD)?
             } else {
-                *(Integer(ticks) * (period / Self::PERIOD))
+                TimeRep::checked_mul(&ticks, &period.checked_div(&Self::PERIOD)?)?
             };
 
             let converted_ticks = Self::Rep::try_from(ticks).unwrap();
@@ -119,15 +123,24 @@ pub trait Duration: Sized + Copy + fmt::Display + Period {
             let ticks = Rep::try_from(self.count())?;
 
             if period > Ratio::new_raw(1, 1) {
-                Ok(*((Integer(ticks) * Self::PERIOD) / period))
+                Some(TimeRep::checked_div(
+                    &TimeRep::checked_mul(&ticks, &Self::PERIOD)?,
+                    &period,
+                )?)
             } else {
-                Ok(*(Integer(ticks) * (Self::PERIOD / period)))
+                Some(TimeRep::checked_mul(
+                    &ticks,
+                    &Self::PERIOD.checked_div(&period)?,
+                )?)
             }
         } else {
             let ticks = if Self::PERIOD > Ratio::new_raw(1, 1) {
-                *((Integer(self.count()) * Self::PERIOD) / period)
+                TimeRep::checked_div(
+                    &TimeRep::checked_mul(&self.count(), &Self::PERIOD)?,
+                    &period,
+                )?
             } else {
-                *(Integer(self.count()) * (Self::PERIOD / period))
+                TimeRep::checked_mul(&self.count(), &Self::PERIOD.checked_div(&period)?)?
             };
 
             Rep::try_from(ticks)
