@@ -6,10 +6,10 @@ extern crate panic_rtt;
 use core::borrow::Borrow;
 use core::prelude::v1::*;
 use cortex_m::mutex::CriticalSectionMutex as Mutex;
-use embedded_time::{instant::Instant, time_units::*, Period};
 use mutex_trait::Mutex as _Mutex;
 use nrf52::prelude::*;
 use num::rational::Ratio;
+use rtfm::embedded_time::{self, instant::Instant, time_units::*, Period};
 
 pub mod nrf52 {
     pub use nrf52832_hal::gpio;

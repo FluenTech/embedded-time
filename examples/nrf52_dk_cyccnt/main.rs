@@ -5,8 +5,8 @@ extern crate panic_rtt;
 
 use core::prelude::v1::*;
 use cortex_m::peripheral::DWT;
-use embedded_time::time_units::*;
 use nrf52::prelude::*;
+use rtfm::embedded_time::time_units::*;
 
 pub mod nrf52 {
     pub use nrf52832_hal::gpio;
