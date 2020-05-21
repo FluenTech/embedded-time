@@ -1,4 +1,5 @@
 use crate::Duration;
+use core::cmp::Ordering;
 use core::convert::TryFrom;
 use core::ops;
 use num::traits::{WrappingAdd, WrappingSub};
@@ -10,7 +11,7 @@ use num::traits::{WrappingAdd, WrappingSub};
 /// ```rust,ignore
 /// Instant::<SomeClock>::new(23);
 /// ```
-#[derive(Debug, Copy, Clone, PartialOrd, Ord, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct Instant<Clock>
 where
     Clock: crate::Clock,
@@ -42,13 +43,19 @@ where
     ///     const PERIOD: Ratio<i32> = Ratio::new_raw(1, 1_000);
     /// }
     ///
-    /// let diff: Option<Milliseconds<_>> = Instant::<Clock>::new(5).elapsed_since(Instant::<Clock>::new(3));
+    /// let diff: Option<Milliseconds<_>> = Instant::<Clock>::new(5).elapsed_since(&Instant::<Clock>::new(3));
     /// assert_eq!(diff, Some(Milliseconds(2_i32)));
     ///
-    /// let diff: Option<Microseconds<i64>> = Instant::<Clock>::new(5).elapsed_since(Instant::<Clock>::new(3));
+    /// let diff: Option<Microseconds<i64>> = Instant::<Clock>::new(5).elapsed_since(&Instant::<Clock>::new(3));
     /// assert_eq!(diff, Some(Microseconds(2_000_i64)));
+    ///
+    /// let diff: Option<Microseconds<i64>> = Instant::<Clock>::new(i32::MIN).elapsed_since(&Instant::<Clock>::new(i32::MAX));
+    /// assert_eq!(diff, Some(Microseconds(1_000_i64)));
+    ///
+    /// let diff: Option<Seconds<i64>> = Instant::<Clock>::new(1_000).elapsed_since(&Instant::<Clock>::new(-1_000));
+    /// assert_eq!(diff, Some(Seconds(2_i64)));
     /// ```
-    pub fn elapsed_since<Dur>(self, other: Self) -> Option<Dur>
+    pub fn elapsed_since<Dur>(&self, other: &Self) -> Option<Dur>
     where
         Dur: Duration,
         Dur::Rep: TryFrom<Clock::Rep>,
@@ -56,18 +63,80 @@ where
         Dur::from_ticks(self.ticks.wrapping_sub(&other.ticks), Clock::PERIOD)
     }
 
-    pub fn elapsed_since_epoch<Dur>(self) -> Option<Dur>
+    pub fn elapsed_since_epoch<Dur>(&self) -> Option<Dur>
     where
         Dur: Duration,
         Dur::Rep: TryFrom<Clock::Rep>,
         Clock::Rep: From<i32>,
     {
         Self::elapsed_since::<Dur>(
-            self,
-            Self {
+            &self,
+            &Self {
                 ticks: Clock::Rep::from(0_i32),
             },
         )
+    }
+}
+
+impl<Clock> Copy for Instant<Clock> where Clock: crate::Clock {}
+
+impl<Clock> Clone for Instant<Clock>
+where
+    Clock: crate::Clock,
+{
+    fn clone(&self) -> Self {
+        Self { ticks: self.ticks }
+    }
+}
+
+impl<Clock> PartialEq for Instant<Clock>
+where
+    Clock: crate::Clock,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.ticks == other.ticks
+    }
+}
+
+impl<Clock> Eq for Instant<Clock> where Clock: crate::Clock {}
+
+impl<Clock> PartialOrd for Instant<Clock>
+where
+    Clock: crate::Clock,
+{
+    /// Calculates the difference between two `Instance`s resulting in a [`Duration`]
+    ///
+    /// # Examples
+    /// ```rust
+    /// # use embedded_time::{Ratio, Period, time_units::*, instant::Instant};
+    /// # #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
+    /// struct Clock;
+    /// impl embedded_time::Clock for Clock {
+    ///     type Rep = i32;
+    ///     // ...
+    /// # fn now() -> Instant<Self> {unimplemented!()}
+    /// }
+    /// impl Period for Clock {
+    ///     const PERIOD: Ratio<i32> = Ratio::new_raw(1, 1_000);
+    /// }
+    ///
+    /// assert!(Instant::<Clock>::new(5) > Instant::<Clock>::new(3));
+    /// assert!(Instant::<Clock>::new(5) == Instant::<Clock>::new(5));
+    /// assert!(Instant::<Clock>::new(i32::MAX) < Instant::<Clock>::new(i32::MIN));
+    /// ```
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(&other))
+    }
+}
+
+impl<Clock> Ord for Instant<Clock>
+where
+    Clock: crate::Clock,
+{
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.ticks
+            .wrapping_sub(&other.ticks)
+            .cmp(&Clock::Rep::from(0))
     }
 }
 
