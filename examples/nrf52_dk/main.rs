@@ -1,24 +1,15 @@
 #![cfg_attr(not(test), no_std)]
 #![cfg_attr(not(test), no_main)]
-// #![feature(const_fn)]
-// #![feature(const_loop)]
-// #![feature(const_if_match)]
-// #![feature(const_trait_impl)]
-// #![allow(incomplete_features)]
 
 extern crate panic_rtt;
 
 use core::borrow::Borrow;
-use core::convert::TryFrom;
-use core::convert::TryInto;
 use core::prelude::v1::*;
 use cortex_m::mutex::CriticalSectionMutex as Mutex;
-use cortex_m::peripheral::DWT;
-use embedded_time::{instant::Instant, prelude::*, time_units::*, Duration, Period, TimeRep};
+use embedded_time::{instant::Instant, time_units::*, Period};
 use mutex_trait::Mutex as _Mutex;
 use nrf52::prelude::*;
 use num::rational::Ratio;
-use rtfm::Fraction;
 
 pub mod nrf52 {
     pub use nrf52832_hal::gpio;
@@ -71,19 +62,6 @@ impl Period for SystemTime {
 }
 
 impl rtfm::Monotonic for SystemTime {
-    // type Instant = embedded_time::Instant<Nanoseconds<i64>>;
-
-    // fn ratio() -> Fraction {
-    //     Fraction {
-    //         numerator: 8,
-    //         denominator: 125,
-    //     }
-    // }
-
-    // fn now() -> Self::Instant {
-    //     <Self as embedded_time::Clock>::now()
-    // }
-
     unsafe fn reset() {
         (&SYSTEM_TICKS).lock(|ticks| match ticks {
             Some(ticks) => {
@@ -93,17 +71,13 @@ impl rtfm::Monotonic for SystemTime {
             None => (),
         });
     }
-
-    // fn zero() -> Self::Instant {
-    //     Instant(0.nanoseconds())
-    // }
 }
 
 static SYSTEM_TICKS: Mutex<Option<SystemTime>> = Mutex::new(None);
 
 const LED_ON_TIME: Milliseconds<i32> = Milliseconds(250);
 
-#[rtfm::app(device = nrf52832_hal::pac, peripherals = true, monotonic = rtfm::cyccnt::CYCCNT)]
+#[rtfm::app(device = nrf52832_hal::pac, peripherals = true, monotonic = crate::SystemTime)]
 const APP: () = {
     struct Resources {
         led1: nrf52::gpio::p0::P0_17<nrf52::gpio::Output<nrf52::gpio::OpenDrain>>,
@@ -113,13 +87,7 @@ const APP: () = {
     }
 
     #[init(spawn = [turn_on_led1])]
-    fn init(mut cx: init::Context) -> init::LateResources {
-        // Initialize (enable) the monotonic timer (CYCCNT)
-        cx.core.DCB.enable_trace();
-        // required on Cortex-M7 devices that software lock the DWT (e.g. STM32F7)
-        DWT::unlock();
-        cx.core.DWT.enable_cycle_counter();
-
+    fn init(cx: init::Context) -> init::LateResources {
         cx.spawn.turn_on_led1().unwrap();
 
         cx.device.TIMER0.mode.write(|w| w.mode().timer());
