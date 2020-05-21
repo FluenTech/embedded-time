@@ -1,23 +1,68 @@
 //! # Embedded Time
-//! `embedded-time` provides a way (using the [`Clock`](trait.Clock.html) trait) to abstract over
-//! hardware-specific timing providers such as peripheral timers
-//! In addition it provides comprehensive [`Instant`](instant::Instant) and duration types
-//! ([`Minutes`](time_units::Minutes), [`Seconds`](time_units::Seconds),
-//! [`Milliseconds`](time_units::Milliseconds), etc.) along with intuitive interfaces.
+//! `embedded-time` provides a comprehensive library for implementing [`Clock`] abstractions over
+//! hardware to generate [`Instant`]s and using [`Duration`]s ([`Seconds`], [`Milliseconds`], etc) in
+//! embedded systems. The approach is similar to the C++ `chrono` library. A [`Duration`] consists of
+//! an integer value (chosen by the user from either i32 or i64) as well as a const ratio where the
+//! integer value multiplied by the ratio is the seconds represented by the [`Duration`]. Put another
+//! way, the ratio is the precision of the LSbit of the integer. This structure avoids unnecessary
+//! arithmetic. For example, if the [`Duration`] type is [`Milliseconds`], a call to the [`Duration::count()`]
+//! method simply returns the stored integer value directly which is the number of milliseconds
+//! being represented. Conversion arithmetic is only performed when explicitly converting between
+//! time units.
+//!
+//! [`Clock`]: trait.Clock.html
+//! [`Instant`]: instant::Instant
+//! [`Seconds`]: time_units::Seconds
+//! [`Milliseconds`]: time_units::Milliseconds
+//!
+//! ## Motivation
+//! The handling of time on embedded systems is generally much different than that of OSs. For
+//! instance, on an OS, the time is measured against an arbitrary epoch. Embedded systems generally
+//! don't know (nor do they care) what the *real* time is, but rather how much time has passed since
+//! the system has started.
+//!
+//! ## Background
+//! ### Drawbacks of the core::Duration type
+//! - The storage is `u64` seconds and `u32` nanoseconds.
+//!   - This is huge overkill and adds needless complexity beyond what is required (or desired) for embedded systems.
+//! - Any read requires arithmetic to convert to the requested units
+//!   - This is much slower than this project's implementation of what is analogous to a tagged union of time units.
+//!
+//! ### What is an Instant?
+//! In the Rust ecosystem, it appears to be idiomatic to call a `now()` associated function from an Instant type. There is generally no concept of a "Clock". I believe that using the `Instant` in this way is a violation of the *separation of concerns* principle. What is an `Instant`? Is it a time-keeping entity from which you read the current instant in time, or is it that instant in time itself. In this case, it's both.
+//!
+//! As an alternative, the current instant in time could be read from a **Clock**. The `Instant` read from the `Clock` has the same precision and width (integer type) as the `Clock`. Requesting the difference between two `Instant`s gives a `Duration` which can have different precision and/or width.
+//!
+//! ## Definitions
+//! **Clock** - Any entity that periodically counts (ie a hardware timer peripheral). Generally, this needs to be monotonic. Here a wrapping timer is considered monotonic as long as it fulfills the other requirements.
+//!
+//! **Wrapping Timer** - A timer that when at its maximum value, the next count is the minimum value.
+//!
+//! **Instant** - A specific instant in time ("time-point") returned by calling `Clock::now()`.
+//!
+//! **Duration** - The difference of two instances (the duration of time elapsed from one instant until another).
+//!
+//! ## Notes
+//! Some parts of this crate were derived from various sources:
+//! - [`RTFM`](https://github.com/rtfm-rs/cortex-m-rtfm)
+//! - [`time`](https://docs.rs/time/latest/time) (Specifically the [`time::NumbericalDuration`](https://docs.rs/time/latest/time/trait.NumericalDuration.html) implementations for primitive integers)
 //!
 //! # Example Usage
 //! ```rust,no_run
-//! # use embedded_time::prelude::*;
-//! # use embedded_time::time_units::*;
-//! # use embedded_time::{Ratio, Duration, TimeRep};
-//! # use embedded_time::instant::Instant;
-//! # #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
-//! # struct SomeClock;
-//! # impl embedded_time::Clock for SomeClock {
-//! #     type Rep = i64;
-//! #     fn now() -> Instant<Self> { unimplemented!() } }
-//! # impl embedded_time::Period for SomeClock { const PERIOD: Ratio<i32> = Ratio::<i32>::new_raw(1, 16_000_000); }
-//! #
+//! # use embedded_time::{prelude::*, time_units::*, Ratio, instant::Instant};
+//! # #[derive(Debug)]
+//! struct SomeClock;
+//! impl embedded_time::Clock for SomeClock {
+//!     type Rep = i64;
+//!
+//!     fn now() -> Instant<Self> {
+//!         // ...
+//! #         unimplemented!()
+//!     }
+//! }
+//!
+//! impl embedded_time::Period for SomeClock { const PERIOD: Ratio<i32> = Ratio::<i32>::new_raw(1, 16_000_000); }
+//!
 //! let instant1 = SomeClock::now();
 //! // ...
 //! let instant2 = SomeClock::now();
@@ -30,7 +75,6 @@
 
 #![cfg_attr(not(test), no_std)]
 #![feature(associated_type_bounds)]
-#![feature(type_alias_impl_trait)]
 #![deny(intra_doc_link_resolution_failure)]
 
 mod clock;

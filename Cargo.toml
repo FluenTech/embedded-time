@@ -3,9 +3,12 @@ name = "embedded-time"
 version = "0.1.0"
 authors = ["Peter Taylor <ptaylor@fluentech.info>"]
 edition = "2018"
-keywords = ["no_std", "time", "Duration", "Instant", "Clock", "Monotonic"]
+description = "A library for abstracting clocks and handling time in embedded systems"
+keywords = ["time", "Duration", "Instant", "Clock", "Monotonic"]
 categories = ["date-and-time", "embedded", "no-std"]
 readme = "README.md"
+repository = "https://github.com/PTaylor-FluenTech/embedded-time/"
+license = "MIT OR Apache-2.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
