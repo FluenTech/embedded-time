@@ -61,14 +61,18 @@
 //!     }
 //! }
 //!
-//! impl embedded_time::Period for SomeClock { const PERIOD: Ratio<i32> = Ratio::<i32>::new_raw(1, 16_000_000); }
+//! impl embedded_time::Period for SomeClock {
+//!     const PERIOD: Ratio<i32> = Ratio::<i32>::new_raw(1, 16_000_000);
+//! }
 //!
 //! let instant1 = SomeClock::now();
 //! // ...
 //! let instant2 = SomeClock::now();
 //! assert!(instant1 < instant2);    // instant1 is *before* instant2
 //!
-//! let duration: Option<Microseconds<i64>> = instant2.elapsed_since(&instant1);    // duration is the difference between the instances
+//! // duration is the difference between the instances
+//! let duration: Option<Microseconds<i64>> = instant2.elapsed_since(&instant1);    
+//!
 //! assert!(duration.is_some());
 //! assert_eq!(instant1 + duration.unwrap(), instant2);
 //! ```
