@@ -9,11 +9,14 @@
 extern crate panic_rtt;
 
 use core::borrow::Borrow;
+use core::convert::TryFrom;
 use core::convert::TryInto;
 use core::prelude::v1::*;
 use cortex_m::mutex::CriticalSectionMutex as Mutex;
-use embedded_time::{prelude::*, time_units::*, Duration, Instant, Period, TimeRep};
+use cortex_m::peripheral::DWT;
+use embedded_time::{instant::Instant, prelude::*, time_units::*, Duration, Period, TimeRep};
 use mutex_trait::Mutex as _Mutex;
+use nrf52::prelude::*;
 use num::rational::Ratio;
 use rtfm::Fraction;
 
@@ -22,10 +25,6 @@ pub mod nrf52 {
     pub use nrf52832_hal::prelude;
     pub use nrf52832_hal::target as pac;
 }
-
-use core::convert::TryFrom;
-
-use nrf52::prelude::*;
 
 pub struct SystemTime {
     low: nrf52::pac::TIMER0,
@@ -57,17 +56,13 @@ impl SystemTime {
 impl embedded_time::Clock for SystemTime {
     type Rep = i64;
 
-    fn now<Dur>() -> Instant<Dur>
-        where
-            Dur: Duration,
-            Dur::Rep: TimeRep,
-    {
+    fn now() -> Instant<Self> {
         let ticks = (&SYSTEM_TICKS).lock(|system_ticks| match system_ticks {
             Some(system_ticks) => system_ticks.read(),
             None => 0,
         });
 
-        Instant(Dur::from_ticks(ticks as Self::Rep, Self::PERIOD))
+        Instant::new(ticks as Self::Rep)
     }
 }
 
@@ -106,8 +101,7 @@ impl rtfm::Monotonic for SystemTime {
 
 static SYSTEM_TICKS: Mutex<Option<SystemTime>> = Mutex::new(None);
 
-use cortex_m::peripheral::DWT;
-use core::fmt;
+const LED_ON_TIME: Milliseconds<i32> = Milliseconds(250);
 
 #[rtfm::app(device = nrf52832_hal::pac, peripherals = true, monotonic = rtfm::cyccnt::CYCCNT)]
 const APP: () = {
@@ -210,7 +204,7 @@ const APP: () = {
         led1.set_low().unwrap();
 
         cx.schedule
-            .turn_off_led1(cx.scheduled + 500.milliseconds())
+            .turn_off_led1(cx.scheduled + LED_ON_TIME)
             .unwrap();
     }
 
@@ -227,7 +221,7 @@ const APP: () = {
         cx.resources.led2.set_low().unwrap();
 
         cx.schedule
-            .turn_off_led2(cx.scheduled + 500.milliseconds())
+            .turn_off_led2(cx.scheduled + LED_ON_TIME)
             .unwrap();
     }
 
@@ -243,7 +237,7 @@ const APP: () = {
         cx.resources.led3.set_low().unwrap();
 
         cx.schedule
-            .turn_off_led3(cx.scheduled + 500.milliseconds())
+            .turn_off_led3(cx.scheduled + LED_ON_TIME)
             .unwrap();
     }
 
@@ -259,7 +253,7 @@ const APP: () = {
         cx.resources.led4.set_low().unwrap();
 
         cx.schedule
-            .turn_off_led4(cx.scheduled + 500.milliseconds())
+            .turn_off_led4(cx.scheduled + LED_ON_TIME)
             .unwrap();
     }
 
