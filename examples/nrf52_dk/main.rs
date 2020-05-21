@@ -1,31 +1,21 @@
 #![cfg_attr(not(test), no_std)]
 #![cfg_attr(not(test), no_main)]
-// #![feature(const_fn)]
-// #![feature(const_loop)]
-// #![feature(const_if_match)]
-// #![feature(const_trait_impl)]
-// #![allow(incomplete_features)]
 
 extern crate panic_rtt;
 
 use core::borrow::Borrow;
-use core::convert::TryInto;
 use core::prelude::v1::*;
 use cortex_m::mutex::CriticalSectionMutex as Mutex;
-use embedded_time::{prelude::*, time_units::*, Duration, Instant, Period, TimeRep};
+use embedded_time::{instant::Instant, time_units::*, Period};
 use mutex_trait::Mutex as _Mutex;
+use nrf52::prelude::*;
 use num::rational::Ratio;
-use rtfm::Fraction;
 
 pub mod nrf52 {
     pub use nrf52832_hal::gpio;
     pub use nrf52832_hal::prelude;
     pub use nrf52832_hal::target as pac;
 }
-
-use core::convert::TryFrom;
-
-use nrf52::prelude::*;
 
 pub struct SystemTime {
     low: nrf52::pac::TIMER0,
@@ -57,17 +47,13 @@ impl SystemTime {
 impl embedded_time::Clock for SystemTime {
     type Rep = i64;
 
-    fn now<Dur>() -> Instant<Dur>
-        where
-            Dur: Duration,
-            Dur::Rep: TimeRep,
-    {
+    fn now() -> Instant<Self> {
         let ticks = (&SYSTEM_TICKS).lock(|system_ticks| match system_ticks {
             Some(system_ticks) => system_ticks.read(),
             None => 0,
         });
 
-        Instant(Dur::from_ticks(ticks as Self::Rep, Self::PERIOD))
+        Instant::new(ticks as Self::Rep)
     }
 }
 
@@ -76,19 +62,6 @@ impl Period for SystemTime {
 }
 
 impl rtfm::Monotonic for SystemTime {
-    // type Instant = embedded_time::Instant<Nanoseconds<i64>>;
-
-    // fn ratio() -> Fraction {
-    //     Fraction {
-    //         numerator: 8,
-    //         denominator: 125,
-    //     }
-    // }
-
-    // fn now() -> Self::Instant {
-    //     <Self as embedded_time::Clock>::now()
-    // }
-
     unsafe fn reset() {
         (&SYSTEM_TICKS).lock(|ticks| match ticks {
             Some(ticks) => {
@@ -98,18 +71,13 @@ impl rtfm::Monotonic for SystemTime {
             None => (),
         });
     }
-
-    // fn zero() -> Self::Instant {
-    //     Instant(0.nanoseconds())
-    // }
 }
 
 static SYSTEM_TICKS: Mutex<Option<SystemTime>> = Mutex::new(None);
 
-use cortex_m::peripheral::DWT;
-use core::fmt;
+const LED_ON_TIME: Milliseconds<i32> = Milliseconds(250);
 
-#[rtfm::app(device = nrf52832_hal::pac, peripherals = true, monotonic = rtfm::cyccnt::CYCCNT)]
+#[rtfm::app(device = nrf52832_hal::pac, peripherals = true, monotonic = crate::SystemTime)]
 const APP: () = {
     struct Resources {
         led1: nrf52::gpio::p0::P0_17<nrf52::gpio::Output<nrf52::gpio::OpenDrain>>,
@@ -119,13 +87,7 @@ const APP: () = {
     }
 
     #[init(spawn = [turn_on_led1])]
-    fn init(mut cx: init::Context) -> init::LateResources {
-        // Initialize (enable) the monotonic timer (CYCCNT)
-        cx.core.DCB.enable_trace();
-        // required on Cortex-M7 devices that software lock the DWT (e.g. STM32F7)
-        DWT::unlock();
-        cx.core.DWT.enable_cycle_counter();
-
+    fn init(cx: init::Context) -> init::LateResources {
         cx.spawn.turn_on_led1().unwrap();
 
         cx.device.TIMER0.mode.write(|w| w.mode().timer());
@@ -210,7 +172,7 @@ const APP: () = {
         led1.set_low().unwrap();
 
         cx.schedule
-            .turn_off_led1(cx.scheduled + 500.milliseconds())
+            .turn_off_led1(cx.scheduled + LED_ON_TIME)
             .unwrap();
     }
 
@@ -227,7 +189,7 @@ const APP: () = {
         cx.resources.led2.set_low().unwrap();
 
         cx.schedule
-            .turn_off_led2(cx.scheduled + 500.milliseconds())
+            .turn_off_led2(cx.scheduled + LED_ON_TIME)
             .unwrap();
     }
 
@@ -243,7 +205,7 @@ const APP: () = {
         cx.resources.led3.set_low().unwrap();
 
         cx.schedule
-            .turn_off_led3(cx.scheduled + 500.milliseconds())
+            .turn_off_led3(cx.scheduled + LED_ON_TIME)
             .unwrap();
     }
 
@@ -259,7 +221,7 @@ const APP: () = {
         cx.resources.led4.set_low().unwrap();
 
         cx.schedule
-            .turn_off_led4(cx.scheduled + 500.milliseconds())
+            .turn_off_led4(cx.scheduled + LED_ON_TIME)
             .unwrap();
     }
 

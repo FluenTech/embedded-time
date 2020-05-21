@@ -1,14 +1,13 @@
 //! Duration types/units creation and conversion.
 
-use crate::integer::{IntTrait, Integer};
 use crate::numerical_duration::TimeRep;
 use crate::Period;
-use core::{convert::TryFrom, fmt, mem::size_of, ops, prelude::v1::*};
-use num::{rational::Ratio, Bounded};
+use core::{convert::TryFrom, fmt, mem::size_of, prelude::v1::*};
+use num::{rational::Ratio, traits::WrappingSub, Bounded, CheckedDiv};
 
 /// A duration of time with generic storage
 ///
-/// Each implementation defines a constant fraction/ratio representing the period of the LSb
+/// Each implementation defines a constant fraction/ratio representing the period of the LSbit
 ///
 /// # Implementation Example
 /// ```rust,no_run
@@ -31,7 +30,7 @@ use num::{rational::Ratio, Bounded};
 /// }
 ///
 /// impl<T: TimeRep> Period for Milliseconds<T> {
-///     const PERIOD: Ratio<i32> = Ratio::<i32>::new_raw(1, 1_000); // set LSb period to 1 millisecond
+///     const PERIOD: Ratio<i32> = Ratio::<i32>::new_raw(1, 1_000); // set LSbit period to 1 millisecond
 /// }
 ///
 /// impl<T: TimeRep> fmt::Display for Milliseconds<T> {
@@ -66,36 +65,41 @@ pub trait Duration: Sized + Copy + fmt::Display + Period {
     /// # use embedded_time::prelude::*;
     /// # use embedded_time::time_units::*;
     /// # use num::rational::Ratio;
-    /// assert_eq!(Microseconds::<i32>::from_ticks(5_i64, Ratio::<i32>::new_raw(1, 1_000)), Microseconds(5_000_i32));
-    /// assert_eq!(Microseconds::<i64>::from_ticks(i32::MAX, Ratio::<i32>::new_raw(1, 1_000)), Microseconds((i32::MAX as i64) * 1_000));
-    /// assert_eq!(Milliseconds::<i32>::from_ticks((i32::MAX as i64) + 1, Ratio::<i32>::new_raw(1, 1_000_000)), Milliseconds(((i32::MAX as i64) + 1) / 1_000));
+    /// assert_eq!(Microseconds::<i32>::from_ticks(5_i64, Ratio::<i32>::new_raw(1, 1_000)), Some(Microseconds(5_000_i32)));
+    /// assert_eq!(Microseconds::<i64>::from_ticks(i32::MAX, Ratio::<i32>::new_raw(1, 1_000)), Some(Microseconds((i32::MAX as i64) * 1_000)));
+    /// assert_eq!(Milliseconds::<i32>::from_ticks((i32::MAX as i64) + 1, Ratio::<i32>::new_raw(1, 1_000_000)), Some(Milliseconds((((i32::MAX as i64) + 1) / 1_000) as i32)));
     /// ```
-    fn from_ticks<Rep>(ticks: Rep, period: Ratio<i32>) -> Self
+    fn from_ticks<Rep>(ticks: Rep, period: Ratio<i32>) -> Option<Self>
     where
-        Self::Rep: TimeRep + TryFrom<Rep, Error: fmt::Debug>,
+        Self::Rep: TimeRep + TryFrom<Rep>,
         Rep: TimeRep,
     {
         if size_of::<Self::Rep>() > size_of::<Rep>() {
-            let converted_ticks = Self::Rep::try_from(ticks).unwrap();
+            let converted_ticks = Self::Rep::try_from(ticks).ok()?;
 
             if period > Ratio::new_raw(1, 1) {
-                Self::new(*((Integer(converted_ticks) * period) / Self::PERIOD))
+                Some(Self::new(TimeRep::checked_div(
+                    &converted_ticks.checked_mul(&period)?,
+                    &Self::PERIOD,
+                )?))
             } else {
-                Self::new(*(Integer(converted_ticks) * (period / Self::PERIOD)))
+                Some(Self::new(
+                    converted_ticks.checked_mul(&period.checked_div(&Self::PERIOD)?)?,
+                ))
             }
         } else {
             let ticks = if period > Ratio::new_raw(1, 1) {
-                *((Integer(ticks) * period) / Self::PERIOD)
+                TimeRep::checked_div(&TimeRep::checked_mul(&ticks, &period)?, &Self::PERIOD)?
             } else {
-                *(Integer(ticks) * (period / Self::PERIOD))
+                TimeRep::checked_mul(&ticks, &period.checked_div(&Self::PERIOD)?)?
             };
 
-            let converted_ticks = Self::Rep::try_from(ticks).unwrap();
-            Self::new(converted_ticks)
+            let converted_ticks = Self::Rep::try_from(ticks).ok()?;
+            Some(Self::new(converted_ticks))
         }
     }
 
-    /// Create an integer representation with LSb period of that provided
+    /// Create an integer representation with LSbit period of that provided
     ///
     /// # Errors
     /// - the conversion of periods causes an overflow
@@ -103,34 +107,43 @@ pub trait Duration: Sized + Copy + fmt::Display + Period {
     ///
     /// # Examples
     /// ```rust
-    /// # use embedded_time::{prelude::*, time_units::*, Instant, Ratio};
-    /// assert_eq!(Microseconds(5_000_i32).into_ticks::<i32>(Ratio::<i32>::new_raw(1, 1_000)), Ok(5_i32));
-    /// assert_eq!(Microseconds(5_000_i32).into_ticks::<i32>(Ratio::<i32>::new_raw(1, 200)), Ok(1_i32));
-    /// assert_eq!(Microseconds::<i32>(i32::MAX).into_ticks::<i64>(Ratio::<i32>::new_raw(1, 2_000_000)), Ok((i32::MAX as i64) * 2));
-    /// assert_eq!(Microseconds::<i64>((i32::MAX as i64) + 2).into_ticks::<i32>(Ratio::new_raw(1, 500_000)), Ok(i32::MAX / 2 + 1));
-    /// assert_eq!(Microseconds::<i64>(i32::MAX as i64).into_ticks::<i32>(Ratio::<i32>::new_raw(1, 500_000)), Ok(i32::MAX / 2));
+    /// # use embedded_time::{prelude::*, time_units::*, Ratio};
+    /// assert_eq!(Microseconds(5_000_i32).into_ticks::<i32>(Ratio::<i32>::new_raw(1, 1_000)), Some(5_i32));
+    /// assert_eq!(Microseconds(5_000_i32).into_ticks::<i32>(Ratio::<i32>::new_raw(1, 200)), Some(1_i32));
+    /// assert_eq!(Microseconds::<i32>(i32::MAX).into_ticks::<i64>(Ratio::<i32>::new_raw(1, 2_000_000)), Some((i32::MAX as i64) * 2));
+    /// assert_eq!(Microseconds::<i64>((i32::MAX as i64) + 2).into_ticks::<i32>(Ratio::new_raw(1, 500_000)), Some(i32::MAX / 2 + 1));
+    /// assert_eq!(Microseconds::<i64>(i32::MAX as i64).into_ticks::<i32>(Ratio::<i32>::new_raw(1, 500_000)), Some(i32::MAX / 2));
     /// ```
-    fn into_ticks<Rep>(self, period: Ratio<i32>) -> Result<Rep, <Rep as TryFrom<Self::Rep>>::Error>
+    fn into_ticks<Rep>(self, period: Ratio<i32>) -> Option<Rep>
     where
         Self::Rep: TimeRep,
-        Rep: TimeRep + TryFrom<Self::Rep, Error: fmt::Debug>,
+        Rep: TimeRep + TryFrom<Self::Rep>,
     {
         if size_of::<Rep>() > size_of::<Self::Rep>() {
-            let ticks = Rep::try_from(self.count())?;
+            let ticks = Rep::try_from(self.count()).ok()?;
 
             if period > Ratio::new_raw(1, 1) {
-                Ok(*((Integer(ticks) * Self::PERIOD) / period))
+                Some(TimeRep::checked_div(
+                    &TimeRep::checked_mul(&ticks, &Self::PERIOD)?,
+                    &period,
+                )?)
             } else {
-                Ok(*(Integer(ticks) * (Self::PERIOD / period)))
+                Some(TimeRep::checked_mul(
+                    &ticks,
+                    &Self::PERIOD.checked_div(&period)?,
+                )?)
             }
         } else {
             let ticks = if Self::PERIOD > Ratio::new_raw(1, 1) {
-                *((Integer(self.count()) * Self::PERIOD) / period)
+                TimeRep::checked_div(
+                    &TimeRep::checked_mul(&self.count(), &Self::PERIOD)?,
+                    &period,
+                )?
             } else {
-                *(Integer(self.count()) * (Self::PERIOD / period))
+                TimeRep::checked_mul(&self.count(), &Self::PERIOD.checked_div(&period)?)?
             };
 
-            Rep::try_from(ticks)
+            Rep::try_from(ticks).ok()
         }
     }
 
@@ -154,38 +167,173 @@ pub trait Duration: Sized + Copy + fmt::Display + Period {
         Self::Rep::max_value()
     }
 
+    /// Apply wrapping subtraction
+    ///
+    /// # Example
     /// ```rust
     /// # use embedded_time::prelude::*;
     /// # use embedded_time::time_units::*;
-    /// assert_eq!(Milliseconds::from_dur(Seconds(1_000)), Milliseconds(1_000_000));
-    /// assert_eq!(Seconds::from_dur(Milliseconds(1_234)), Seconds(1));
-    /// assert_eq!(Microseconds::from_dur(Milliseconds(1_234)), Microseconds(1_234_000));
-    /// assert_eq!(Microseconds::from_dur(Milliseconds(1_234_i64)), Microseconds(1_234_000_i64));
-    /// assert_eq!(Microseconds::from_dur(Nanoseconds(3_234_i64)), Microseconds(3_i64));
+    /// assert_eq!(Seconds(1).wrapping_sub(Seconds(u32::MAX as i32)), Some(Seconds(2)));
     /// ```
-    fn from_dur<FromDur>(other: FromDur) -> Self
+    fn wrapping_sub<Rhs>(self, rhs: Rhs) -> Option<Self>
     where
-        FromDur: Duration<Rep = Self::Rep>,
+        Self: TryConvertFrom<Rhs>,
+        Self::Rep: TryFrom<Rhs::Rep, Error: fmt::Debug>,
+        Rhs::Rep: TimeRep,
+        Rhs: Duration,
     {
-        Self::new(*(Integer(other.count()) * (FromDur::PERIOD / Self::PERIOD)))
-    }
-
-    /// ```rust
-    /// # use embedded_time::prelude::*;
-    /// # use embedded_time::time_units::*;
-    /// let millis: Milliseconds<_> = Seconds(1_000).into_dur();
-    /// assert_eq!(millis, Milliseconds(1_000_000));
-    /// let seconds: Seconds<_> = Milliseconds(2_345).into_dur();
-    /// assert_eq!(seconds, Seconds(2));
-    /// ```
-    fn into_dur<DestDur>(self) -> DestDur
-    where
-        DestDur: Duration<Rep = Self::Rep>,
-    {
-        DestDur::new(*(Integer(self.count()) * (Self::PERIOD / DestDur::PERIOD)))
+        let rhs = Self::try_convert_from(rhs)?;
+        Some(Self::new(self.count().wrapping_sub(&rhs.count())))
     }
 }
 
+pub trait TryConvertFrom<Source>: Sized {
+    fn try_convert_from(other: Source) -> Option<Self>;
+}
+
+pub trait TryConvertInto<Dest> {
+    fn try_convert_into(self) -> Option<Dest>;
+}
+
+impl<Source, Dest> TryConvertFrom<Source> for Dest
+where
+    Dest: Duration,
+    Dest::Rep: TimeRep + TryFrom<Source::Rep, Error: fmt::Debug>,
+    Source: Duration,
+    Source::Rep: TimeRep,
+{
+    /// Attempt to convert from one duration type to another
+    ///
+    /// Both the underlying storage type and the LSbit period can be converted
+    ///
+    /// # Errors
+    /// - unable to cast underlying types
+    /// - LSbit period conversion overflow
+    ///
+    /// # Examples
+    /// ```rust
+    /// # use embedded_time::prelude::*;
+    /// # use embedded_time::time_units::*;
+    /// # use embedded_time::duration::TryConvertFrom;
+    /// assert_eq!(Seconds::<i32>::try_convert_from(Milliseconds(23_000_i64)), Some(Seconds(23_i32)));
+    /// assert_eq!(Seconds::<i64>::try_convert_from(Milliseconds(23_000_i32)), Some(Seconds(23_i64)));
+    /// ```
+    fn try_convert_from(source: Source) -> Option<Self> {
+        Some(Self::from_ticks(source.count(), Source::PERIOD)?)
+    }
+}
+
+/// The reciprocal of [`TryConvertFrom`]
+///
+/// # Examples
+/// ```rust
+/// # use embedded_time::prelude::*;
+/// # use embedded_time::time_units::*;
+/// # use embedded_time::duration::TryConvertInto;
+/// assert_eq!(Seconds(23_000_i64).try_convert_into(), Some(Seconds(23_000_i32)));
+/// assert_eq!(Seconds(23_000_i32).try_convert_into(), Some(Seconds(23_000_i32)));
+/// assert_eq!(Some(Seconds(23_000_i64)), (Seconds(23_000_i32).try_convert_into()));
+/// assert_eq!(Milliseconds(23_000_i64).try_convert_into(), Some(Seconds(23_i32)));
+/// assert_eq!(Milliseconds(23_000_i32).try_convert_into(), Some(Seconds(23_i64)));
+/// ```
+impl<Source, Dest> TryConvertInto<Dest> for Source
+where
+    Source: Duration,
+    Dest: Duration + TryConvertFrom<Source>,
+{
+    fn try_convert_into(self) -> Option<Dest> {
+        Dest::try_convert_from(self)
+    }
+}
+
+/// Implementations of the [`Duration`] trait.
+///
+/// # Constructing a duration
+/// ```rust
+/// # use embedded_time::prelude::*;
+/// # use embedded_time::time_units::*;
+/// assert_eq!(Milliseconds::<i32>::new(23), Milliseconds(23_i32));
+/// assert_eq!(Milliseconds(23), 23.milliseconds());
+/// ```
+///
+/// # Get the integer count
+/// ```rust
+/// # use embedded_time::prelude::*;
+/// # use embedded_time::time_units::*;
+/// assert_eq!(Milliseconds(23).count(), 23);
+/// ```
+///
+/// # Formatting
+/// Just forwards the underlying integer to [`core::fmt::Display::fmt()`]
+/// ```rust
+/// # use embedded_time::prelude::*;
+/// # use embedded_time::time_units::*;
+/// assert_eq!(format!("{}", Seconds(123)), "123");
+/// ```
+///
+///
+/// # Add/Sub
+///
+/// ## Panics
+/// Panics if the rhs duration cannot be converted into the lhs duration type
+///
+/// In this example, the maximum `i32` value of seconds is stored as `i32` and
+/// converting that value to milliseconds (with `i32` storage type) causes an overflow.
+/// ```rust,should_panic
+/// # use embedded_time::prelude::*;
+/// # use embedded_time::time_units::*;
+/// let _ = Milliseconds(24) + Seconds(i32::MAX);
+/// ```
+///
+/// This example works just fine as the seconds value is first cast to `i64`, then
+/// converted to milliseconds.
+/// ```rust
+/// # use embedded_time::prelude::*;
+/// # use embedded_time::time_units::*;
+/// let _ = Milliseconds(24_i64) + Seconds(i32::MAX);
+/// ```
+///
+/// Here, there is no units conversion to worry about, but `i32::MAX + 1` cannot be
+/// cast to an `i32`.
+/// ```rust,should_panic
+/// # use embedded_time::prelude::*;
+/// # use embedded_time::time_units::*;
+/// let _ = Seconds(i32::MAX) - Seconds(i32::MAX as i64 + 1);
+/// ```
+///
+/// ## Examples
+/// ```rust
+/// # use embedded_time::prelude::*;
+/// # use embedded_time::time_units::*;
+/// assert_eq!((Milliseconds(3_234) - Seconds(2)), Milliseconds(1_234));
+/// assert_eq!((Milliseconds(3_234_i64) - Seconds(2_i32)), Milliseconds(1_234_i64));
+/// assert_eq!((Seconds(i32::MAX) - Milliseconds((i32::MAX as i64) + 1)), Seconds(2_145_336_164_i32));
+/// ```
+///
+/// # Equality
+/// ```rust
+/// # use embedded_time::prelude::*;
+/// # use embedded_time::time_units::*;
+/// assert_eq!(Seconds(123), Seconds(123));
+/// assert_eq!(Seconds(123), Milliseconds(123_000));
+/// assert_ne!(Seconds(123), Milliseconds(123_001));
+/// assert_ne!(Milliseconds(123_001), Seconds(123));
+/// assert_ne!(Milliseconds(123_001_i64), Seconds(123_i64));
+/// assert_ne!(Seconds(123_i64), Milliseconds(123_001_i64));
+/// assert_ne!(Seconds(123_i64), Milliseconds(123_001_i32));
+/// ```
+///
+/// # Comparisons
+/// ```rust
+/// # use embedded_time::prelude::*;
+/// # use embedded_time::time_units::*;
+/// assert!(Seconds(2) < Seconds(3));
+/// assert!(Seconds(2) < Milliseconds(2_001));
+/// assert!(Seconds(2) == Milliseconds(2_000));
+/// assert!(Seconds(2) > Milliseconds(1_999));
+/// assert!(Seconds(2_i32) < Milliseconds(2_001_i64));
+/// assert!(Seconds(2_i64) < Milliseconds(2_001_i32));
+/// ```
 pub mod time_units {
     //! Implementations of the [`Duration`] trait.
     //!
@@ -277,7 +425,7 @@ pub mod time_units {
     //! ```
 
     use super::Period;
-    use crate::duration::Duration;
+    use crate::duration::{Duration, TryConvertFrom};
     use crate::numerical_duration::TimeRep;
     use core::{
         cmp,
@@ -313,6 +461,7 @@ pub mod time_units {
 
                 /// See module-level documentation for details about this type
                 impl<T: TimeRep> fmt::Display for $name<T> {
+                    /// See module-level documentation for details about this type
                     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
                         fmt::Display::fmt(&self.0, f)
                     }
@@ -327,6 +476,7 @@ pub mod time_units {
                 {
                     type Output = Self;
 
+                    /// See module-level documentation for details about this type
                     #[inline]
                     fn add(self, rhs: RhsDur) -> Self::Output {
                         Self(self.count() + Self::try_convert_from(rhs).unwrap().count())
@@ -341,6 +491,7 @@ pub mod time_units {
                 {
                     type Output = Self;
 
+                    /// See module-level documentation for details about this type
                     #[inline]
                     fn sub(self, rhs: RhsDur) -> Self::Output {
                         Self(self.count() - Self::try_convert_from(rhs).unwrap().count())
@@ -354,6 +505,7 @@ pub mod time_units {
                     OtherDur: Duration,
                     OtherDur::Rep: TryFrom<Rep, Error: fmt::Debug>,
                 {
+                    /// See module-level documentation for details about this type
                     fn eq(&self, other: &OtherDur) -> bool {
                         if Self::PERIOD < OtherDur::PERIOD {
                             self.count() == Self::try_convert_from(*other).unwrap().count()
@@ -370,6 +522,7 @@ pub mod time_units {
                     OtherDur: Duration,
                     OtherDur::Rep: TryFrom<Rep, Error: fmt::Debug>,
                 {
+                    /// See module-level documentation for details about this type
                     fn partial_cmp(&self, other: &OtherDur) -> Option<core::cmp::Ordering> {
                         if Self::PERIOD < OtherDur::PERIOD {
                             Some(self.count().cmp(&Self::try_convert_from(*other).unwrap().count()))
@@ -387,7 +540,6 @@ pub mod time_units {
              )+
          };
     }
-
     durations![
         Hours,     (3600, 1);
         Minutes,     (60, 1);
@@ -396,95 +548,4 @@ pub mod time_units {
         Microseconds, (1, 1_000_000);
         Nanoseconds,  (1, 1_000_000_000)
     ];
-
-    pub trait TryConvertFrom<Source>: Sized {
-        type Error: fmt::Debug;
-
-        fn try_convert_from(other: Source) -> Result<Self, Self::Error>;
-    }
-
-    pub trait TryConvertInto<Dest> {
-        type Error: fmt::Debug;
-
-        fn try_convert_into(self) -> Result<Dest, Self::Error>;
-    }
-
-    impl<Source, Dest> TryConvertFrom<Source> for Dest
-    where
-        Dest: Duration,
-        Dest::Rep: TimeRep + TryFrom<Source::Rep, Error: fmt::Debug>,
-        Source: Duration,
-        Source::Rep: TimeRep,
-    {
-        /// Type returned upon conversion failure
-        type Error = <Dest::Rep as TryFrom<Source::Rep>>::Error;
-
-        /// Attempt to convert from one duration type to another
-        ///
-        /// Both the underlying storage type and the LSb period can be converted
-        ///
-        /// # Errors
-        /// - unable to cast underlying types
-        /// - LSb period conversion overflow
-        ///
-        /// # Examples
-        /// ```rust
-        /// # use embedded_time::prelude::*;
-        /// # use embedded_time::time_units::*;
-        /// assert_eq!(Seconds::<i32>::try_convert_from(Milliseconds(23_000_i64)), Ok(Seconds(23_i32)));
-        /// assert_eq!(Seconds::<i64>::try_convert_from(Milliseconds(23_000_i32)), Ok(Seconds(23_i64)));
-        /// ```
-        fn try_convert_from(
-            source: Source,
-        ) -> Result<Self, <Self as TryConvertFrom<Source>>::Error> {
-            let source_count = Dest::Rep::try_from(source.count())?;
-            Ok(Self::from_ticks(source_count, Source::PERIOD))
-        }
-    }
-
-    /// The reciprocal of [`TryConvertFrom`]
-    ///
-    /// # Examples
-    /// ```rust
-    /// # use embedded_time::prelude::*;
-    /// # use embedded_time::time_units::*;
-    /// assert_eq!(Seconds(23_000_i64).try_convert_into(), Ok(Seconds(23_000_i32)));
-    /// assert_eq!(Seconds(23_000_i32).try_convert_into(), Ok(Seconds(23_000_i32)));
-    /// assert_eq!(Ok(Seconds(23_000_i64)), (Seconds(23_000_i32).try_convert_into()));
-    /// assert_eq!(Milliseconds(23_000_i64).try_convert_into(), Ok(Seconds(23_i32)));
-    /// assert_eq!(Milliseconds(23_000_i32).try_convert_into(), Ok(Seconds(23_i64)));
-    /// ```
-    impl<Source, Dest> TryConvertInto<Dest> for Source
-    where
-        Source: Duration,
-        Dest: Duration + TryConvertFrom<Source>,
-    {
-        type Error = <Dest as TryConvertFrom<Self>>::Error;
-
-        fn try_convert_into(self) -> Result<Dest, <Self as TryConvertInto<Dest>>::Error> {
-            Dest::try_convert_from(self)
-        }
-    }
-}
-
-impl<T> ops::Mul<Ratio<i32>> for Integer<T>
-where
-    T: IntTrait,
-{
-    type Output = Self;
-
-    fn mul(self, rhs: Ratio<i32>) -> Self::Output {
-        Self(self.0 * (*rhs.numer()).into() / (*rhs.denom()).into())
-    }
-}
-
-impl<T> ops::Div<Ratio<i32>> for Integer<T>
-where
-    T: IntTrait,
-{
-    type Output = Self;
-
-    fn div(self, rhs: Ratio<i32>) -> Self::Output {
-        Self(self.0 / (*rhs.numer()).into() * (*rhs.denom()).into())
-    }
 }

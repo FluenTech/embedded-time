@@ -1,7 +1,7 @@
 //! # Embedded Time
 //! `embedded-time` provides a way (using the [`Clock`](trait.Clock.html) trait) to abstract over
 //! hardware-specific timing providers such as peripheral timers
-//! In addition it provides comprehensive [`Instant`] and duration types
+//! In addition it provides comprehensive [`Instant`](instant::Instant) and duration types
 //! ([`Minutes`](time_units::Minutes), [`Seconds`](time_units::Seconds),
 //! [`Milliseconds`](time_units::Milliseconds), etc.) along with intuitive interfaces.
 //!
@@ -9,35 +9,37 @@
 //! ```rust,no_run
 //! # use embedded_time::prelude::*;
 //! # use embedded_time::time_units::*;
-//! # use embedded_time::{Ratio, Instant, Duration, TimeRep};
+//! # use embedded_time::{Ratio, Duration, TimeRep};
+//! # use embedded_time::instant::Instant;
+//! # #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 //! # struct SomeClock;
 //! # impl embedded_time::Clock for SomeClock {
 //! #     type Rep = i64;
-//! #     fn now<Dur>() -> Instant<Dur> where Dur: Duration, Dur::Rep: TimeRep{ unimplemented!() } }
+//! #     fn now() -> Instant<Self> { unimplemented!() } }
 //! # impl embedded_time::Period for SomeClock { const PERIOD: Ratio<i32> = Ratio::<i32>::new_raw(1, 16_000_000); }
 //! #
-//! let instant1 = SomeClock::now::<Milliseconds<i32>>();
+//! let instant1 = SomeClock::now();
 //! // ...
-//! let instant2 = SomeClock::now::<Microseconds<i64>>();
+//! let instant2 = SomeClock::now();
 //! assert!(instant1 < instant2);    // instant1 is *before* instant2
 //!
-//! let duration: Microseconds<i64> = instant2 - instant1;    // duration is the difference between the instances
-//!
-//! assert_eq!(instant1 + duration, instant2);
+//! let duration: Option<Microseconds<i64>> = instant2.elapsed_since(&instant1);    // duration is the difference between the instances
+//! assert!(duration.is_some());
+//! assert_eq!(instant1 + duration.unwrap(), instant2);
 //! ```
 
 #![cfg_attr(not(test), no_std)]
 #![feature(associated_type_bounds)]
+#![feature(type_alias_impl_trait)]
 #![deny(intra_doc_link_resolution_failure)]
-// #![warn(clippy::pedantic)]
 
+mod clock;
 pub mod duration;
-mod instant;
-mod integer;
+pub mod instant;
 mod numerical_duration;
 
+pub use clock::Clock;
 pub use duration::{time_units, Duration};
-pub use instant::{Clock, Instant};
 pub use num::rational::Ratio;
 pub use numerical_duration::TimeRep;
 
@@ -56,10 +58,9 @@ pub trait Period {
 /// major releases.
 pub mod prelude {
     // Rename traits to `_` to avoid any potential name conflicts.
-    pub use crate::duration::time_units::TryConvertFrom as _;
-    pub use crate::duration::time_units::TryConvertInto as _;
     pub use crate::duration::Duration as _;
-    pub use crate::integer::IntTrait as _;
+    pub use crate::duration::TryConvertFrom as _;
+    pub use crate::duration::TryConvertInto as _;
     pub use crate::numerical_duration::TimeRep as _;
     pub use crate::Clock as _;
     pub use crate::Period as _;
@@ -67,57 +68,51 @@ pub mod prelude {
 }
 
 #[cfg(test)]
+#[allow(unused_imports)]
 mod tests {
-    use crate::numerical_duration::TimeRep;
+    use crate::instant::Instant;
     use crate::prelude::*;
     use crate::time_units::*;
     use crate::Ratio;
-    use crate::{Clock, Duration, Instant, Period};
+    use crate::{Clock, Period};
 
+    #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
     struct MockClock64;
     impl Clock for MockClock64 {
         type Rep = i64;
 
-        fn now<Dur>() -> Instant<Dur>
-        where
-            Dur: Duration,
-            Dur::Rep: TimeRep,
-        {
-            Instant(Dur::from_ticks(48_000_i64, MockClock64::PERIOD))
+        fn now() -> Instant<Self> {
+            Instant::new(128_000_000)
         }
     }
     impl Period for MockClock64 {
-        const PERIOD: Ratio<i32> = Ratio::new_raw(1, 16_000_000);
+        const PERIOD: Ratio<i32> = Ratio::new_raw(1, 64_000_000);
     }
 
+    #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
     struct MockClock32;
     impl Clock for MockClock32 {
         type Rep = i32;
 
-        fn now<Dur>() -> Instant<Dur>
-        where
-            Dur: Duration,
-            Dur::Rep: TimeRep,
-        {
-            Instant(Dur::from_ticks(192_000_i32, MockClock32::PERIOD))
+        fn now() -> Instant<Self> {
+            Instant::new(32_000_000)
         }
     }
     impl Period for MockClock32 {
-        const PERIOD: Ratio<i32> = Ratio::new_raw(1, 64_000_000);
+        const PERIOD: Ratio<i32> = Ratio::new_raw(1, 16_000_000);
     }
 
     fn get_time<M>()
     where
         M: Clock,
-        M::Rep: TimeRep,
     {
-        assert_eq!(M::now::<Milliseconds<i32>>(), Instant(Milliseconds(3_i64)));
+        assert_eq!(M::now().elapsed_since_epoch(), Some(Seconds(2)));
     }
 
     #[test]
     fn common_types() {
-        let then = MockClock32::now::<Nanoseconds<i64>>();
-        let now = MockClock64::now::<Milliseconds<i32>>();
+        let then = MockClock32::now();
+        let now = MockClock32::now();
 
         get_time::<MockClock64>();
         get_time::<MockClock32>();
