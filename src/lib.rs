@@ -32,7 +32,6 @@
 #![feature(associated_type_bounds)]
 #![feature(type_alias_impl_trait)]
 #![deny(intra_doc_link_resolution_failure)]
-// #![warn(clippy::pedantic)]
 
 mod clock;
 pub mod duration;
