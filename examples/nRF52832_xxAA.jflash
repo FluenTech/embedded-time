@@ -2,7 +2,7 @@
   FileVersion = 2
 [GENERAL]
   ConnectMode = 0
-  CurrentFile = "C:/Users/Peter/CLionProjects/embedded-time/examples/nrf52_dk/nrf52_dk.hex"
+  CurrentFile = ""
   DataFileSAddr = 0x00000000
   GUIMode = 0
   HostName = ""
