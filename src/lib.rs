@@ -36,20 +36,17 @@
 //!
 //! # Example Usage
 //! ```rust,no_run
-//! # use embedded_time::{prelude::*, time_units::*, Ratio, instant::Instant};
+//! # use embedded_time::{prelude::*, time_units::*, instant::Instant, Period};
 //! # #[derive(Debug)]
 //! struct SomeClock;
 //! impl embedded_time::Clock for SomeClock {
 //!     type Rep = i64;
+//!     const PERIOD: Period = Period::new_raw(1, 16_000_000);
 //!
 //!     fn now() -> Instant<Self> {
 //!         // ...
 //! #         unimplemented!()
 //!     }
-//! }
-//!
-//! impl embedded_time::Period for SomeClock {
-//!     const PERIOD: Ratio<i32> = Ratio::<i32>::new_raw(1, 16_000_000);
 //! }
 //!
 //! let instant1 = SomeClock::now();
@@ -75,12 +72,9 @@ mod numerical_duration;
 
 pub use clock::Clock;
 pub use duration::{time_units, Duration};
-pub use num::rational::Ratio;
 pub use numerical_duration::TimeRep;
 
-pub trait Period {
-    const PERIOD: Ratio<i32>;
-}
+pub type Period = num::rational::Ratio<i32>;
 
 /// A collection of imports that are widely useful.
 ///
@@ -108,33 +102,28 @@ mod tests {
     use crate::instant::Instant;
     use crate::prelude::*;
     use crate::time_units::*;
-    use crate::Ratio;
     use crate::{Clock, Period};
 
     #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
     struct MockClock64;
     impl Clock for MockClock64 {
         type Rep = i64;
+        const PERIOD: Period = Period::new_raw(1, 64_000_000);
 
         fn now() -> Instant<Self> {
             Instant::new(128_000_000)
         }
-    }
-    impl Period for MockClock64 {
-        const PERIOD: Ratio<i32> = Ratio::new_raw(1, 64_000_000);
     }
 
     #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
     struct MockClock32;
     impl Clock for MockClock32 {
         type Rep = i32;
+        const PERIOD: Period = Period::new_raw(1, 16_000_000);
 
         fn now() -> Instant<Self> {
             Instant::new(32_000_000)
         }
-    }
-    impl Period for MockClock32 {
-        const PERIOD: Ratio<i32> = Ratio::new_raw(1, 16_000_000);
     }
 
     fn get_time<M>()

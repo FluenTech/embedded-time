@@ -1,5 +1,4 @@
-use crate::duration::time_units::*;
-use crate::Ratio;
+use crate::{duration::time_units::*, Period};
 use core::{convert::TryFrom, convert::TryInto, fmt};
 
 /// Create `Duration`s from primitive and core numeric types.
@@ -41,27 +40,21 @@ pub trait TimeRep:
     + fmt::Display
     + fmt::Debug
 {
-    /// Create a `Duration` from the number of nanoseconds.
     fn nanoseconds(self) -> Nanoseconds<Self>;
-    /// Create a `Duration` from the number of microseconds.
     fn microseconds(self) -> Microseconds<Self>;
-    /// Create a `Duration` from the number of milliseconds.
     fn milliseconds(self) -> Milliseconds<Self>;
-    /// Create a `Duration` from the number of seconds.
     fn seconds(self) -> Seconds<Self>;
-    /// Create a `Duration` from the number of minutes.
     fn minutes(self) -> Minutes<Self>;
-    /// Create a `Duration` from the number of hours.
     fn hours(self) -> Hours<Self>;
 
-    fn checked_mul(&self, ratio: &Ratio<i32>) -> Option<Self> {
+    fn checked_mul(&self, ratio: &Period) -> Option<Self> {
         Some(<Self as num::CheckedDiv>::checked_div(
             &<Self as num::CheckedMul>::checked_mul(&self, &(*ratio.numer()).into())?,
             &(*ratio.denom()).into(),
         )?)
     }
 
-    fn checked_div(&self, ratio: &Ratio<i32>) -> Option<Self> {
+    fn checked_div(&self, ratio: &Period) -> Option<Self> {
         Some(<Self as num::CheckedDiv>::checked_div(
             &<Self as num::CheckedMul>::checked_mul(&self, &(*ratio.denom()).into())?,
             &(*ratio.numer()).into(),

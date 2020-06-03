@@ -29,7 +29,7 @@ impl Clock for SomeClock {
 
 impl Period for SomeClock {
     // this clock is counting at 16 MHz
-    const PERIOD: Ratio<i32> = Ratio::<i32>::new_raw(1, 16_000_000);
+    const PERIOD: Period = Period::new_raw(1, 16_000_000);
 }
 
 fn main() {

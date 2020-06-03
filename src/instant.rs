@@ -31,16 +31,14 @@ where
     ///
     /// # Examples
     /// ```rust
-    /// # use embedded_time::{Ratio, Period, time_units::*, instant::Instant};
+    /// # use embedded_time::{Period, time_units::*, instant::Instant};
     /// # #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type Rep = i32;
+    ///     const PERIOD: Period = Period::new_raw(1, 1_000);
     ///     // ...
     /// # fn now() -> Instant<Self> {unimplemented!()}
-    /// }
-    /// impl Period for Clock {
-    ///     const PERIOD: Ratio<i32> = Ratio::new_raw(1, 1_000);
     /// }
     ///
     /// let diff: Option<Milliseconds<_>> = Instant::<Clock>::new(5).duration_since(&Instant::<Clock>::new(3));
@@ -108,16 +106,14 @@ where
     ///
     /// # Examples
     /// ```rust
-    /// # use embedded_time::{Ratio, Period, time_units::*, instant::Instant};
+    /// # use embedded_time::{Period, time_units::*, instant::Instant};
     /// # #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type Rep = i32;
+    ///     const PERIOD: Period = Period::new_raw(1, 1_000);
     ///     // ...
     /// # fn now() -> Instant<Self> {unimplemented!()}
-    /// }
-    /// impl Period for Clock {
-    ///     const PERIOD: Ratio<i32> = Ratio::new_raw(1, 1_000);
     /// }
     ///
     /// assert!(Instant::<Clock>::new(5) > Instant::<Clock>::new(3));
@@ -154,16 +150,14 @@ where
     /// If [`Duration::into_ticks()`] returns [`None`]. In this case, `i32::MAX` of seconds
     /// cannot be converted to the clock precision of milliseconds with i32 storage.
     /// ```rust,should_panic
-    /// # use embedded_time::{Ratio, Period, time_units::*, instant::Instant};
+    /// # use embedded_time::{Period, time_units::*, instant::Instant};
     /// # #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type Rep = i32;
+    ///     const PERIOD: Period = Period::new_raw(1, 1_000);
     ///     // ...
     /// # fn now() -> Instant<Self> {unimplemented!()}
-    /// }
-    /// impl Period for Clock {
-    ///     const PERIOD: Ratio<i32> = Ratio::new_raw(1, 1_000);
     /// }
     ///
     /// Instant::<Clock>::new(1) + Seconds(i32::MAX);
@@ -172,16 +166,14 @@ where
     ///
     /// # Examples
     /// ```rust
-    /// # use embedded_time::{Ratio, Period, time_units::*, instant::Instant};
+    /// # use embedded_time::{Period, time_units::*, instant::Instant};
     /// # #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type Rep = i32;
+    ///     const PERIOD: Period = Period::new_raw(1, 1_000);
     ///     // ...
     /// # fn now() -> Instant<Self> {unimplemented!()}
-    /// }
-    /// impl Period for Clock {
-    ///     const PERIOD: Ratio<i32> = Ratio::new_raw(1, 1_000);
     /// }
     ///
     /// assert_eq!(Instant::<Clock>::new(1) + Seconds(3), Instant::<Clock>::new(3_001));
@@ -212,16 +204,14 @@ where
     /// If [`Duration::into_ticks()`] returns [`None`]. In this case, `i32::MAX` of seconds
     /// cannot be converted to the clock precision of milliseconds with i32 storage.
     /// ```rust,should_panic
-    /// # use embedded_time::{Ratio, Period, time_units::*, instant::Instant};
+    /// # use embedded_time::{Period, time_units::*, instant::Instant};
     /// # #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type Rep = i32;
+    ///     const PERIOD: Period = Period::new_raw(1, 1_000);
     ///     // ...
     /// # fn now() -> Instant<Self> {unimplemented!()}
-    /// }
-    /// impl Period for Clock {
-    ///     const PERIOD: Ratio<i32> = Ratio::new_raw(1, 1_000);
     /// }
     ///
     /// Instant::<Clock>::new(1) - Seconds(i32::MAX);
@@ -230,16 +220,14 @@ where
     ///
     /// # Examples
     /// ```rust
-    /// # use embedded_time::{Ratio, Period, time_units::*, instant::Instant};
+    /// # use embedded_time::{Period, time_units::*, instant::Instant};
     /// # #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type Rep = i32;
+    ///     const PERIOD: Period = Period::new_raw(1, 1_000);
     ///     // ...
     /// # fn now() -> Instant<Self> {unimplemented!()}
-    /// }
-    /// impl Period for Clock {
-    ///     const PERIOD: Ratio<i32> = Ratio::new_raw(1, 1_000);
     /// }
     ///
     /// assert_eq!(Instant::<Clock>::new(1) - Seconds(3), Instant::<Clock>::new(-2_999));

@@ -8,7 +8,6 @@ use core::prelude::v1::*;
 use cortex_m::mutex::CriticalSectionMutex as Mutex;
 use mutex_trait::Mutex as _Mutex;
 use nrf52::prelude::*;
-use num::rational::Ratio;
 use rtfm::time::{self, instant::Instant, time_units::*, Period};
 
 pub mod nrf52 {
@@ -46,6 +45,7 @@ impl SystemTime {
 
 impl time::Clock for SystemTime {
     type Rep = i64;
+    const PERIOD: Period = Period::new_raw(1, 16_000_000);
 
     fn now() -> Instant<Self> {
         let ticks = (&SYSTEM_TICKS).lock(|system_ticks| match system_ticks {
@@ -55,10 +55,6 @@ impl time::Clock for SystemTime {
 
         Instant::new(ticks as Self::Rep)
     }
-}
-
-impl Period for SystemTime {
-    const PERIOD: Ratio<i32> = Ratio::new_raw(1, 16_000_000);
 }
 
 impl rtfm::Monotonic for SystemTime {

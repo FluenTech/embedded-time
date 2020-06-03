@@ -1,9 +1,8 @@
 //! Duration types/units creation and conversion.
 
-use crate::numerical_duration::TimeRep;
-use crate::Period;
+use crate::{numerical_duration::TimeRep, Period};
 use core::{convert::TryFrom, fmt, mem::size_of, prelude::v1::*};
-use num::{rational::Ratio, traits::WrappingSub, Bounded, CheckedDiv};
+use num::{traits::WrappingSub, Bounded, CheckedDiv};
 
 /// A duration of time with generic storage
 ///
@@ -11,7 +10,7 @@ use num::{rational::Ratio, traits::WrappingSub, Bounded, CheckedDiv};
 ///
 /// # Implementation Example
 /// ```rust,no_run
-/// # use embedded_time::{Duration, Period, Ratio, TimeRep};
+/// # use embedded_time::{Duration, Period, TimeRep};
 /// # use core::{fmt, fmt::Formatter};
 /// #
 /// #[derive(Copy, Clone)]
@@ -19,6 +18,7 @@ use num::{rational::Ratio, traits::WrappingSub, Bounded, CheckedDiv};
 ///
 /// impl<T: TimeRep> Duration for Milliseconds<T> {
 ///     type Rep = T;   // set the storage type
+///     const PERIOD: Period = Period::new_raw(1, 1_000); // set LSbit period to 1 millisecond
 ///
 ///     fn new(value: Self::Rep) -> Self {
 ///         Self(value)
@@ -29,10 +29,6 @@ use num::{rational::Ratio, traits::WrappingSub, Bounded, CheckedDiv};
 ///     }
 /// }
 ///
-/// impl<T: TimeRep> Period for Milliseconds<T> {
-///     const PERIOD: Ratio<i32> = Ratio::<i32>::new_raw(1, 1_000); // set LSbit period to 1 millisecond
-/// }
-///
 /// impl<T: TimeRep> fmt::Display for Milliseconds<T> {
 ///     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
 ///         unimplemented!()
@@ -40,8 +36,9 @@ use num::{rational::Ratio, traits::WrappingSub, Bounded, CheckedDiv};
 ///     
 /// }
 /// ```
-pub trait Duration: Sized + Copy + fmt::Display + Period {
+pub trait Duration: Sized + Copy + fmt::Display {
     type Rep: TimeRep;
+    const PERIOD: Period;
 
     /// Not generally useful or needed as the duration can be instantiated like this:
     /// ```no_run
@@ -64,12 +61,12 @@ pub trait Duration: Sized + Copy + fmt::Display + Period {
     /// ```rust
     /// # use embedded_time::prelude::*;
     /// # use embedded_time::time_units::*;
-    /// # use num::rational::Ratio;
-    /// assert_eq!(Microseconds::<i32>::from_ticks(5_i64, Ratio::<i32>::new_raw(1, 1_000)), Some(Microseconds(5_000_i32)));
-    /// assert_eq!(Microseconds::<i64>::from_ticks(i32::MAX, Ratio::<i32>::new_raw(1, 1_000)), Some(Microseconds((i32::MAX as i64) * 1_000)));
-    /// assert_eq!(Milliseconds::<i32>::from_ticks((i32::MAX as i64) + 1, Ratio::<i32>::new_raw(1, 1_000_000)), Some(Milliseconds((((i32::MAX as i64) + 1) / 1_000) as i32)));
+    /// # use embedded_time::Period;
+    /// assert_eq!(Microseconds::<i32>::from_ticks(5_i64, Period::new_raw(1, 1_000)), Some(Microseconds(5_000_i32)));
+    /// assert_eq!(Microseconds::<i64>::from_ticks(i32::MAX, Period::new_raw(1, 1_000)), Some(Microseconds((i32::MAX as i64) * 1_000)));
+    /// assert_eq!(Milliseconds::<i32>::from_ticks((i32::MAX as i64) + 1, Period::new_raw(1, 1_000_000)), Some(Milliseconds((((i32::MAX as i64) + 1) / 1_000) as i32)));
     /// ```
-    fn from_ticks<Rep>(ticks: Rep, period: Ratio<i32>) -> Option<Self>
+    fn from_ticks<Rep>(ticks: Rep, period: Period) -> Option<Self>
     where
         Self::Rep: TimeRep + TryFrom<Rep>,
         Rep: TimeRep,
@@ -77,7 +74,7 @@ pub trait Duration: Sized + Copy + fmt::Display + Period {
         if size_of::<Self::Rep>() > size_of::<Rep>() {
             let converted_ticks = Self::Rep::try_from(ticks).ok()?;
 
-            if period > Ratio::new_raw(1, 1) {
+            if period > Period::new_raw(1, 1) {
                 Some(Self::new(TimeRep::checked_div(
                     &converted_ticks.checked_mul(&period)?,
                     &Self::PERIOD,
@@ -88,7 +85,7 @@ pub trait Duration: Sized + Copy + fmt::Display + Period {
                 ))
             }
         } else {
-            let ticks = if period > Ratio::new_raw(1, 1) {
+            let ticks = if period > Period::new_raw(1, 1) {
                 TimeRep::checked_div(&TimeRep::checked_mul(&ticks, &period)?, &Self::PERIOD)?
             } else {
                 TimeRep::checked_mul(&ticks, &period.checked_div(&Self::PERIOD)?)?
@@ -107,14 +104,14 @@ pub trait Duration: Sized + Copy + fmt::Display + Period {
     ///
     /// # Examples
     /// ```rust
-    /// # use embedded_time::{prelude::*, time_units::*, Ratio};
-    /// assert_eq!(Microseconds(5_000_i32).into_ticks::<i32>(Ratio::<i32>::new_raw(1, 1_000)), Some(5_i32));
-    /// assert_eq!(Microseconds(5_000_i32).into_ticks::<i32>(Ratio::<i32>::new_raw(1, 200)), Some(1_i32));
-    /// assert_eq!(Microseconds::<i32>(i32::MAX).into_ticks::<i64>(Ratio::<i32>::new_raw(1, 2_000_000)), Some((i32::MAX as i64) * 2));
-    /// assert_eq!(Microseconds::<i64>((i32::MAX as i64) + 2).into_ticks::<i32>(Ratio::new_raw(1, 500_000)), Some(i32::MAX / 2 + 1));
-    /// assert_eq!(Microseconds::<i64>(i32::MAX as i64).into_ticks::<i32>(Ratio::<i32>::new_raw(1, 500_000)), Some(i32::MAX / 2));
+    /// # use embedded_time::{prelude::*, time_units::*, Period};
+    /// assert_eq!(Microseconds(5_000_i32).into_ticks::<i32>(Period::new_raw(1, 1_000)), Some(5_i32));
+    /// assert_eq!(Microseconds(5_000_i32).into_ticks::<i32>(Period::new_raw(1, 200)), Some(1_i32));
+    /// assert_eq!(Microseconds::<i32>(i32::MAX).into_ticks::<i64>(Period::new_raw(1, 2_000_000)), Some((i32::MAX as i64) * 2));
+    /// assert_eq!(Microseconds::<i64>((i32::MAX as i64) + 2).into_ticks::<i32>(Period::new_raw(1, 500_000)), Some(i32::MAX / 2 + 1));
+    /// assert_eq!(Microseconds::<i64>(i32::MAX as i64).into_ticks::<i32>(Period::new_raw(1, 500_000)), Some(i32::MAX / 2));
     /// ```
-    fn into_ticks<Rep>(self, period: Ratio<i32>) -> Option<Rep>
+    fn into_ticks<Rep>(self, period: Period) -> Option<Rep>
     where
         Self::Rep: TimeRep,
         Rep: TimeRep + TryFrom<Self::Rep>,
@@ -122,7 +119,7 @@ pub trait Duration: Sized + Copy + fmt::Display + Period {
         if size_of::<Rep>() > size_of::<Self::Rep>() {
             let ticks = Rep::try_from(self.count()).ok()?;
 
-            if period > Ratio::new_raw(1, 1) {
+            if period > Period::new_raw(1, 1) {
                 Some(TimeRep::checked_div(
                     &TimeRep::checked_mul(&ticks, &Self::PERIOD)?,
                     &period,
@@ -134,7 +131,7 @@ pub trait Duration: Sized + Copy + fmt::Display + Period {
                 )?)
             }
         } else {
-            let ticks = if Self::PERIOD > Ratio::new_raw(1, 1) {
+            let ticks = if Self::PERIOD > Period::new_raw(1, 1) {
                 TimeRep::checked_div(
                     &TimeRep::checked_mul(&self.count(), &Self::PERIOD)?,
                     &period,
@@ -424,16 +421,17 @@ pub mod time_units {
     //! assert!(Seconds(2_i64) < Milliseconds(2_001_i32));
     //! ```
 
-    use super::Period;
-    use crate::duration::{Duration, TryConvertFrom};
-    use crate::numerical_duration::TimeRep;
+    use crate::{
+        duration::{Duration, TryConvertFrom},
+        numerical_duration::TimeRep,
+        Period,
+    };
     use core::{
         cmp,
         convert::TryFrom,
         fmt::{self, Formatter},
         ops,
     };
-    use num::rational::Ratio;
 
     macro_rules! durations {
         ( $( $name:ident, ($numer:expr, $denom:expr) );+ ) => {
@@ -442,13 +440,9 @@ pub mod time_units {
                 #[derive(Copy, Clone, Debug, Eq, Ord)]
                 pub struct $name<T: TimeRep>(pub T);
 
-                /// See module-level documentation for details about this type
-                impl<T: TimeRep> Period for $name<T> {
-                    const PERIOD: Ratio<i32> = Ratio::<i32>::new_raw($numer, $denom);
-                }
-
                 impl<Rep: TimeRep> Duration for $name<Rep> {
                     type Rep = Rep;
+                    const PERIOD: Period = Period::new_raw($numer, $denom);
 
                     fn new(value: Self::Rep) -> Self {
                         Self(value)
