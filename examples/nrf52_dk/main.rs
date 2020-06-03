@@ -154,7 +154,7 @@ fn main() -> ! {
         led3.set_high().unwrap();
         led4.set_low().unwrap();
         while SystemTime::now()
-            .elapsed_since::<Milliseconds<i32>>(&last_instant)
+            .duration_since::<Milliseconds<i32>>(&last_instant)
             .unwrap()
             < 250.milliseconds()
         {}
@@ -165,7 +165,7 @@ fn main() -> ! {
         led3.set_low().unwrap();
         led4.set_high().unwrap();
         while SystemTime::now()
-            .elapsed_since::<Milliseconds<i32>>(&last_instant)
+            .duration_since::<Milliseconds<i32>>(&last_instant)
             .unwrap()
             < 250.milliseconds()
         {}

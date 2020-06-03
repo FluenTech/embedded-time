@@ -43,19 +43,19 @@ where
     ///     const PERIOD: Ratio<i32> = Ratio::new_raw(1, 1_000);
     /// }
     ///
-    /// let diff: Option<Milliseconds<_>> = Instant::<Clock>::new(5).elapsed_since(&Instant::<Clock>::new(3));
+    /// let diff: Option<Milliseconds<_>> = Instant::<Clock>::new(5).duration_since(&Instant::<Clock>::new(3));
     /// assert_eq!(diff, Some(Milliseconds(2_i32)));
     ///
-    /// let diff: Option<Microseconds<i64>> = Instant::<Clock>::new(5).elapsed_since(&Instant::<Clock>::new(3));
+    /// let diff: Option<Microseconds<i64>> = Instant::<Clock>::new(5).duration_since(&Instant::<Clock>::new(3));
     /// assert_eq!(diff, Some(Microseconds(2_000_i64)));
     ///
-    /// let diff: Option<Microseconds<i64>> = Instant::<Clock>::new(i32::MIN).elapsed_since(&Instant::<Clock>::new(i32::MAX));
+    /// let diff: Option<Microseconds<i64>> = Instant::<Clock>::new(i32::MIN).duration_since(&Instant::<Clock>::new(i32::MAX));
     /// assert_eq!(diff, Some(Microseconds(1_000_i64)));
     ///
-    /// let diff: Option<Seconds<i64>> = Instant::<Clock>::new(1_000).elapsed_since(&Instant::<Clock>::new(-1_000));
+    /// let diff: Option<Seconds<i64>> = Instant::<Clock>::new(1_000).duration_since(&Instant::<Clock>::new(-1_000));
     /// assert_eq!(diff, Some(Seconds(2_i64)));
     /// ```
-    pub fn elapsed_since<Dur>(&self, other: &Self) -> Option<Dur>
+    pub fn duration_since<Dur>(&self, other: &Self) -> Option<Dur>
     where
         Dur: Duration,
         Dur::Rep: TryFrom<Clock::Rep>,
@@ -69,7 +69,7 @@ where
         Dur::Rep: TryFrom<Clock::Rep>,
         Clock::Rep: From<i32>,
     {
-        Self::elapsed_since::<Dur>(
+        Self::duration_since::<Dur>(
             &self,
             &Self {
                 ticks: Clock::Rep::from(0_i32),
