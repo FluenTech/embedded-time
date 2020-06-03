@@ -11,6 +11,7 @@ jobs:
         with:
           toolchain: nightly
           components: clippy
+          target: thumbv7em-none-eabihf
           override: true
       - uses: actions-rs/cargo@v1.0.1
         with:
