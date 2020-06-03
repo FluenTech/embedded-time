@@ -11,7 +11,7 @@ hardware and work with _instants_ and _durations_ in an intuitive way.
  
 - `Clock` trait allowing abstraction of hardware timers/counters for timekeeping.
 - Work with time using _milliseconds_, _seconds_, etc. rather than _cycles_ or _ticks_.
-- Includes examples for the nRF52_DK development kit using [`rtfm`](https://github.com/rtfm-rs/cortex-m-rtfm) (with patches)
+- Includes examples for the nRF52_DK development kit as bare-metal as well as using [`rtfm`](https://github.com/rtfm-rs/cortex-m-rtfm) (with patches)
 
 ## Example Usage
 ```rust
@@ -32,23 +32,25 @@ impl Period for SomeClock {
     const PERIOD: Ratio<i32> = Ratio::<i32>::new_raw(1, 16_000_000);
 }
 
-// read from a Clock
-let instant1 = SomeClock::now();
-
-// ... some time passes
-
-let instant2 = SomeClock::now();
-assert!(instant1 < instant2);    // instant1 is *before* instant2
-
-// duration is the difference between the instances
-let duration: Option<Microseconds<i64>> = instant2.elapsed_since(&instant1);    
-
-// add some duration to an instant
-let future_instant = instant2 + Milliseconds(23);
-// or
-let future_instant = instant2 + 23.milliseconds();
-
-assert(future_instant > instant2);
+fn main() {
+    // read from a Clock
+    let instant1 = SomeClock::now();
+    
+    // ... some time passes
+    
+    let instant2 = SomeClock::now();
+    assert!(instant1 < instant2);    // instant1 is *before* instant2
+    
+    // duration is the difference between the instances
+    let duration: Option<Microseconds<i64>> = instant2.elapsed_since(&instant1);    
+    
+    // add some duration to an instant
+    let future_instant = instant2 + Milliseconds(23);
+    // or
+    let future_instant = instant2 + 23.milliseconds();
+    
+    assert(future_instant > instant2);
+}
 ```
 
 [Full documentation](https://docs.rs/embedded-time/)

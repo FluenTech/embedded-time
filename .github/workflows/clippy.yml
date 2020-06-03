@@ -3,7 +3,7 @@ name: Clippy
 on: {push, pull_request}
 
 jobs:
-  clippy_check:
+  clippy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -11,9 +11,10 @@ jobs:
         with:
           toolchain: nightly
           components: clippy
+          target: thumbv7em-none-eabihf
           override: true
       - uses: actions-rs/cargo@v1.0.1
         with:
           command: clippy
-          args: --lib --examples --target ${{ matrix.target }}
+          args: --lib --examples --target thumbv7em-none-eabihf
           toolchain: nightly

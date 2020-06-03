@@ -6,6 +6,7 @@ extern crate panic_rtt;
 use core::prelude::v1::*;
 use cortex_m::peripheral::DWT;
 use nrf52::prelude::*;
+use num::rational::Ratio;
 use rtfm::embedded_time::time_units::*;
 
 pub mod nrf52 {
@@ -16,7 +17,7 @@ pub mod nrf52 {
 
 const LED_ON_TIME: Milliseconds<i32> = Milliseconds(250);
 
-#[rtfm::app(device = nrf52832_hal::pac, peripherals = true, monotonic = rtfm::cyccnt::CYCCNT)]
+#[rtfm::app(device = nrf52832_hal::pac, peripherals = true, monotonic = rtfm::cyccnt::CYCCNT, sys_timer_freq = 64_000_000)]
 const APP: () = {
     struct Resources {
         led1: nrf52::gpio::p0::P0_17<nrf52::gpio::Output<nrf52::gpio::OpenDrain>>,
