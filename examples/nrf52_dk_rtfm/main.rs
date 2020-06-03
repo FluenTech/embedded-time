@@ -9,7 +9,7 @@ use cortex_m::mutex::CriticalSectionMutex as Mutex;
 use mutex_trait::Mutex as _Mutex;
 use nrf52::prelude::*;
 use num::rational::Ratio;
-use rtfm::embedded_time::{self, instant::Instant, time_units::*, Period};
+use rtfm::time::{self, instant::Instant, time_units::*, Period};
 
 pub mod nrf52 {
     pub use nrf52832_hal::gpio;
@@ -44,7 +44,7 @@ impl SystemTime {
     }
 }
 
-impl embedded_time::Clock for SystemTime {
+impl time::Clock for SystemTime {
     type Rep = i64;
 
     fn now() -> Instant<Self> {
