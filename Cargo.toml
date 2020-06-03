@@ -17,6 +17,7 @@ num = { version = "0.2.1", default-features = false }
 
 [dev-dependencies]
 cortex-m = "0.6.2"
+cortex-m-rt = "0.6.12"
 cortex-m-rtfm = "0.5.1"
 panic_rtt = "0.2.0"
 nrf52832-hal = { version = "0.10.0", default-features = false, features = ["rt", "xxAA-package"] }
