@@ -87,7 +87,7 @@ dependencies = [
  "cortex-m",
  "cortex-m-rt",
  "cortex-m-rtfm-macros",
- "embedded-time 0.2.2 (git+https://github.com/PTaylor-FluenTech/embedded-time)",
+ "embedded-time 0.2.2",
  "heapless",
  "rtfm-core",
  "version_check",
@@ -124,7 +124,7 @@ dependencies = [
 
 [[package]]
 name = "embedded-time"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "cortex-m",
  "cortex-m-rt",

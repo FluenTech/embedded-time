@@ -1,15 +1,16 @@
-name: Test
+name: CI
 
 on: [push, pull_request]
 
 jobs:
-  test:
-    name: Test
+  ci:
+    name: CI
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         rust: [nightly]
         os: [ubuntu-latest, windows-latest]
+        target: [thumbv7em-none-eabihf]
 
     steps:
       - name: Checkout sources
@@ -28,8 +29,16 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
+          components: clippy
           toolchain: ${{ matrix.rust }}
+          target: ${{ matrix.target }}
           override: true
+
+      - name: Check lib and examples
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --lib --examples --target ${{ matrix.target }}
 
       - name: Test Library
         uses: actions-rs/cargo@v1
@@ -42,3 +51,21 @@ jobs:
         with:
           command: test
           args: --doc
+
+      - name: Clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --lib --examples --target ${{ matrix.target }}
+
+      - name: Build lib
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --lib
+
+      - name: Build examples
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --examples --target ${{ matrix.target }}

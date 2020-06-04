@@ -1,8 +1,6 @@
-# embedded-time &emsp; ![Check] ![Test] ![Clippy] [![crates.io]](https://crates.io/crates/embedded-time) [![docs.rs]](https://docs.rs/embedded-time)
+# embedded-time &emsp; ![CI] [![crates.io]](https://crates.io/crates/embedded-time) [![docs.rs]](https://docs.rs/embedded-time)
 
-[Check]: https://github.com/PTaylor-FluenTech/embedded-time/workflows/Check/badge.svg
-[Test]: https://github.com/PTaylor-FluenTech/embedded-time/workflows/Test/badge.svg
-[Clippy]: https://github.com/PTaylor-FluenTech/embedded-time/workflows/Clippy/badge.svg
+[CI]: https://github.com/PTaylor-FluenTech/embedded-time/workflows/CI/badge.svg
 [crates.io]: https://img.shields.io/crates/v/embedded-time.svg
 [docs.rs]: https://docs.rs/embeded-time/badge.svg
 
