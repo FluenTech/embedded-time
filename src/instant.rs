@@ -1,7 +1,7 @@
+//! An instant of time
+
 use crate::Duration;
-use core::cmp::Ordering;
-use core::convert::TryFrom;
-use core::ops;
+use core::{cmp::Ordering, convert::TryFrom, ops};
 use num::traits::{WrappingAdd, WrappingSub};
 
 /// Represents an instant of time relative to a specific clock
