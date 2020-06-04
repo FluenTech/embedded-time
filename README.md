@@ -1,10 +1,4 @@
-# embedded-time
-
-![Check](https://github.com/PTaylor-FluenTech/embedded-time/workflows/Check/badge.svg)
-![Test](https://github.com/PTaylor-FluenTech/embedded-time/workflows/Test/badge.svg)
-![Clippy](https://github.com/PTaylor-FluenTech/embedded-time/workflows/Clippy/badge.svg)
-
-![crates.io](https://img.shields.io/crates/v/embedded-time.svg)
+# embedded-time &emsp; ![Check](https://github.com/PTaylor-FluenTech/embedded-time/workflows/Check/badge.svg) ![Test](https://github.com/PTaylor-FluenTech/embedded-time/workflows/Test/badge.svg) ![Clippy](https://github.com/PTaylor-FluenTech/embedded-time/workflows/Clippy/badge.svg) ![crates.io](https://img.shields.io/crates/v/embedded-time.svg)
 
 `embedded-time` provides a comprehensive library for implementing abstractions over
 hardware and work with _instants_ and _durations_ in an intuitive way.
