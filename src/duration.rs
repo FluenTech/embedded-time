@@ -2,7 +2,7 @@
 
 use crate::{numerical_duration::TimeRep, Period};
 use core::{convert::TryFrom, fmt, mem::size_of, prelude::v1::*};
-use num::{traits::WrappingSub, Bounded, CheckedDiv};
+use num::{Bounded, CheckedDiv};
 
 /// A duration of time with generic storage
 ///
@@ -162,25 +162,6 @@ pub trait Duration: Sized + Copy + fmt::Display {
     #[must_use]
     fn max_value() -> Self::Rep {
         Self::Rep::max_value()
-    }
-
-    /// Apply wrapping subtraction
-    ///
-    /// # Example
-    /// ```rust
-    /// # use embedded_time::prelude::*;
-    /// # use embedded_time::time_units::*;
-    /// assert_eq!(Seconds(1).wrapping_sub(Seconds(u32::MAX as i32)), Some(Seconds(2)));
-    /// ```
-    fn wrapping_sub<Rhs>(self, rhs: Rhs) -> Option<Self>
-    where
-        Self: TryConvertFrom<Rhs>,
-        Self::Rep: TryFrom<Rhs::Rep, Error: fmt::Debug>,
-        Rhs::Rep: TimeRep,
-        Rhs: Duration,
-    {
-        let rhs = Self::try_convert_from(rhs)?;
-        Some(Self::new(self.count().wrapping_sub(&rhs.count())))
     }
 }
 
