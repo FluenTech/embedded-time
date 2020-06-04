@@ -4,7 +4,6 @@ on: [push, pull_request]
 
 jobs:
   check:
-    name: Type checking
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -17,12 +16,14 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Cache target
-        uses: actions/cache@v1
-        env:
-          cache-name: target
+        uses: actions/cache@v2
         with:
-          path: ./target
-          key: ${{ matrix.os }}-typecheck-target-${{ matrix.rust }}
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ matrix.os }}-cargo--${{ matrix.rust }}-${{ hashFiles('**/Cargo.lock') }}
+
 
       - name: Install toolchain
         uses: actions-rs/toolchain@v1
@@ -32,8 +33,7 @@ jobs:
           target: ${{ matrix.target }}
           override: true
 
-      # everything
-      - name: Run `cargo check`
+      - name: Check lib and examples
         uses: actions-rs/cargo@v1
         with:
           command: check
