@@ -29,7 +29,7 @@ impl Clock for SomeClock {
 
 impl Period for SomeClock {
     // this clock is counting at 16 MHz
-    const PERIOD: Ratio<i32> = Ratio::<i32>::new_raw(1, 16_000_000);
+    const PERIOD: Period = Period::new_raw(1, 16_000_000);
 }
 
 fn main() {
@@ -42,7 +42,7 @@ fn main() {
     assert!(instant1 < instant2);    // instant1 is *before* instant2
     
     // duration is the difference between the instances
-    let duration: Option<Microseconds<i64>> = instant2.elapsed_since(&instant1);    
+    let duration: Option<Microseconds<i64>> = instant2.duration_since(&instant1);    
     
     // add some duration to an instant
     let future_instant = instant2 + Milliseconds(23);

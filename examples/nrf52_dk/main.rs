@@ -10,7 +10,6 @@ use cortex_m_rt::entry;
 use embedded_time::{self, instant::Instant, time_units::*, Clock, Period, TimeRep};
 use mutex_trait::Mutex as _Mutex;
 use nrf52::prelude::*;
-use num::rational::Ratio;
 
 pub mod nrf52 {
     pub use nrf52832_hal::gpio;
@@ -47,6 +46,7 @@ impl SystemTime {
 
 impl embedded_time::Clock for SystemTime {
     type Rep = i64;
+    const PERIOD: Period = Period::new_raw(1, 16_000_000);
 
     fn now() -> Instant<Self> {
         let ticks = (&SYSTEM_TICKS).lock(|system_ticks| match system_ticks {
@@ -56,10 +56,6 @@ impl embedded_time::Clock for SystemTime {
 
         Instant::new(ticks as Self::Rep)
     }
-}
-
-impl Period for SystemTime {
-    const PERIOD: Ratio<i32> = Ratio::new_raw(1, 16_000_000);
 }
 
 static SYSTEM_TICKS: Mutex<Option<SystemTime>> = Mutex::new(None);
@@ -154,7 +150,7 @@ fn main() -> ! {
         led3.set_high().unwrap();
         led4.set_low().unwrap();
         while SystemTime::now()
-            .elapsed_since::<Milliseconds<i32>>(&last_instant)
+            .duration_since::<Milliseconds<i32>>(&last_instant)
             .unwrap()
             < 250.milliseconds()
         {}
@@ -165,7 +161,7 @@ fn main() -> ! {
         led3.set_low().unwrap();
         led4.set_high().unwrap();
         while SystemTime::now()
-            .elapsed_since::<Milliseconds<i32>>(&last_instant)
+            .duration_since::<Milliseconds<i32>>(&last_instant)
             .unwrap()
             < 250.milliseconds()
         {}
