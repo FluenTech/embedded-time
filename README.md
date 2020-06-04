@@ -2,7 +2,7 @@
 
 [CI]: https://github.com/PTaylor-FluenTech/embedded-time/workflows/CI/badge.svg
 [crates.io]: https://img.shields.io/crates/v/embedded-time.svg
-[docs.rs]: https://docs.rs/embeded-time/badge.svg
+[docs.rs]: https://docs.rs/embedded-time/badge.svg
 
 `embedded-time` provides a comprehensive library for implementing abstractions over
 hardware and work with _instants_ and _durations_ in an intuitive way.
