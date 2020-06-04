@@ -26,5 +26,5 @@ mutex-trait = "0.2.0"
 [patch.crates-io]
 cortex-m = { git = "https://github.com/rust-embedded/cortex-m", branch = "mutex_add" }
 panic_rtt = { git = "https://github.com/PTaylor-FluenTech/jlink_rtt", branch = "master" }
-cortex-m-rtfm = { git = "https://github.com/PTaylor-FluenTech/cortex-m-rtfm", branch = "embedded-time_v0-2" }
+cortex-m-rtfm = { git = "https://github.com/PTaylor-FluenTech/cortex-m-rtfm", branch = "embedded-time" }
 rtfm-syntax = { git = "https://github.com/rtfm-rs/rtfm-syntax", branch = "master" }
