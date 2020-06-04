@@ -124,7 +124,7 @@ dependencies = [
 
 [[package]]
 name = "embedded-time"
-version = "0.2.3"
+version = "0.3.0"
 dependencies = [
  "cortex-m",
  "cortex-m-rt",
@@ -195,8 +195,9 @@ dependencies = [
 
 [[package]]
 name = "jlink_rtt"
-version = "0.1.0"
-source = "git+https://github.com/PTaylor-FluenTech/jlink_rtt#f1b05f6e80786c6c6b4024da9798ad22a1eeedb6"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "42f6af40154f64bd7095b5245d6933fef99b0a28c432b38a676cfafaa0aedfc2"
 
 [[package]]
 name = "mutex-trait"
@@ -319,8 +320,9 @@ dependencies = [
 
 [[package]]
 name = "panic_rtt"
-version = "0.2.0"
-source = "git+https://github.com/PTaylor-FluenTech/jlink_rtt#f1b05f6e80786c6c6b4024da9798ad22a1eeedb6"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f8db43abba508fc93d9f8e28619d3ff2fb1f480c67112bc0f86d862ba231eb82"
 dependencies = [
  "cortex-m",
  "jlink_rtt",
