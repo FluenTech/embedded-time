@@ -3,11 +3,10 @@
 
 extern crate panic_rtt;
 
-use core::borrow::Borrow;
-use core::prelude::v1::*;
+use core::{borrow::Borrow, prelude::v1::*};
 use cortex_m::mutex::CriticalSectionMutex as Mutex;
 use cortex_m_rt::entry;
-use embedded_time::{self, instant::Instant, time_units::*, Clock, Period, TimeRep};
+use embedded_time::{self as time, instant::Instant, Clock, Period, TimeRep};
 use mutex_trait::Mutex as _Mutex;
 use nrf52::prelude::*;
 
@@ -44,7 +43,7 @@ impl SystemTime {
     }
 }
 
-impl embedded_time::Clock for SystemTime {
+impl time::Clock for SystemTime {
     type Rep = i64;
     const PERIOD: Period = Period::new_raw(1, 16_000_000);
 
@@ -118,52 +117,57 @@ fn main() -> ! {
 
     let port0 = nrf52::gpio::p0::Parts::new(device.P0);
 
-    let mut led1 = port0.p0_17.into_open_drain_output(
+    let led1 = port0.p0_17.into_open_drain_output(
         nrf52::gpio::OpenDrainConfig::Standard0Disconnect1,
         nrf52::gpio::Level::High,
     );
 
-    let mut led2 = port0.p0_18.into_open_drain_output(
+    let led2 = port0.p0_18.into_open_drain_output(
         nrf52::gpio::OpenDrainConfig::Standard0Disconnect1,
         nrf52::gpio::Level::High,
     );
 
-    let mut led3 = port0.p0_19.into_open_drain_output(
+    let led3 = port0.p0_19.into_open_drain_output(
         nrf52::gpio::OpenDrainConfig::Standard0Disconnect1,
         nrf52::gpio::Level::High,
     );
 
-    let mut led4 = port0.p0_20.into_open_drain_output(
+    let led4 = port0.p0_20.into_open_drain_output(
         nrf52::gpio::OpenDrainConfig::Standard0Disconnect1,
         nrf52::gpio::Level::High,
     );
 
-    led1.set_high().unwrap();
-    led2.set_high().unwrap();
-    led3.set_high().unwrap();
-    led4.set_high().unwrap();
+    run(
+        &mut led1.degrade(),
+        &mut led2.degrade(),
+        &mut led3.degrade(),
+        &mut led4.degrade(),
+    )
+    .unwrap();
 
+    loop {}
+}
+
+fn run<Led>(
+    led1: &mut Led,
+    led2: &mut Led,
+    led3: &mut Led,
+    led4: &mut Led,
+) -> Result<(), <Led as OutputPin>::Error>
+where
+    Led: OutputPin,
+{
     loop {
-        let last_instant = SystemTime::now();
-        led1.set_low().unwrap();
-        led2.set_high().unwrap();
-        led3.set_high().unwrap();
-        led4.set_low().unwrap();
-        while SystemTime::now()
-            .duration_since::<Milliseconds<i32>>(&last_instant)
-            .unwrap()
-            < 250.milliseconds()
-        {}
+        led1.set_low()?;
+        led2.set_high()?;
+        led3.set_high()?;
+        led4.set_low()?;
+        SystemTime::delay(250.milliseconds());
 
-        let last_instant = SystemTime::now();
-        led1.set_high().unwrap();
-        led2.set_low().unwrap();
-        led3.set_low().unwrap();
-        led4.set_high().unwrap();
-        while SystemTime::now()
-            .duration_since::<Milliseconds<i32>>(&last_instant)
-            .unwrap()
-            < 250.milliseconds()
-        {}
+        led1.set_high()?;
+        led2.set_low()?;
+        led3.set_low()?;
+        led4.set_high()?;
+        SystemTime::delay(250.milliseconds());
     }
 }
