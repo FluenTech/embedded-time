@@ -34,11 +34,17 @@ jobs:
           target: ${{ matrix.target }}
           override: true
 
-      - name: Check lib and examples
+      - name: Build lib
         uses: actions-rs/cargo@v1
         with:
-          command: check
-          args: --lib --examples --target ${{ matrix.target }}
+          command: build
+          args: --lib
+
+      - name: Build examples
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --examples --target ${{ matrix.target }}
 
       - name: Test Library
         uses: actions-rs/cargo@v1
@@ -57,15 +63,3 @@ jobs:
         with:
           command: clippy
           args: --lib --examples --target ${{ matrix.target }}
-
-      - name: Build lib
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --lib
-
-      - name: Build examples
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --examples --target ${{ matrix.target }}
