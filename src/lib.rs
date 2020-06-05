@@ -1,4 +1,3 @@
-//! # Embedded Time
 //! `embedded-time` provides a comprehensive library for implementing [`Clock`] abstractions over
 //! hardware to generate [`Instant`]s and using [`Duration`]s ([`Seconds`], [`Milliseconds`], etc)
 //! in embedded systems. The approach is similar to the C++ `chrono` library. A [`Duration`]
@@ -17,10 +16,10 @@
 //!
 //! ## Definitions
 //! **Clock**: Any entity that periodically counts (ie a hardware timer peripheral). Generally,
-//! this needs to be monotonic. A wrapping timer is considered monotonic in this context as long as
+//! this needs to be monotonic. A wrapping clock is considered monotonic in this context as long as
 //! it fulfills the other requirements.
 //!
-//! **Wrapping Timer**: A timer that when at its maximum value, the next count is the minimum
+//! **Wrapping Clock**: A clock that when at its maximum value, the next count is the minimum
 //! value.
 //!
 //! **Instant**: A specific instant in time ("time-point") returned by calling `Clock::now()`.
@@ -144,20 +143,5 @@ mod tests {
         let then = then - Seconds(1);
         assert_ne!(then, now);
         assert!(then < now);
-    }
-
-    #[test]
-    fn brute_force() {
-        let mut time = 1_i64;
-        time *= 60;
-        assert_eq!(Hours(1), Minutes(time));
-        time *= 60;
-        assert_eq!(Hours(1), Seconds(time));
-        time *= 1000;
-        assert_eq!(Hours(1), Milliseconds(time));
-        time *= 1000;
-        assert_eq!(Hours(1), Microseconds(time));
-        time *= 1000;
-        assert_eq!(Hours(1), Nanoseconds(time));
     }
 }

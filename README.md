@@ -1,4 +1,8 @@
-# embedded-time &emsp; ![Check](https://github.com/PTaylor-FluenTech/embedded-time/workflows/Check/badge.svg) ![Test](https://github.com/PTaylor-FluenTech/embedded-time/workflows/Test/badge.svg) ![Clippy](https://github.com/PTaylor-FluenTech/embedded-time/workflows/Clippy/badge.svg) ![crates.io](https://img.shields.io/crates/v/embedded-time.svg)
+# embedded-time &emsp; ![CI] [![crates.io]](https://crates.io/crates/embedded-time) [![docs.rs]](https://docs.rs/embedded-time)
+
+[CI]: https://github.com/PTaylor-FluenTech/embedded-time/workflows/CI/badge.svg
+[crates.io]: https://img.shields.io/crates/v/embedded-time.svg
+[docs.rs]: https://docs.rs/embedded-time/badge.svg
 
 `embedded-time` provides a comprehensive library for implementing abstractions over
 hardware and work with _instants_ and _durations_ in an intuitive way.
@@ -14,16 +18,14 @@ struct SomeClock;
 impl Clock for SomeClock {
     type Rep = i64;
 
+    // this clock is counting at 16 MHz
+    const PERIOD: Period = Period::new_raw(1, 16_000_000);
+
     fn now() -> Instant<Self> {
         // read the count of the clock
         // ...
         Instant::new(count as Self::Rep)
     }
-}
-
-impl Period for SomeClock {
-    // this clock is counting at 16 MHz
-    const PERIOD: Period = Period::new_raw(1, 16_000_000);
 }
 
 fn main() {
@@ -46,29 +48,6 @@ fn main() {
     assert(future_instant > instant2);
 }
 ```
-
-[Full documentation](https://docs.rs/embedded-time/)
-
-## Motivation
-The handling of time on embedded systems is generally much different than that of OSs. For instance, on an OS, the time is measured against an arbitrary epoch. Embedded systems generally don't know (nor do they care) what the *real* time is, but rather how much time has passed since the system has started.
- 
-### Drawbacks of the standard library types
-#### Duration
-- The storage is `u64` seconds and `u32` nanoseconds.
-  - This is huge overkill and adds needless complexity beyond what is required (or desired) for embedded systems.
-- Any read requires arithmetic to convert to the requested units
-  - This is much slower than this project's implementation of what is analogous to a tagged union of time units.
-#### Instant
-- The `Instant` type requires `std`.
-
-### Drawbacks of the [`time`](https://crates.io/crates/time) crate
-The `time` crate is a remarkable library but isn't geared for embedded systems (although it does support a subset of features in `no_std` contexts). It suffers from some of the same drawbacks as the core::Duration type (namely the storage format) and the `Instant` struct dependency on `std`. It also adds a lot of functionally that would seldom be useful in an embedded context. For instance it has a comprehensive date/time formatting, timezone, and calendar support.
-
-## Background
-### What is an Instant?
-In the Rust ecosystem, it appears to be idiomatic to call a `now()` associated function from an Instant type. There is generally no concept of a "Clock". I believe that using the `Instant` in this way is a violation of the *separation of concerns* principle. What is an `Instant`? Is it a time-keeping entity from which you read the current instant in time, or is it that instant in time itself. In this case, it's both.
-
-As an alternative, the current instant in time could be read from a **Clock**. The `Instant` read from the `Clock` has the same precision and width (integer type) as the `Clock`. Requesting the difference between two `Instant`s gives a `Duration` which can have different precision and/or width.
 
 ## License
 This project is licensed under either of
