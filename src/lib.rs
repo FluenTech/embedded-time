@@ -129,7 +129,7 @@ mod tests {
     where
         M: Clock,
     {
-        assert_eq!(M::now().elapsed_since_epoch(), Some(Seconds(2)));
+        assert_eq!(M::now().duration_since_epoch(), Some(Seconds(2)));
     }
 
     #[test]

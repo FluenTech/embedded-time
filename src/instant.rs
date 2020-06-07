@@ -61,7 +61,7 @@ where
         Dur::from_ticks(self.ticks.wrapping_sub(&other.ticks), Clock::PERIOD)
     }
 
-    pub fn elapsed_since_epoch<Dur>(&self) -> Option<Dur>
+    pub fn duration_since_epoch<Dur>(&self) -> Option<Dur>
     where
         Dur: Duration,
         Dur::Rep: TryFrom<Clock::Rep>,
