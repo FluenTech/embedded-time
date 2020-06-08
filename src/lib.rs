@@ -10,7 +10,7 @@
 //! explicitly converting between time units.
 //!
 //! [`Clock`]: trait.Clock.html
-//! [`Instant`]: instant::Instant
+//! [`Instant`]: Instant
 //! [`Seconds`]: time_units::Seconds
 //! [`Milliseconds`]: time_units::Milliseconds
 //!
@@ -35,7 +35,7 @@
 //!
 //! # Example Usage
 //! ```rust,no_run
-//! # use embedded_time::{prelude::*, time_units::*, instant::Instant, Period};
+//! # use embedded_time::{prelude::*, time_units::*, Instant, Period};
 //! # #[derive(Debug)]
 //! struct SomeClock;
 //! impl embedded_time::Clock for SomeClock {
@@ -66,11 +66,12 @@
 
 mod clock;
 pub mod duration;
-pub mod instant;
+mod instant;
 mod numerical_duration;
 
 pub use clock::Clock;
 pub use duration::{time_units, Duration};
+pub use instant::Instant;
 pub use numerical_duration::TimeRep;
 
 pub type Period = num::rational::Ratio<i32>;
@@ -98,9 +99,9 @@ pub mod prelude {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    use crate::instant::Instant;
     use crate::prelude::*;
     use crate::time_units::*;
+    use crate::Instant;
     use crate::{Clock, Period};
 
     #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]

@@ -6,7 +6,7 @@ extern crate panic_rtt;
 use core::{borrow::Borrow, prelude::v1::*};
 use cortex_m::mutex::CriticalSectionMutex as Mutex;
 use cortex_m_rt::entry;
-use embedded_time::{self as time, instant::Instant, Clock, Period, TimeRep};
+use embedded_time::{self as time, Clock, Instant, Period, TimeRep};
 use mutex_trait::Mutex as _Mutex;
 use nrf52::prelude::*;
 
