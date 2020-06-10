@@ -99,6 +99,7 @@ pub mod prelude {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
+    use crate as time;
     use crate::prelude::*;
     use crate::time_units::*;
     use crate::Instant;
@@ -106,29 +107,31 @@ mod tests {
 
     #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
     struct MockClock64;
-    impl Clock for MockClock64 {
-        type Rep = i64;
-        const PERIOD: Period = Period::new_raw(1, 64_000_000);
 
-        fn now() -> Instant<Self> {
-            Instant::new(128_000_000)
+    impl time::Clock for MockClock64 {
+        type Rep = i64;
+        const PERIOD: time::Period = time::Period::new_raw(1, 64_000_000);
+
+        fn now() -> time::Instant<Self> {
+            time::Instant::new(128_000_000)
         }
     }
 
     #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
     struct MockClock32;
-    impl Clock for MockClock32 {
-        type Rep = i32;
-        const PERIOD: Period = Period::new_raw(1, 16_000_000);
 
-        fn now() -> Instant<Self> {
-            Instant::new(32_000_000)
+    impl time::Clock for MockClock32 {
+        type Rep = i32;
+        const PERIOD: time::Period = time::Period::new_raw(1, 16_000_000);
+
+        fn now() -> time::Instant<Self> {
+            time::Instant::new(32_000_000)
         }
     }
 
     fn get_time<M>()
     where
-        M: Clock,
+        M: time::Clock,
     {
         assert_eq!(M::now().duration_since_epoch(), Some(Seconds(2)));
     }
