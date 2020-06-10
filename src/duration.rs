@@ -184,8 +184,7 @@ pub trait Duration: Sized + Copy + fmt::Display {
     }
 
     /// ```rust
-    /// # use embedded_time::prelude::*;
-    /// # use embedded_time::time_units::*;
+    /// # use embedded_time::{prelude::*, time_units::*};
     /// assert_eq!(Seconds::<i32>::min_value(), i32::MIN);
     /// ```
     #[must_use]
@@ -194,8 +193,7 @@ pub trait Duration: Sized + Copy + fmt::Display {
     }
 
     /// ```rust
-    /// # use embedded_time::prelude::*;
-    /// # use embedded_time::time_units::*;
+    /// # use embedded_time::{prelude::*, time_units::*};
     /// assert_eq!(Seconds::<i32>::max_value(), i32::MAX);
     /// ```
     #[must_use]
@@ -221,36 +219,43 @@ where
 {
     /// Attempt to convert from one duration type to another
     ///
-    /// Both the underlying storage type and the LSbit period can be converted
-    ///
-    /// # Errors
-    /// - unable to cast underlying types
-    /// - LSbit period conversion overflow
+    /// Both the underlying storage type and/or the LSbit period can be converted
     ///
     /// # Examples
     /// ```rust
-    /// # use embedded_time::{prelude::*, time_units::*, Period, duration::TryConvertFrom};
+    /// # use embedded_time::{prelude::*, time_units::*};
     /// assert_eq!(Seconds::<i32>::try_convert_from(Milliseconds(23_000_i64)), Some(Seconds(23_i32)));
     /// assert_eq!(Seconds::<i64>::try_convert_from(Milliseconds(23_000_i32)), Some(Seconds(23_i64)));
+    /// assert_eq!(Seconds::<i32>::try_convert_from(Milliseconds(230_i32)), Some(Seconds(0)));
     /// ```
     ///
     /// # Errors
     /// the conversion of periods causes an overflow:
     /// ```rust
-    /// # use embedded_time::{prelude::*, time_units::*, Period, duration::TryConvertFrom};
+    /// # use embedded_time::{prelude::*, time_units::*};
     /// assert_eq!(Milliseconds::<i32>::try_convert_from(Seconds(i32::MAX)), None);
     /// ```
     ///
     /// the Self integer cast to that of the provided type fails
     /// ```rust
-    /// # use embedded_time::{prelude::*, time_units::*, Period, duration::TryConvertFrom};
+    /// # use embedded_time::{prelude::*, time_units::*};
     /// assert_eq!(Seconds::<i32>::try_convert_from(Seconds(i32::MAX as i64 + 1)), None);
+    /// ```
+    ///
+    /// However, these work because the sequence of cast/conversion adapts
+    /// ```rust
+    /// # use embedded_time::{prelude::*, time_units::*};
+    /// // period conversion applied first
+    /// assert_eq!(Hours::<i32>::try_convert_from(Microseconds(3_600_000_000_i64)), Some(Hours(1_i32)));
+    ///
+    /// // cast applied first
+    /// assert_eq!(Microseconds::<i64>::try_convert_from(Hours(1_i32)), Some(Microseconds(3_600_000_000_i64)));
     /// ```
     ///
     /// # Returns
     /// [`None`] if the result of the conversion does not fit in the requested integer size
     fn try_convert_from(source: Source) -> Option<Self> {
-        Some(Self::from_ticks(source.count(), Source::PERIOD)?)
+        Self::from_ticks(source.count(), Source::PERIOD)
     }
 }
 
@@ -258,27 +263,33 @@ where
 ///
 /// # Examples
 /// ```rust
-/// # use embedded_time::prelude::*;
-/// # use embedded_time::time_units::*;
-/// # use embedded_time::duration::TryConvertInto;
-/// assert_eq!(Seconds(23_000_i64).try_convert_into(), Some(Seconds(23_000_i32)));
-/// assert_eq!(Seconds(23_000_i32).try_convert_into(), Some(Seconds(23_000_i32)));
-/// assert_eq!(Some(Seconds(23_000_i64)), (Seconds(23_000_i32).try_convert_into()));
+/// # use embedded_time::{prelude::*, time_units::*};
+/// assert_eq!(Seconds(23_i64).try_convert_into(), Some(Seconds(23_i32)));
+/// assert_eq!(Some(Seconds(23_i64)), (Seconds(23_i32).try_convert_into()));
 /// assert_eq!(Milliseconds(23_000_i64).try_convert_into(), Some(Seconds(23_i32)));
-/// assert_eq!(Milliseconds(23_000_i32).try_convert_into(), Some(Seconds(23_i64)));
 /// ```
 ///
 /// # Errors
 /// the conversion of periods causes an overflow:
 /// ```rust
-/// # use embedded_time::{prelude::*, time_units::*, Period};
+/// # use embedded_time::{prelude::*, time_units::*};
 /// assert_eq!(Seconds(i32::MAX).try_convert_into(), None::<Milliseconds<i32>>);
 /// ```
 ///
 /// the Self integer cast to that of the destination type fails
 /// ```rust
-/// # use embedded_time::{prelude::*, time_units::*, Period};
+/// # use embedded_time::{prelude::*, time_units::*};
 /// assert_eq!(Seconds(i32::MAX as i64 + 1).try_convert_into(), None::<Seconds<i32>>);
+/// ```
+///
+/// However, these work because the sequence of cast/conversion adapts
+/// ```rust
+/// # use embedded_time::{prelude::*, time_units::*};
+/// // period conversion applied first
+/// assert_eq!(Microseconds(3_600_000_000_i64).try_convert_into(), Some(Hours(1_i32)));
+///
+/// // cast applied first
+/// assert_eq!(Hours(1_i32).try_convert_into(), Some(Microseconds(3_600_000_000_i64)));
 /// ```
 ///
 /// # Returns
@@ -297,24 +308,21 @@ where
 ///
 /// # Constructing a duration
 /// ```rust
-/// # use embedded_time::prelude::*;
-/// # use embedded_time::time_units::*;
+/// # use embedded_time::{prelude::*, time_units::*};
 /// assert_eq!(Milliseconds::<i32>::new(23), Milliseconds(23_i32));
 /// assert_eq!(Milliseconds(23), 23.milliseconds());
 /// ```
 ///
 /// # Get the integer count
 /// ```rust
-/// # use embedded_time::prelude::*;
-/// # use embedded_time::time_units::*;
+/// # use embedded_time::{prelude::*, time_units::*};
 /// assert_eq!(Milliseconds(23).count(), 23);
 /// ```
 ///
 /// # Formatting
 /// Just forwards the underlying integer to [`core::fmt::Display::fmt()`]
 /// ```rust
-/// # use embedded_time::prelude::*;
-/// # use embedded_time::time_units::*;
+/// # use embedded_time::{prelude::*, time_units::*};
 /// assert_eq!(format!("{}", Seconds(123)), "123");
 /// ```
 ///
@@ -326,31 +334,27 @@ where
 /// In this example, the maximum `i32` value of seconds is stored as `i32` and
 /// converting that value to milliseconds (with `i32` storage type) causes an overflow.
 /// ```rust,should_panic
-/// # use embedded_time::prelude::*;
-/// # use embedded_time::time_units::*;
+/// # use embedded_time::{prelude::*, time_units::*};
 /// let _ = Milliseconds(24) + Seconds(i32::MAX);
 /// ```
 ///
 /// This example works just fine as the seconds value is first cast to `i64`, then
 /// converted to milliseconds.
 /// ```rust
-/// # use embedded_time::prelude::*;
-/// # use embedded_time::time_units::*;
+/// # use embedded_time::{prelude::*, time_units::*};
 /// let _ = Milliseconds(24_i64) + Seconds(i32::MAX);
 /// ```
 ///
 /// Here, there is no units conversion to worry about, but `i32::MAX + 1` cannot be
 /// cast to an `i32`.
 /// ```rust,should_panic
-/// # use embedded_time::prelude::*;
-/// # use embedded_time::time_units::*;
+/// # use embedded_time::{prelude::*, time_units::*};
 /// let _ = Seconds(i32::MAX) - Seconds(i32::MAX as i64 + 1);
 /// ```
 ///
 /// ## Examples
 /// ```rust
-/// # use embedded_time::prelude::*;
-/// # use embedded_time::time_units::*;
+/// # use embedded_time::{prelude::*, time_units::*};
 /// assert_eq!((Milliseconds(3_234) - Seconds(2)), Milliseconds(1_234));
 /// assert_eq!((Milliseconds(3_234_i64) - Seconds(2_i32)), Milliseconds(1_234_i64));
 /// assert_eq!((Seconds(i32::MAX) - Milliseconds((i32::MAX as i64) + 1)), Seconds(2_145_336_164_i32));
@@ -358,8 +362,7 @@ where
 ///
 /// # Equality
 /// ```rust
-/// # use embedded_time::prelude::*;
-/// # use embedded_time::time_units::*;
+/// # use embedded_time::{prelude::*, time_units::*};
 /// assert_eq!(Seconds(123), Seconds(123));
 /// assert_eq!(Seconds(123), Milliseconds(123_000));
 ///
@@ -484,7 +487,6 @@ pub mod time_units {
                         }
                     }
                 }
-
              )+
          };
     }
