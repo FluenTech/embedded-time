@@ -9,7 +9,7 @@ hardware and work with _instants_ and _durations_ in an intuitive way.
  
 - `Clock` trait allowing abstraction of hardware timers/counters for timekeeping.
 - Work with time using _milliseconds_, _seconds_, etc. rather than _cycles_ or _ticks_.
-- Includes examples for the nRF52_DK development kit as bare-metal as well as using [`rtfm`](https://github.com/rtfm-rs/cortex-m-rtfm) (with patches)
+- Includes examples for the nRF52_DK board
 
 ## Example Usage
 ```rust
