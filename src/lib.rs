@@ -173,11 +173,11 @@ mod tests {
 
             let hours = Hours::<i32>::try_convert_from(duration).ok_or(fmt::Error {})?;
             let minutes =
-                Minutes::<i32>::try_convert_from(duration % Hours(1)).ok_or(fmt::Error {})?;
+                Minutes::<i32>::try_convert_from(duration).ok_or(fmt::Error {})? % Hours(1);
             let seconds =
-                Seconds::<i32>::try_convert_from(duration % Minutes(1)).ok_or(fmt::Error {})?;
-            let milliseconds = Milliseconds::<i32>::try_convert_from(duration % Seconds(1))
-                .ok_or(fmt::Error {})?;
+                Seconds::<i32>::try_convert_from(duration).ok_or(fmt::Error {})? % Minutes(1);
+            let milliseconds =
+                Milliseconds::<i32>::try_convert_from(duration).ok_or(fmt::Error {})? % Seconds(1);
 
             f.write_fmt(format_args!(
                 "{}:{:02}:{:02}.{:03}",
