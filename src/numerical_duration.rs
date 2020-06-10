@@ -30,9 +30,17 @@ use core::{convert::TryFrom, convert::TryInto, fmt};
 /// assert_eq!((-5).hours(), Hours(-5));
 /// ```
 pub trait TimeRep:
-    num::PrimInt
+    Sized
+    + Copy
+    + num::Num
+    + num::Bounded
+    + PartialOrd
+    + Ord
+    + Eq
     + num::traits::WrappingAdd
     + num::traits::WrappingSub
+    + num::CheckedMul
+    + num::CheckedDiv
     + From<i32>
     + TryInto<i32>
     + TryFrom<i64>
