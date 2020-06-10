@@ -328,6 +328,17 @@ where
 /// assert_eq!(format!("{}", Seconds(123)), "123");
 /// ```
 ///
+/// # Getting H:M:S.MS... Components
+/// ```rust
+/// # use embedded_time::{prelude::*, time_units::*};
+/// let duration = 38_238_479.microseconds();
+/// let hours = Hours::<i32>::try_convert_from(duration).unwrap();
+/// let minutes = Minutes::<i32>::try_convert_from(duration).unwrap()  % Hours(1);
+/// let seconds = Seconds::<i32>::try_convert_from(duration).unwrap() % Minutes(1);
+/// let milliseconds = Milliseconds::<i32>::try_convert_from(duration).unwrap() % Seconds(1);
+/// // ...
+/// ```
+///
 /// # Add/Sub
 ///
 /// ## Panics
@@ -384,6 +395,12 @@ where
 /// assert!(Seconds(2) > Milliseconds(1_999));
 /// assert!(Seconds(2_i32) < Milliseconds(2_001_i64));
 /// assert!(Seconds(2_i64) < Milliseconds(2_001_i32));
+/// ```
+///
+/// # Remainder
+/// ```rust
+/// # use embedded_time::{prelude::*, time_units::*};
+/// assert_eq!(Minutes(62) % Hours(1), Minutes(2));
 /// ```
 pub mod time_units {
     use crate::{
@@ -453,6 +470,26 @@ pub mod time_units {
                     }
                 }
 
+                impl<Rep, Dur> ops::Rem<Dur> for $name<Rep>
+                where
+                    Rep: TimeRep + TryFrom<Dur::Rep, Error: fmt::Debug>,
+                    Dur: Duration,
+                {
+                    type Output = Self;
+
+                    fn rem(self, rhs: Dur) -> Self::Output {
+                        let rhs = <Self as TryConvertFrom<Dur>>::try_convert_from(rhs)
+                            .unwrap()
+                            .count();
+
+                        if rhs > Rep::from(0) {
+                            Self(self.count() % rhs)
+                        } else {
+                            Self(Rep::from(0))
+                        }
+                    }
+                }
+
                 impl<Rep, OtherDur> cmp::PartialEq<OtherDur> for $name<Rep>
                 where
                     Rep: TimeRep + TryFrom<OtherDur::Rep, Error: fmt::Debug>,
@@ -504,7 +541,8 @@ pub mod time_units {
 
 #[cfg(test)]
 mod tests {
-    use super::time_units::*;
+    use super::*;
+    use time_units::*;
 
     #[test]
     fn check_for_overflows() {
@@ -519,5 +557,12 @@ mod tests {
         assert_eq!(Hours(1), Microseconds(time));
         time *= 1000;
         assert_eq!(Hours(1), Nanoseconds(time));
+    }
+
+    #[test]
+    fn remainder() {
+        assert_eq!(Minutes(62) % Hours(1), Minutes(2));
+        assert_eq!(Minutes(62) % Milliseconds(1), Minutes(0));
+        assert_eq!(Minutes(62) % Minutes(60), Minutes(2));
     }
 }
