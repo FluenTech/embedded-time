@@ -112,6 +112,8 @@ pub trait Duration: Sized + Copy + fmt::Display {
         } else {
             let ticks = if period > Period::new_raw(1, 1) {
                 TimeRep::checked_div(&TimeRep::checked_mul(&ticks, &period)?, &Self::PERIOD)?
+            } else if Self::PERIOD > Period::new_raw(1, 1) {
+                TimeRep::checked_mul(&TimeRep::checked_div(&ticks, &Self::PERIOD)?, &period)?
             } else {
                 TimeRep::checked_mul(&ticks, &period.checked_div(&Self::PERIOD)?)?
             };
