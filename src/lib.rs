@@ -102,8 +102,7 @@ mod tests {
     use crate as time;
     use crate::prelude::*;
     use crate::time_units::*;
-    use crate::Instant;
-    use crate::{Clock, Period};
+    use core::fmt::{self, Formatter};
 
     #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
     struct MockClock64;
@@ -147,5 +146,50 @@ mod tests {
         let then = then - Seconds(1);
         assert_ne!(then, now);
         assert!(then < now);
+    }
+
+    struct Timestamp<Clock>(time::Instant<Clock>)
+    where
+        Clock: time::Clock;
+
+    impl<Clock> Timestamp<Clock>
+    where
+        Clock: time::Clock,
+    {
+        pub fn new(instant: time::Instant<Clock>) -> Self {
+            Timestamp(instant)
+        }
+    }
+
+    impl<Clock> fmt::Display for Timestamp<Clock>
+    where
+        Clock: time::Clock,
+    {
+        fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+            let duration = self
+                .0
+                .duration_since_epoch::<Milliseconds<i64>>()
+                .ok_or(fmt::Error {})?;
+
+            let hours = Hours::<i32>::try_convert_from(duration).ok_or(fmt::Error {})?;
+            let minutes =
+                Minutes::<i32>::try_convert_from(duration % Hours(1)).ok_or(fmt::Error {})?;
+            let seconds =
+                Seconds::<i32>::try_convert_from(duration % Minutes(1)).ok_or(fmt::Error {})?;
+            let milliseconds = Milliseconds::<i32>::try_convert_from(duration % Seconds(1))
+                .ok_or(fmt::Error {})?;
+
+            f.write_fmt(format_args!(
+                "{}:{:02}:{:02}.{:03}",
+                hours, minutes, seconds, milliseconds
+            ))
+        }
+    }
+
+    #[test]
+    fn format() {
+        let timestamp = Timestamp::new(time::Instant::<MockClock64>::new(321_643_392_000));
+        let formatted_timestamp = timestamp.to_string();
+        assert_eq!(formatted_timestamp, "1:23:45.678");
     }
 }
