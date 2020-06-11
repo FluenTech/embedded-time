@@ -1,6 +1,6 @@
 [package]
 name = "embedded-time"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["Peter Taylor <PTaylor@FluenTech.info>"]
 edition = "2018"
 description = "A library for abstracting clocks and handling time in embedded systems"
@@ -18,12 +18,9 @@ num = { version = "0.2.1", default-features = false }
 [dev-dependencies]
 cortex-m = "0.6.2"
 cortex-m-rt = "0.6.12"
-cortex-m-rtfm = "0.5.1"
 panic_rtt = "0.3.0"
 nrf52832-hal = { version = "0.10.0", default-features = false, features = ["rt", "xxAA-package"] }
 mutex-trait = "0.2.0"
 
 [patch.crates-io]
 cortex-m = { git = "https://github.com/rust-embedded/cortex-m", branch = "mutex_add" }
-cortex-m-rtfm = { git = "https://github.com/PTaylor-FluenTech/cortex-m-rtfm", branch = "embedded-time" }
-rtfm-syntax = { git = "https://github.com/rtfm-rs/rtfm-syntax", branch = "master" }

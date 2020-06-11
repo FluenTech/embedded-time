@@ -3,53 +3,50 @@
 
 extern crate panic_rtt;
 
-use core::{borrow::Borrow, prelude::v1::*};
+use core::borrow::Borrow;
 use cortex_m::mutex::CriticalSectionMutex as Mutex;
 use cortex_m_rt::entry;
-use embedded_time::{self as time, instant::Instant, Clock, Period, TimeRep};
-use mutex_trait::Mutex as _Mutex;
-use nrf52::prelude::*;
+use embedded_time::{self as time, Clock, Instant, Period, TimeRep};
+use mutex_trait::Mutex as _;
 
 pub mod nrf52 {
-    pub use nrf52832_hal::gpio;
-    pub use nrf52832_hal::prelude;
-    pub use nrf52832_hal::target as pac;
-}
+    pub use nrf52832_hal::{
+        gpio,
+        prelude::*,
+        target::{self as pac, Peripherals},
+    };
 
-pub struct SystemTime {
-    low: nrf52::pac::TIMER0,
-    high: nrf52::pac::TIMER1,
-    capture_task: nrf52::pac::EGU0,
-}
+    pub struct Timer64 {
+        low: pac::TIMER0,
+        high: pac::TIMER1,
+        capture_task: pac::EGU0,
+    }
 
-impl SystemTime {
-    pub fn new(
-        low: nrf52::pac::TIMER0,
-        high: nrf52::pac::TIMER1,
-        capture_task: nrf52::pac::EGU0,
-    ) -> Self {
-        low.tasks_start.write(|write| unsafe { write.bits(1) });
-        high.tasks_start.write(|write| unsafe { write.bits(1) });
-        Self {
-            low,
-            high,
-            capture_task,
+    impl Timer64 {
+        pub fn take(low: pac::TIMER0, high: pac::TIMER1, capture_task: pac::EGU0) -> Self {
+            Self {
+                low,
+                high,
+                capture_task,
+            }
+        }
+
+        pub(crate) fn read(&mut self) -> u64 {
+            self.capture_task.tasks_trigger[0].write(|write| unsafe { write.bits(1) });
+            self.low.cc[0].read().bits() as u64 | ((self.high.cc[0].read().bits() as u64) << 32)
         }
     }
-
-    fn read(&mut self) -> u64 {
-        self.capture_task.tasks_trigger[0].write(|write| unsafe { write.bits(1) });
-        self.low.cc[0].read().bits() as u64 | ((self.high.cc[0].read().bits() as u64) << 32)
-    }
 }
 
-impl time::Clock for SystemTime {
+pub struct SysClock;
+
+impl time::Clock for SysClock {
     type Rep = i64;
     const PERIOD: Period = Period::new_raw(1, 16_000_000);
 
     fn now() -> Instant<Self> {
-        let ticks = (&SYSTEM_TICKS).lock(|system_ticks| match system_ticks {
-            Some(system_ticks) => system_ticks.read(),
+        let ticks = (&SYSTEM_TICKS).lock(|timer64| match timer64 {
+            Some(timer64) => timer64.read(),
             None => 0,
         });
 
@@ -57,7 +54,7 @@ impl time::Clock for SystemTime {
     }
 }
 
-static SYSTEM_TICKS: Mutex<Option<SystemTime>> = Mutex::new(None);
+static SYSTEM_TICKS: Mutex<Option<nrf52::Timer64>> = Mutex::new(None);
 
 #[entry]
 fn main() -> ! {
@@ -112,8 +109,17 @@ fn main() -> ! {
         device.PPI.chen.modify(|_, w| w.ch1().enabled());
     }
 
-    let system_ticks = SystemTime::new(device.TIMER0, device.TIMER1, device.EGU0);
-    (&SYSTEM_TICKS).lock(|ticks| *ticks = Some(system_ticks));
+    device
+        .TIMER0
+        .tasks_start
+        .write(|write| unsafe { write.bits(1) });
+    device
+        .TIMER1
+        .tasks_start
+        .write(|write| unsafe { write.bits(1) });
+
+    let timer64 = nrf52::Timer64::take(device.TIMER0, device.TIMER1, device.EGU0);
+    (&SYSTEM_TICKS).lock(|ticks| *ticks = Some(timer64));
 
     let port0 = nrf52::gpio::p0::Parts::new(device.P0);
 
@@ -153,21 +159,21 @@ fn run<Led>(
     led2: &mut Led,
     led3: &mut Led,
     led4: &mut Led,
-) -> Result<(), <Led as OutputPin>::Error>
+) -> Result<(), <Led as nrf52::OutputPin>::Error>
 where
-    Led: OutputPin,
+    Led: nrf52::OutputPin,
 {
     loop {
         led1.set_low()?;
         led2.set_high()?;
         led3.set_high()?;
         led4.set_low()?;
-        SystemTime::delay(250.milliseconds());
+        SysClock::delay(250.milliseconds());
 
         led1.set_high()?;
         led2.set_low()?;
         led3.set_low()?;
         led4.set_high()?;
-        SystemTime::delay(250.milliseconds());
+        SysClock::delay(250.milliseconds());
     }
 }

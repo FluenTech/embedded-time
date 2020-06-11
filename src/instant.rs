@@ -31,7 +31,7 @@ where
     ///
     /// # Examples
     /// ```rust
-    /// # use embedded_time::{Period, time_units::*, instant::Instant};
+    /// # use embedded_time::{Period, time_units::*, Instant};
     /// # #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
@@ -61,7 +61,7 @@ where
         Dur::from_ticks(self.ticks.wrapping_sub(&other.ticks), Clock::PERIOD)
     }
 
-    pub fn elapsed_since_epoch<Dur>(&self) -> Option<Dur>
+    pub fn duration_since_epoch<Dur>(&self) -> Option<Dur>
     where
         Dur: Duration,
         Dur::Rep: TryFrom<Clock::Rep>,
@@ -106,7 +106,7 @@ where
     ///
     /// # Examples
     /// ```rust
-    /// # use embedded_time::{Period, time_units::*, instant::Instant};
+    /// # use embedded_time::{Period, time_units::*, Instant};
     /// # #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
@@ -150,7 +150,7 @@ where
     /// If [`Duration::into_ticks()`] returns [`None`]. In this case, `i32::MAX` of seconds
     /// cannot be converted to the clock precision of milliseconds with i32 storage.
     /// ```rust,should_panic
-    /// # use embedded_time::{Period, time_units::*, instant::Instant};
+    /// # use embedded_time::{Period, time_units::*, Instant};
     /// # #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
@@ -166,7 +166,7 @@ where
     ///
     /// # Examples
     /// ```rust
-    /// # use embedded_time::{Period, time_units::*, instant::Instant};
+    /// # use embedded_time::{Period, time_units::*, Instant};
     /// # #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
@@ -204,7 +204,7 @@ where
     /// If [`Duration::into_ticks()`] returns [`None`]. In this case, `i32::MAX` of seconds
     /// cannot be converted to the clock precision of milliseconds with i32 storage.
     /// ```rust,should_panic
-    /// # use embedded_time::{Period, time_units::*, instant::Instant};
+    /// # use embedded_time::{Period, time_units::*, Instant};
     /// # #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
@@ -220,7 +220,7 @@ where
     ///
     /// # Examples
     /// ```rust
-    /// # use embedded_time::{Period, time_units::*, instant::Instant};
+    /// # use embedded_time::{Period, time_units::*, Instant};
     /// # #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {

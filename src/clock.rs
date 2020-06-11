@@ -1,4 +1,4 @@
-use crate::{instant::Instant, numerical_duration::TimeRep, Duration, Period};
+use crate::{numerical_duration::TimeRep, Duration, Instant, Period};
 use core::convert::TryFrom;
 
 pub trait Clock: Sized {
