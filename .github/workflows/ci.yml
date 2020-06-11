@@ -63,3 +63,8 @@ jobs:
         with:
           command: clippy
           args: --lib --examples --target ${{ matrix.target }}
+
+      - name: Doc Generation
+        uses: actions-rs/cargo@v1
+        with:
+          command: doc
