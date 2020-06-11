@@ -65,7 +65,7 @@
 #![deny(intra_doc_link_resolution_failure)]
 
 mod clock;
-pub mod duration;
+mod duration;
 mod instant;
 mod numerical_duration;
 
