@@ -31,7 +31,7 @@ where
     ///
     /// # Examples
     /// ```rust
-    /// # use embedded_time::{Period, time_units::*, Instant};
+    /// # use embedded_time::{Period, units::*, Instant};
     /// # #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
@@ -106,7 +106,7 @@ where
     ///
     /// # Examples
     /// ```rust
-    /// # use embedded_time::{Period, time_units::*, Instant};
+    /// # use embedded_time::{Period, units::*, Instant};
     /// # #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
@@ -150,7 +150,7 @@ where
     /// If [`Duration::into_ticks()`] returns [`None`]. In this case, `i32::MAX` of seconds
     /// cannot be converted to the clock precision of milliseconds with i32 storage.
     /// ```rust,should_panic
-    /// # use embedded_time::{Period, time_units::*, Instant};
+    /// # use embedded_time::{Period, units::*, Instant};
     /// # #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
@@ -162,11 +162,11 @@ where
     ///
     /// Instant::<Clock>::new(1) + Seconds(i32::MAX);
     /// ```
-    /// See also: [`impl Add for Duration`](duration/time_units/index.html#addsub)
+    /// See also: [`impl Add for Duration`](duration/units/index.html#addsub)
     ///
     /// # Examples
     /// ```rust
-    /// # use embedded_time::{Period, time_units::*, Instant};
+    /// # use embedded_time::{Period, units::*, Instant};
     /// # #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
@@ -204,7 +204,7 @@ where
     /// If [`Duration::into_ticks()`] returns [`None`]. In this case, `i32::MAX` of seconds
     /// cannot be converted to the clock precision of milliseconds with i32 storage.
     /// ```rust,should_panic
-    /// # use embedded_time::{Period, time_units::*, Instant};
+    /// # use embedded_time::{Period, units::*, Instant};
     /// # #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
@@ -216,11 +216,11 @@ where
     ///
     /// Instant::<Clock>::new(1) - Seconds(i32::MAX);
     /// ```
-    /// See also [`impl Sub for Duration`](duration/time_units/index.html#addsub)
+    /// See also [`impl Sub for Duration`](duration/units/index.html#addsub)
     ///
     /// # Examples
     /// ```rust
-    /// # use embedded_time::{Period, time_units::*, Instant};
+    /// # use embedded_time::{Period, units::*, Instant};
     /// # #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {

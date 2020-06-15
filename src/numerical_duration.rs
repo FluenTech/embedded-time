@@ -1,4 +1,4 @@
-use crate::{duration::time_units::*, Period};
+use crate::{duration::units::*, Period};
 use core::{convert::TryFrom, convert::TryInto, fmt};
 
 /// Create `Duration`s from primitive and core numeric types.
@@ -9,7 +9,7 @@ use core::{convert::TryFrom, convert::TryInto, fmt};
 /// Basic construction of `Duration`s.
 /// ```rust
 /// # use embedded_time::prelude::*;
-/// # use embedded_time::time_units::*;
+/// # use embedded_time::units::*;
 /// assert_eq!(5.nanoseconds(), Nanoseconds(5));
 /// assert_eq!(5.microseconds(), Microseconds(5));
 /// assert_eq!(5.milliseconds(), Milliseconds(5));
@@ -21,7 +21,7 @@ use core::{convert::TryFrom, convert::TryInto, fmt};
 /// Signed integers work as well!
 /// ```rust
 /// # use embedded_time::prelude::*;
-/// # use embedded_time::time_units::*;
+/// # use embedded_time::units::*;
 /// assert_eq!((-5).nanoseconds(), Nanoseconds(-5));
 /// assert_eq!((-5).microseconds(), Microseconds(-5));
 /// assert_eq!((-5).milliseconds(), Milliseconds(-5));

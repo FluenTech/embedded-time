@@ -11,8 +11,8 @@
 //!
 //! [`Clock`]: trait.Clock.html
 //! [`Instant`]: Instant
-//! [`Seconds`]: time_units::Seconds
-//! [`Milliseconds`]: time_units::Milliseconds
+//! [`Seconds`]: units::Seconds
+//! [`Milliseconds`]: units::Milliseconds
 //!
 //! ## Definitions
 //! **Clock**: Any entity that periodically counts (ie a hardware timer peripheral). Generally,
@@ -35,7 +35,7 @@
 //!
 //! # Example Usage
 //! ```rust,no_run
-//! # use embedded_time::{prelude::*, time_units::*, Instant, Period};
+//! # use embedded_time::{prelude::*, units::*, Instant, Period};
 //! # #[derive(Debug)]
 //! struct SomeClock;
 //! impl embedded_time::Clock for SomeClock {
@@ -70,7 +70,7 @@ mod instant;
 mod numerical_duration;
 
 pub use clock::Clock;
-pub use duration::{time_units, Duration};
+pub use duration::{units, Duration};
 pub use instant::Instant;
 pub use numerical_duration::TimeRep;
 
@@ -101,7 +101,7 @@ pub mod prelude {
 mod tests {
     use crate as time;
     use crate::prelude::*;
-    use crate::time_units::*;
+    use crate::units::*;
     use core::fmt::{self, Formatter};
 
     #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
