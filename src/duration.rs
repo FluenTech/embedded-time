@@ -1,8 +1,8 @@
 //! Duration types/units creation and conversion.
 
-use crate::{numerical_duration::TimeRep, Period};
+use crate::{time_int::TimeInt, Period};
 use core::{convert::TryFrom, fmt, mem::size_of, prelude::v1::*};
-use num::{Bounded, CheckedDiv};
+use num::Bounded;
 
 /// A duration of time with generic storage
 ///
@@ -10,17 +10,17 @@ use num::{Bounded, CheckedDiv};
 ///
 /// # Implementation Example
 /// ```rust,no_run
-/// # use embedded_time::{Duration, Period, TimeRep};
+/// # use embedded_time::{Duration, Period, TimeInt};
 /// # use core::{fmt, fmt::Formatter};
 /// #
 /// #[derive(Copy, Clone)]
-/// struct Milliseconds<T: TimeRep>(pub T);
+/// struct Milliseconds<T: TimeInt>(pub T);
 ///
-/// impl<T: TimeRep> Duration for Milliseconds<T> {
+/// impl<T: TimeInt> Duration for Milliseconds<T> {
 ///     type Rep = T;   // set the storage type
 ///
 ///     // set LSbit period to 1 millisecond
-///     const PERIOD: Period = Period::new_raw(1, 1_000);
+///     const PERIOD: Period = Period::new(1, 1_000);
 ///
 ///     fn new(value: Self::Rep) -> Self {
 ///         Self(value)
@@ -31,7 +31,7 @@ use num::{Bounded, CheckedDiv};
 ///     }
 /// }
 ///
-/// impl<T: TimeRep> fmt::Display for Milliseconds<T> {
+/// impl<T: TimeInt> fmt::Display for Milliseconds<T> {
 ///     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
 ///         unimplemented!()
 ///     }
@@ -39,7 +39,7 @@ use num::{Bounded, CheckedDiv};
 /// }
 /// ```
 pub trait Duration: Sized + Copy + fmt::Display {
-    type Rep: TimeRep;
+    type Rep: TimeInt;
     const PERIOD: Period;
 
     /// Not generally useful or needed as the duration can be instantiated like this:
@@ -66,11 +66,11 @@ pub trait Duration: Sized + Copy + fmt::Display {
     /// # Examples
     /// ```rust
     /// # use embedded_time::{prelude::*, units::*, Period};
-    /// assert_eq!(Microseconds::<i32>::from_ticks(5_i64, Period::new_raw(1, 1_000)),
+    /// assert_eq!(Microseconds::<i32>::from_ticks(5_i64, Period::new(1, 1_000)),
     ///     Some(Microseconds(5_000_i32)));
     ///
     /// // the conversion arithmetic will not cause overflow
-    /// assert_eq!(Milliseconds::<i32>::from_ticks((i32::MAX as i64) + 1, Period::new_raw(1, 1_000_000)),
+    /// assert_eq!(Milliseconds::<i32>::from_ticks((i32::MAX as i64) + 1, Period::new(1, 1_000_000)),
     ///     Some(Milliseconds((((i32::MAX as i64) + 1) / 1_000) as i32)));
     /// ```
     ///
@@ -78,14 +78,14 @@ pub trait Duration: Sized + Copy + fmt::Display {
     /// the conversion of periods causes an overflow:
     /// ```rust
     /// # use embedded_time::{prelude::*, units::*, Period};
-    /// assert_eq!(Milliseconds::<i32>::from_ticks(i32::MAX, Period::new_raw(1, 1)),
+    /// assert_eq!(Milliseconds::<i32>::from_ticks(i32::MAX, Period::new(1, 1)),
     ///     None);
     /// ```
     ///
     /// the Self integer cast to that of the provided type fails
     /// ```rust
     /// # use embedded_time::{prelude::*, units::*, Period};
-    /// assert_eq!(Seconds::<i32>::from_ticks(i32::MAX as i64 + 1, Period::new_raw(1, 1)),
+    /// assert_eq!(Seconds::<i32>::from_ticks(i32::MAX as i64 + 1, Period::new(1, 1)),
     ///     None);
     /// ```
     ///
@@ -93,29 +93,39 @@ pub trait Duration: Sized + Copy + fmt::Display {
     /// [`None`] if the result of the conversion does not fit in the requested integer size
     fn from_ticks<Rep>(ticks: Rep, period: Period) -> Option<Self>
     where
-        Self::Rep: TimeRep + TryFrom<Rep>,
-        Rep: TimeRep,
+        Self::Rep: TimeInt + TryFrom<Rep>,
+        Rep: TimeInt,
     {
         if size_of::<Self::Rep>() > size_of::<Rep>() {
             let converted_ticks = Self::Rep::try_from(ticks).ok()?;
 
-            if period > Period::new_raw(1, 1) {
-                Some(Self::new(TimeRep::checked_div(
-                    &converted_ticks.checked_mul(&period)?,
+            if period > Period::new(1, 1) {
+                Some(Self::new(TimeInt::checked_div_period(
+                    &TimeInt::checked_mul_period(&converted_ticks, &period)?,
                     &Self::PERIOD,
                 )?))
             } else {
-                Some(Self::new(
-                    converted_ticks.checked_mul(&period.checked_div(&Self::PERIOD)?)?,
-                ))
+                Some(Self::new(TimeInt::checked_mul_period(
+                    &converted_ticks,
+                    &<Period as num::CheckedDiv>::checked_div(&period, &Self::PERIOD)?,
+                )?))
             }
         } else {
-            let ticks = if period > Period::new_raw(1, 1) {
-                TimeRep::checked_div(&TimeRep::checked_mul(&ticks, &period)?, &Self::PERIOD)?
-            } else if Self::PERIOD > Period::new_raw(1, 1) {
-                TimeRep::checked_mul(&TimeRep::checked_div(&ticks, &Self::PERIOD)?, &period)?
+            let ticks = if period > Period::new(1, 1) {
+                TimeInt::checked_div_period(
+                    &TimeInt::checked_mul_period(&ticks, &period)?,
+                    &Self::PERIOD,
+                )?
+            } else if Self::PERIOD > Period::new(1, 1) {
+                TimeInt::checked_mul_period(
+                    &TimeInt::checked_div_period(&ticks, &Self::PERIOD)?,
+                    &period,
+                )?
             } else {
-                TimeRep::checked_mul(&ticks, &period.checked_div(&Self::PERIOD)?)?
+                TimeInt::checked_mul_period(
+                    &ticks,
+                    &<Period as num::CheckedDiv>::checked_div(&period, &Self::PERIOD)?,
+                )?
             };
 
             let converted_ticks = Self::Rep::try_from(ticks).ok()?;
@@ -128,57 +138,60 @@ pub trait Duration: Sized + Copy + fmt::Display {
     /// # Examples
     /// ```rust
     /// # use embedded_time::{prelude::*, units::*, Period};
-    /// assert_eq!(Microseconds(5_000_i32).into_ticks::<i32>(Period::new_raw(1, 1_000)), Some(5_i32));
+    /// assert_eq!(Microseconds(5_000_i32).into_ticks::<i32>(Period::new(1, 1_000)), Some(5_i32));
     ///
     /// // the _into_ period can be any value
-    /// assert_eq!(Microseconds(5_000_i32).into_ticks::<i32>(Period::new_raw(1, 200)), Some(1_i32));
+    /// assert_eq!(Microseconds(5_000_i32).into_ticks::<i32>(Period::new(1, 200)), Some(1_i32));
     ///
     /// // as long as the result fits in the provided integer, it will succeed
-    /// assert_eq!(Microseconds::<i32>(i32::MAX).into_ticks::<i64>(Period::new_raw(1, 2_000_000)), Some((i32::MAX as i64) * 2));
+    /// assert_eq!(Microseconds::<i32>(i32::MAX).into_ticks::<i64>(Period::new(1, 2_000_000)), Some((i32::MAX as i64) * 2));
     /// ```
     ///
     /// # Errors
     /// the conversion of periods causes an overflow:
     /// ```rust
     /// # use embedded_time::{prelude::*, units::*, Period};
-    /// assert_eq!(Seconds(i32::MAX).into_ticks::<i32>(Period::new_raw(1, 1_000)), None);
+    /// assert_eq!(Seconds(i32::MAX).into_ticks::<i32>(Period::new(1, 1_000)), None);
     /// ```
     ///
     /// the Self integer cast to that of the provided type fails
     /// ```rust
     /// # use embedded_time::{prelude::*, units::*, Period};
-    /// assert_eq!(Seconds(i32::MAX as i64 + 1).into_ticks::<i32>(Period::new_raw(1, 1)), None);
+    /// assert_eq!(Seconds(i32::MAX as i64 + 1).into_ticks::<i32>(Period::new(1, 1)), None);
     /// ```
     ///
     /// # Returns
     /// [`None`] if the result of the conversion does not fit in the requested integer size
     fn into_ticks<Rep>(self, period: Period) -> Option<Rep>
     where
-        Self::Rep: TimeRep,
-        Rep: TimeRep + TryFrom<Self::Rep>,
+        Self::Rep: TimeInt,
+        Rep: TimeInt + TryFrom<Self::Rep>,
     {
         if size_of::<Rep>() > size_of::<Self::Rep>() {
             let ticks = Rep::try_from(self.count()).ok()?;
 
-            if period > Period::new_raw(1, 1) {
-                Some(TimeRep::checked_div(
-                    &TimeRep::checked_mul(&ticks, &Self::PERIOD)?,
+            if period > Period::new(1, 1) {
+                Some(TimeInt::checked_div_period(
+                    &TimeInt::checked_mul_period(&ticks, &Self::PERIOD)?,
                     &period,
                 )?)
             } else {
-                Some(TimeRep::checked_mul(
+                Some(TimeInt::checked_mul_period(
                     &ticks,
-                    &Self::PERIOD.checked_div(&period)?,
+                    &<Period as num::CheckedDiv>::checked_div(&Self::PERIOD, &period)?,
                 )?)
             }
         } else {
-            let ticks = if Self::PERIOD > Period::new_raw(1, 1) {
-                TimeRep::checked_div(
-                    &TimeRep::checked_mul(&self.count(), &Self::PERIOD)?,
+            let ticks = if Self::PERIOD > Period::new(1, 1) {
+                TimeInt::checked_div_period(
+                    &TimeInt::checked_mul_period(&self.count(), &Self::PERIOD)?,
                     &period,
                 )?
             } else {
-                TimeRep::checked_mul(&self.count(), &Self::PERIOD.checked_div(&period)?)?
+                TimeInt::checked_mul_period(
+                    &self.count(),
+                    &<Period as num::CheckedDiv>::checked_div(&Self::PERIOD, &period)?,
+                )?
             };
 
             Rep::try_from(ticks).ok()
@@ -204,10 +217,12 @@ pub trait Duration: Sized + Copy + fmt::Display {
     }
 }
 
+/// Attempt to convert from one duration type to another
 pub trait TryConvertFrom<Source>: Sized {
     fn try_convert_from(other: Source) -> Option<Self>;
 }
 
+/// Attempt to convert from one duration type to another
 pub trait TryConvertInto<Dest> {
     fn try_convert_into(self) -> Option<Dest>;
 }
@@ -215,9 +230,9 @@ pub trait TryConvertInto<Dest> {
 impl<Source, Dest> TryConvertFrom<Source> for Dest
 where
     Dest: Duration,
-    Dest::Rep: TimeRep + TryFrom<Source::Rep, Error: fmt::Debug>,
+    Dest::Rep: TimeInt + TryFrom<Source::Rep>,
     Source: Duration,
-    Source::Rep: TimeRep,
+    Source::Rep: TimeInt,
 {
     /// Attempt to convert from one duration type to another
     ///
@@ -405,7 +420,7 @@ where
 pub mod units {
     use crate::{
         duration::{Duration, TryConvertFrom},
-        numerical_duration::TimeRep,
+        time_int::TimeInt,
         Period,
     };
     use core::{
@@ -418,12 +433,13 @@ pub mod units {
     macro_rules! durations {
         ( $( $name:ident, ($numer:expr, $denom:expr) );+ ) => {
             $(
+                /// A duration unit type
                 #[derive(Copy, Clone, Debug, Eq, Ord)]
-                pub struct $name<T: TimeRep>(pub T);
+                pub struct $name<T: TimeInt>(pub T);
 
-                impl<Rep: TimeRep> Duration for $name<Rep> {
+                impl<Rep: TimeInt> Duration for $name<Rep> {
                     type Rep = Rep;
-                    const PERIOD: Period = Period::new_raw($numer, $denom);
+                    const PERIOD: Period = Period::new($numer, $denom);
 
                     fn new(value: Self::Rep) -> Self {
                         Self(value)
@@ -434,7 +450,7 @@ pub mod units {
                     }
                 }
 
-                impl<T: TimeRep> fmt::Display for $name<T> {
+                impl<T: TimeInt> fmt::Display for $name<T> {
                     /// See module-level documentation for details about this type
                     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
                         fmt::Display::fmt(&self.0, f)
@@ -444,8 +460,8 @@ pub mod units {
                 impl<Rep, RhsDur> ops::Add<RhsDur> for $name<Rep>
                 where
                     RhsDur: Duration,
-                    RhsDur::Rep: TimeRep,
-                    Rep: TimeRep + TryFrom<RhsDur::Rep, Error: fmt::Debug>,
+                    RhsDur::Rep: TimeInt,
+                    Rep: TimeInt + TryFrom<RhsDur::Rep>,
                 {
                     type Output = Self;
 
@@ -458,7 +474,7 @@ pub mod units {
 
                 impl<Rep, RhsDur> ops::Sub<RhsDur> for $name<Rep>
                 where
-                    Rep: TimeRep + TryFrom<RhsDur::Rep, Error: fmt::Debug>,
+                    Rep: TimeInt + TryFrom<RhsDur::Rep>,
                     RhsDur: Duration,
                 {
                     type Output = Self;
@@ -472,7 +488,7 @@ pub mod units {
 
                 impl<Rep, Dur> ops::Rem<Dur> for $name<Rep>
                 where
-                    Rep: TimeRep + TryFrom<Dur::Rep, Error: fmt::Debug>,
+                    Rep: TimeInt + TryFrom<Dur::Rep>,
                     Dur: Duration,
                 {
                     type Output = Self;
@@ -492,9 +508,9 @@ pub mod units {
 
                 impl<Rep, OtherDur> cmp::PartialEq<OtherDur> for $name<Rep>
                 where
-                    Rep: TimeRep + TryFrom<OtherDur::Rep, Error: fmt::Debug>,
+                    Rep: TimeInt + TryFrom<OtherDur::Rep>,
                     OtherDur: Duration,
-                    OtherDur::Rep: TryFrom<Rep, Error: fmt::Debug>,
+                    OtherDur::Rep: TryFrom<Rep>,
                 {
                     /// See module-level documentation for details about this type
                     fn eq(&self, other: &OtherDur) -> bool {
@@ -508,9 +524,9 @@ pub mod units {
 
                 impl<Rep, OtherDur> PartialOrd<OtherDur> for $name<Rep>
                 where
-                    Rep: TimeRep + TryFrom<OtherDur::Rep, Error: fmt::Debug>,
+                    Rep: TimeInt + TryFrom<OtherDur::Rep>,
                     OtherDur: Duration,
-                    OtherDur::Rep: TryFrom<Rep, Error: fmt::Debug>,
+                    OtherDur::Rep: TryFrom<Rep>,
                 {
                     /// See module-level documentation for details about this type
                     fn partial_cmp(&self, other: &OtherDur) -> Option<core::cmp::Ordering> {

@@ -8,7 +8,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        rust: [nightly]
+        rust: [stable, nightly]
         os: [ubuntu-latest, windows-latest]
         target: [thumbv7em-none-eabihf]
 

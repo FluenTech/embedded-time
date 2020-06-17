@@ -1,11 +1,11 @@
-use crate::{numerical_duration::TimeRep, Duration, Instant, Period};
+use crate::{time_int::TimeInt, Duration, Instant, Period};
 use core::convert::TryFrom;
 
 pub trait Clock: Sized {
-    /// The type of the internal representation of time
-    type Rep: TimeRep;
+    /// The type to hold the tick count
+    type Rep: TimeInt;
 
-    /// The duration of one clock tick, AKA the clock precision.
+    /// The duration of one clock tick in seconds, AKA the clock precision.
     const PERIOD: Period;
 
     /// Get the current Instant
@@ -15,7 +15,7 @@ pub trait Clock: Sized {
     fn delay<Dur>(dur: Dur)
     where
         Dur: Duration,
-        Dur::Rep: TimeRep,
+        Dur::Rep: TimeInt,
         Self::Rep: TryFrom<Dur::Rep>,
     {
         let start = Self::now();

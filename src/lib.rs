@@ -22,14 +22,14 @@
 //! **Wrapping Clock**: A clock that when at its maximum value, the next count is the minimum
 //! value.
 //!
-//! **Instant**: A specific instant in time ("time-point") returned by calling `Clock::now()`.
+//! **Instant**: A specific instant in time ("time-point") read from a clock.
 //!
-//! **Duration**: The difference of two instances. The duration of time elapsed from one instant
-//! until another. A span of time.
+//! **Duration**: The difference of two instances. The time that has elapsed since an instant. A
+//! span of time.
 //!
 //! ## Notes
 //! Some parts of this crate were derived from various sources:
-//! - [`RTFM`](https://github.com/rtfm-rs/cortex-m-rtfm)
+//! - [`RTIC`](https://github.com/rtic-rs/cortex-m-rtic)
 //! - [`time`](https://docs.rs/time/latest/time) (Specifically the [`time::NumbericalDuration`](https://docs.rs/time/latest/time/trait.NumericalDuration.html)
 //!   implementations for primitive integers)
 //!
@@ -40,7 +40,7 @@
 //! struct SomeClock;
 //! impl embedded_time::Clock for SomeClock {
 //!     type Rep = i64;
-//!     const PERIOD: Period = Period::new_raw(1, 16_000_000);
+//!     const PERIOD: Period = Period::new(1, 16_000_000);
 //!
 //!     fn now() -> Instant<Self> {
 //!         // ...
@@ -60,21 +60,27 @@
 //! assert_eq!(instant1 + duration.unwrap(), instant2);
 //! ```
 
+#![deny(unsafe_code)]
 #![cfg_attr(not(test), no_std)]
-#![feature(associated_type_bounds)]
+// #![warn(missing_docs)]
 #![deny(intra_doc_link_resolution_failure)]
 
 mod clock;
 mod duration;
+mod frequency;
 mod instant;
-mod numerical_duration;
+mod period;
+mod time_int;
 
 pub use clock::Clock;
-pub use duration::{units, Duration};
+pub use duration::Duration;
 pub use instant::Instant;
-pub use numerical_duration::TimeRep;
+pub use period::Period;
+pub use time_int::TimeInt;
 
-pub type Period = num::rational::Ratio<i32>;
+// pub trait Integer: num::Integer + num::PrimInt {}
+// impl Integer for i32 {}
+// impl Integer for i64 {}
 
 /// A collection of imports that are widely useful.
 ///
@@ -90,10 +96,15 @@ pub mod prelude {
     pub use crate::duration::Duration as _;
     pub use crate::duration::TryConvertFrom as _;
     pub use crate::duration::TryConvertInto as _;
-    pub use crate::numerical_duration::TimeRep as _;
+    pub use crate::time_int::TimeInt as _;
     pub use crate::Clock as _;
     pub use crate::Period as _;
     pub use num::Integer as _;
+}
+
+pub mod units {
+    pub use crate::duration::units::*;
+    pub use crate::frequency::units::*;
 }
 
 #[cfg(test)]
@@ -109,7 +120,7 @@ mod tests {
 
     impl time::Clock for MockClock64 {
         type Rep = i64;
-        const PERIOD: time::Period = time::Period::new_raw(1, 64_000_000);
+        const PERIOD: time::Period = time::Period::new(1, 64_000_000);
 
         fn now() -> time::Instant<Self> {
             time::Instant::new(128_000_000)
@@ -121,7 +132,7 @@ mod tests {
 
     impl time::Clock for MockClock32 {
         type Rep = i32;
-        const PERIOD: time::Period = time::Period::new_raw(1, 16_000_000);
+        const PERIOD: time::Period = time::Period::new(1, 16_000_000);
 
         fn now() -> time::Instant<Self> {
             time::Instant::new(32_000_000)

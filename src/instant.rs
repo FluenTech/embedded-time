@@ -36,7 +36,7 @@ where
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type Rep = i32;
-    ///     const PERIOD: Period = Period::new_raw(1, 1_000);
+    ///     const PERIOD: Period = Period::new(1, 1_000);
     ///     // ...
     /// # fn now() -> Instant<Self> {unimplemented!()}
     /// }
@@ -111,7 +111,7 @@ where
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type Rep = i32;
-    ///     const PERIOD: Period = Period::new_raw(1, 1_000);
+    ///     const PERIOD: Period = Period::new(1, 1_000);
     ///     // ...
     /// # fn now() -> Instant<Self> {unimplemented!()}
     /// }
@@ -155,7 +155,7 @@ where
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type Rep = i32;
-    ///     const PERIOD: Period = Period::new_raw(1, 1_000);
+    ///     const PERIOD: Period = Period::new(1, 1_000);
     ///     // ...
     /// # fn now() -> Instant<Self> {unimplemented!()}
     /// }
@@ -171,7 +171,7 @@ where
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type Rep = i32;
-    ///     const PERIOD: Period = Period::new_raw(1, 1_000);
+    ///     const PERIOD: Period = Period::new(1, 1_000);
     ///     // ...
     /// # fn now() -> Instant<Self> {unimplemented!()}
     /// }
@@ -209,7 +209,7 @@ where
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type Rep = i32;
-    ///     const PERIOD: Period = Period::new_raw(1, 1_000);
+    ///     const PERIOD: Period = Period::new(1, 1_000);
     ///     // ...
     /// # fn now() -> Instant<Self> {unimplemented!()}
     /// }
@@ -225,7 +225,7 @@ where
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type Rep = i32;
-    ///     const PERIOD: Period = Period::new_raw(1, 1_000);
+    ///     const PERIOD: Period = Period::new(1, 1_000);
     ///     // ...
     /// # fn now() -> Instant<Self> {unimplemented!()}
     /// }

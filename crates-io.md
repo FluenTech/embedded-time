@@ -1,11 +1,11 @@
 # embedded-time
 
 `embedded-time` provides a comprehensive library for implementing abstractions over
-hardware and work with _instants_ and _durations_ in an intuitive way.
+hardware and work with _clocks_, _instants_, _durations_, _periods_, and _frequencies_ in a more intuitive way.
  
-- `Clock` trait allowing abstraction of hardware timers/counters for timekeeping.
-- Work with time using _milliseconds_, _seconds_, etc. rather than _cycles_ or _ticks_.
-- Includes examples for the nRF52_DK board
+- `Clock` trait allowing abstraction of hardware timers for timekeeping.
+- Work with time using _milliseconds_, _seconds_, _hertz_, etc. rather than _cycles_ or _ticks_.
+- Includes example for the nRF52_DK board
 
 ## Example Usage
 ```rust
