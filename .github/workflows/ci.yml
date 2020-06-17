@@ -8,7 +8,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        rust: [nightly]
+        rust: [stable, nightly]
         os: [ubuntu-latest, windows-latest]
         target: [thumbv7em-none-eabihf]
 
@@ -63,3 +63,8 @@ jobs:
         with:
           command: clippy
           args: --lib --examples --target ${{ matrix.target }}
+
+      - name: Doc Generation
+        uses: actions-rs/cargo@v1
+        with:
+          command: doc
