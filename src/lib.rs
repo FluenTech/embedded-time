@@ -98,7 +98,6 @@ pub mod prelude {
     pub use crate::duration::TryConvertInto as _;
     pub use crate::time_int::TimeInt as _;
     pub use crate::Clock as _;
-    pub use crate::Period as _;
     pub use num::Integer as _;
 }
 
