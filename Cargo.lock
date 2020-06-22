@@ -74,7 +74,7 @@ dependencies = [
 
 [[package]]
 name = "embedded-time"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "cortex-m",
  "cortex-m-rt",
