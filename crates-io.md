@@ -6,44 +6,7 @@ hardware and work with _clocks_, _instants_, _durations_, _periods_, and _freque
 - `Clock` trait allowing abstraction of hardware timers for timekeeping.
 - Work with time using _milliseconds_, _seconds_, _hertz_, etc. rather than _cycles_ or _ticks_.
 - Includes example for the nRF52_DK board
-
-## Example Usage
-```rust
-struct SomeClock;
-
-impl Clock for SomeClock {
-    type Rep = i64;
-
-    // this clock is counting at 16 MHz
-    const PERIOD: Period = Period::new_raw(1, 16_000_000);
-
-    fn now() -> Instant<Self> {
-        // read the count of the clock
-        // ...
-        Instant::new(count as Self::Rep)
-    }
-}
-
-fn main() {
-    // read from a Clock
-    let instant1 = SomeClock::now();
-    
-    // ... some time passes
-    
-    let instant2 = SomeClock::now();
-    assert!(instant1 < instant2);    // instant1 is *before* instant2
-    
-    // duration is the difference between the instances
-    let duration: Option<Microseconds<i64>> = instant2.duration_since(&instant1);    
-    
-    // add some duration to an instant
-    let future_instant = instant2 + Milliseconds(23);
-    // or
-    let future_instant = instant2 + 23.milliseconds();
-    
-    assert(future_instant > instant2);
-}
-```
+- Conversion to/from core::time::Duration
 
 ## Motivation
 The handling of time on embedded systems is generally much different than that of OSs. For instance, on an OS, the time is measured against an arbitrary epoch. Embedded systems generally don't know (nor do they care) what the *real* time is, but rather how much time has passed since the system has started.
@@ -64,7 +27,7 @@ The `time` crate is a remarkable library but isn't geared for embedded systems (
 ### What is an Instant?
 In the Rust ecosystem, it appears to be idiomatic to call a `now()` associated function from an Instant type. There is generally no concept of a "Clock". I believe that using the `Instant` in this way is a violation of the *separation of concerns* principle. What is an `Instant`? Is it a time-keeping entity from which you read the current instant in time, or is it that instant in time itself. In this case, it's both.
 
-As an alternative, the current instant in time could be read from a **Clock**. The `Instant` read from the `Clock` has the same precision and width (integer type) as the `Clock`. Requesting the difference between two `Instant`s gives a `Duration` which can have different precision and/or width.
+As an alternative, the current instant in time is read from a **Clock**. The `Instant` read from the `Clock` has the same precision and width (inner type) as the `Clock`. Requesting the difference between two `Instant`s gives a `Duration` which can have different precision and/or width.
 
 ## License
 This project is licensed under either of

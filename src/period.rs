@@ -1,43 +1,61 @@
 use crate::frequency::units::Hertz;
 use crate::TimeInt;
 use core::{cmp, ops};
-use num::rational::Ratio;
-use num::{CheckedDiv, CheckedMul};
+use num::{rational::Ratio, CheckedDiv, CheckedMul};
 
+/// A fractional time period
+///
+/// Used primarily to define the period of one count of a [`crate::Duration`] type
 #[derive(Debug)]
 pub struct Period<T = i32>(Ratio<T>);
 
 impl<T> Period<T> {
+    /// Construct a new fractional `Period`.
+    ///
+    /// A reduction is **not** performed.
     pub const fn new(numerator: T, denominator: T) -> Self {
         Self(Ratio::new_raw(numerator, denominator))
     }
 
+    /// Return the numerator of the fraction
     pub const fn numerator(&self) -> &T {
         self.0.numer()
     }
 
+    /// Return the denominator of the fraction
     pub const fn denominator(&self) -> &T {
         self.0.denom()
     }
 }
 
 impl<T: TimeInt> Period<T> {
+    /// Construct a new fractional `Period`.
+    ///
+    /// A reduction **is** performed.
     pub fn new_reduce(numerator: T, denominator: T) -> Self {
         Self(Ratio::new(numerator, denominator))
     }
 
+    /// Returns a frequency in [`Hertz`] from the `Period`
     pub fn to_frequency(&self) -> Hertz<T> {
         Hertz(self.0.recip().to_integer())
     }
 
+    /// Constructs a `Period` from a frequency in [`Hertz`]
     pub fn from_frequency(freq: Hertz<T>) -> Self {
         Self(Ratio::from_integer(freq.0).recip())
     }
 
+    /// Returns an integer approximation of the Period
+    ///
+    /// Any remainder is truncated.
     pub fn to_integer(&self) -> T {
         self.0.to_integer()
     }
 
+    /// Constructs a `Period` from an integer.
+    ///
+    /// Equivalent to `Period::new(value,1)`.
     pub fn from_integer(value: T) -> Self {
         Self(Ratio::from_integer(value))
     }

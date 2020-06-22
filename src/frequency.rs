@@ -4,6 +4,7 @@ pub(crate) mod units {
     use crate::{Period, TimeInt};
     use core::{convert, ops};
 
+    /// A frequency unit type
     #[derive(Ord, PartialOrd, Eq, PartialEq, Debug)]
     pub struct Hertz<T: TimeInt = i32>(pub T);
 

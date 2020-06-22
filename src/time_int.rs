@@ -40,17 +40,26 @@ pub trait TimeInt:
     + From<i32>
     + TryInto<i32>
     + TryFrom<i64>
+    + TryInto<u64>
     + Into<i64>
+    + TryFrom<u128>
     + fmt::Display
     + fmt::Debug
 {
+    /// Construct the [`Duration`](crate::duration::Duration) implementation
     fn nanoseconds(self) -> Nanoseconds<Self>;
+    /// Construct the [`Duration`](crate::duration::Duration) implementation
     fn microseconds(self) -> Microseconds<Self>;
+    /// Construct the [`Duration`](crate::duration::Duration) implementation
     fn milliseconds(self) -> Milliseconds<Self>;
+    /// Construct the [`Duration`](crate::duration::Duration) implementation
     fn seconds(self) -> Seconds<Self>;
+    /// Construct the [`Duration`](crate::duration::Duration) implementation
     fn minutes(self) -> Minutes<Self>;
+    /// Construct the [`Duration`](crate::duration::Duration) implementation
     fn hours(self) -> Hours<Self>;
 
+    /// Construct the frequency type
     fn hertz(self) -> Hertz<Self>;
 
     /// ```rust

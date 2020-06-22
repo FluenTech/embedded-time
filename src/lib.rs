@@ -9,8 +9,6 @@
 //! the number of milliseconds being represented. Conversion arithmetic is only performed when
 //! explicitly converting between time units.
 //!
-//! [`Clock`]: trait.Clock.html
-//! [`Instant`]: Instant
 //! [`Seconds`]: units::Seconds
 //! [`Milliseconds`]: units::Milliseconds
 //!
@@ -62,7 +60,7 @@
 
 #![deny(unsafe_code)]
 #![cfg_attr(not(test), no_std)]
-// #![warn(missing_docs)]
+#![warn(missing_docs)]
 #![deny(intra_doc_link_resolution_failure)]
 
 mod clock;
@@ -78,19 +76,11 @@ pub use instant::Instant;
 pub use period::Period;
 pub use time_int::TimeInt;
 
-// pub trait Integer: num::Integer + num::PrimInt {}
-// impl Integer for i32 {}
-// impl Integer for i64 {}
-
-/// A collection of imports that are widely useful.
-///
-/// Unlike the standard library, this must be explicitly imported:
+/// Public _traits_
 ///
 /// ```rust,no_run
 /// use embedded_time::prelude::*;
 /// ```
-/// The prelude may grow in minor releases. Any removals will only occur in
-/// major releases.
 pub mod prelude {
     // Rename traits to `_` to avoid any potential name conflicts.
     pub use crate::duration::Duration as _;
@@ -98,10 +88,10 @@ pub mod prelude {
     pub use crate::duration::TryConvertInto as _;
     pub use crate::time_int::TimeInt as _;
     pub use crate::Clock as _;
-    pub use num::Integer as _;
 }
 
 pub mod units {
+    //! Time-based units of measure ([`Milliseconds`], [`Hertz`], etc)
     pub use crate::duration::units::*;
     pub use crate::frequency::units::*;
 }
