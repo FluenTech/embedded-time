@@ -1,6 +1,7 @@
 use crate::{time_int::TimeInt, Duration, Instant, Period};
 use core::convert::TryFrom;
 
+/// An abstraction for time-keeping items such as hardware timers
 pub trait Clock: Sized {
     /// The type to hold the tick count
     type Rep: TimeInt;

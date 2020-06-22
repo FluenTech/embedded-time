@@ -4,9 +4,10 @@ use crate::{time_int::TimeInt, Period};
 use core::{convert::TryFrom, fmt, mem::size_of, prelude::v1::*};
 use num::Bounded;
 
-/// A duration of time with generic storage
+/// A duration of time with signed, generic storage
 ///
-/// Each implementation defines a constant fraction/ratio representing the period of the LSbit
+/// Each implementation defines a constant [`Period`] which is a fraction/ratio representing the
+/// period of the count's LSbit
 ///
 /// # Implementation Example
 /// ```rust,no_run
@@ -38,11 +39,121 @@ use num::Bounded;
 ///     
 /// }
 /// ```
+///
+/// # Constructing a duration
+/// ```rust
+/// # use embedded_time::{prelude::*, units::*};
+/// #
+/// assert_eq!(Milliseconds::<i32>::new(23), Milliseconds(23_i32));
+/// assert_eq!(Milliseconds(23), 23.milliseconds());
+/// ```
+///
+/// # Get the integer count
+/// ```rust
+/// # use embedded_time::{prelude::*, units::*};
+/// #
+/// assert_eq!(Milliseconds(23).count(), 23);
+/// ```
+///
+/// # Formatting
+/// Just forwards the underlying integer to [`core::fmt::Display::fmt()`]
+/// ```rust
+/// # use embedded_time::{prelude::*, units::*};
+/// #
+/// assert_eq!(format!("{}", Seconds(123)), "123");
+/// ```
+///
+/// # Getting H:M:S.MS... Components
+/// ```rust
+/// # use embedded_time::{prelude::*, units::*};
+/// #
+/// let duration = 38_238_479.microseconds();
+/// let hours = Hours::<i32>::try_convert_from(duration).unwrap();
+/// let minutes = Minutes::<i32>::try_convert_from(duration).unwrap() % Hours(1);
+/// let seconds = Seconds::<i32>::try_convert_from(duration).unwrap() % Minutes(1);
+/// let milliseconds = Milliseconds::<i32>::try_convert_from(duration).unwrap() % Seconds(1);
+/// // ...
+/// ```
+///
+/// # Add/Sub
+///
+/// ## Panics
+/// Panics if the rhs duration cannot be converted into the lhs duration type
+///
+/// In this example, the maximum `i32` value of seconds is stored as `i32` and
+/// converting that value to milliseconds (with `i32` storage type) causes an overflow.
+/// ```rust,should_panic
+/// # use embedded_time::{prelude::*, units::*};
+/// #
+/// let _ = Milliseconds(24) + Seconds(i32::MAX);
+/// ```
+///
+/// This example works just fine as the seconds value is first cast to `i64`, then
+/// converted to milliseconds.
+/// ```rust
+/// # use embedded_time::{prelude::*, units::*};
+/// #
+/// let _ = Milliseconds(24_i64) + Seconds(i32::MAX);
+/// ```
+///
+/// Here, there is no units conversion to worry about, but `i32::MAX + 1` cannot be
+/// cast to an `i32`.
+/// ```rust,should_panic
+/// # use embedded_time::{prelude::*, units::*};
+/// #
+/// let _ = Seconds(i32::MAX) - Seconds(i32::MAX as i64 + 1);
+/// ```
+///
+/// ## Examples
+/// ```rust
+/// # use embedded_time::{prelude::*, units::*};
+/// #
+/// assert_eq!((Milliseconds(3_234) - Seconds(2)), Milliseconds(1_234));
+/// assert_eq!((Milliseconds(3_234_i64) - Seconds(2_i32)), Milliseconds(1_234_i64));
+/// assert_eq!((Seconds(i32::MAX) - Milliseconds((i32::MAX as i64) + 1)),
+///     Seconds(2_145_336_164_i32));
+/// ```
+///
+/// # Equality
+/// ```rust
+/// # use embedded_time::{prelude::*, units::*};
+/// #
+/// assert_eq!(Seconds(123), Seconds(123));
+/// assert_eq!(Seconds(123), Milliseconds(123_000));
+///
+/// assert_ne!(Seconds(123), Milliseconds(123_001));
+/// assert_ne!(Milliseconds(123_001), Seconds(123));
+/// assert_ne!(Milliseconds(123_001_i64), Seconds(123_i64));
+/// assert_ne!(Seconds(123_i64), Milliseconds(123_001_i64));
+/// assert_ne!(Seconds(123_i64), Milliseconds(123_001_i32));
+/// ```
+///
+/// # Comparisons
+/// ```rust
+/// # use embedded_time::{prelude::*, units::*};
+/// #
+/// assert!(Seconds(2) < Seconds(3));
+/// assert!(Seconds(2) < Milliseconds(2_001));
+/// assert!(Seconds(2) == Milliseconds(2_000));
+/// assert!(Seconds(2) > Milliseconds(1_999));
+/// assert!(Seconds(2_i32) < Milliseconds(2_001_i64));
+/// assert!(Seconds(2_i64) < Milliseconds(2_001_i32));
+/// ```
+///
+/// # Remainder
+/// ```rust
+/// # use embedded_time::{prelude::*, units::*};
+/// #
+/// assert_eq!(Minutes(62) % Hours(1), Minutes(2));
+/// ```
 pub trait Duration: Sized + Copy + fmt::Display {
+    /// The inner type of the `Duration` representing the count of the implementation unit
     type Rep: TimeInt;
+
+    /// A fraction/ratio representing the period of the count's LSbit. The precision of the `Duration`.
     const PERIOD: Period;
 
-    /// Not generally useful or needed as the duration can be instantiated like this:
+    /// Not generally useful or needed as the duration can be constructed like this:
     /// ```no_run
     /// # use embedded_time::{prelude::*, units::*};
     /// Seconds(123);
@@ -144,7 +255,8 @@ pub trait Duration: Sized + Copy + fmt::Display {
     /// assert_eq!(Microseconds(5_000_i32).into_ticks::<i32>(Period::new(1, 200)), Some(1_i32));
     ///
     /// // as long as the result fits in the provided integer, it will succeed
-    /// assert_eq!(Microseconds::<i32>(i32::MAX).into_ticks::<i64>(Period::new(1, 2_000_000)), Some((i32::MAX as i64) * 2));
+    /// assert_eq!(Microseconds::<i32>(i32::MAX).into_ticks::<i64>(Period::new(1, 2_000_000)),
+    ///     Some((i32::MAX as i64) * 2));
     /// ```
     ///
     /// # Errors
@@ -218,12 +330,18 @@ pub trait Duration: Sized + Copy + fmt::Display {
 }
 
 /// Attempt to convert from one duration type to another
+///
+/// This is basically a specialization of the [`TryFrom`](core::convert::TryFrom) trait.
 pub trait TryConvertFrom<Source>: Sized {
+    /// Perform the conversion
     fn try_convert_from(other: Source) -> Option<Self>;
 }
 
 /// Attempt to convert from one duration type to another
+///
+/// This is basically a specialization of the [`TryInto`](core::convert::TryInto) trait.
 pub trait TryConvertInto<Dest> {
+    /// Perform the conversion
     fn try_convert_into(self) -> Option<Dest>;
 }
 
@@ -321,102 +439,6 @@ where
     }
 }
 
-/// Common implementations of the [`Duration`] trait.
-///
-/// # Constructing a duration
-/// ```rust
-/// # use embedded_time::{prelude::*, units::*};
-/// assert_eq!(Milliseconds::<i32>::new(23), Milliseconds(23_i32));
-/// assert_eq!(Milliseconds(23), 23.milliseconds());
-/// ```
-///
-/// # Get the integer count
-/// ```rust
-/// # use embedded_time::{prelude::*, units::*};
-/// assert_eq!(Milliseconds(23).count(), 23);
-/// ```
-///
-/// # Formatting
-/// Just forwards the underlying integer to [`core::fmt::Display::fmt()`]
-/// ```rust
-/// # use embedded_time::{prelude::*, units::*};
-/// assert_eq!(format!("{}", Seconds(123)), "123");
-/// ```
-///
-/// # Getting H:M:S.MS... Components
-/// ```rust
-/// # use embedded_time::{prelude::*, units::*};
-/// let duration = 38_238_479.microseconds();
-/// let hours = Hours::<i32>::try_convert_from(duration).unwrap();
-/// let minutes = Minutes::<i32>::try_convert_from(duration).unwrap()  % Hours(1);
-/// let seconds = Seconds::<i32>::try_convert_from(duration).unwrap() % Minutes(1);
-/// let milliseconds = Milliseconds::<i32>::try_convert_from(duration).unwrap() % Seconds(1);
-/// // ...
-/// ```
-///
-/// # Add/Sub
-///
-/// ## Panics
-/// Panics if the rhs duration cannot be converted into the lhs duration type
-///
-/// In this example, the maximum `i32` value of seconds is stored as `i32` and
-/// converting that value to milliseconds (with `i32` storage type) causes an overflow.
-/// ```rust,should_panic
-/// # use embedded_time::{prelude::*, units::*};
-/// let _ = Milliseconds(24) + Seconds(i32::MAX);
-/// ```
-///
-/// This example works just fine as the seconds value is first cast to `i64`, then
-/// converted to milliseconds.
-/// ```rust
-/// # use embedded_time::{prelude::*, units::*};
-/// let _ = Milliseconds(24_i64) + Seconds(i32::MAX);
-/// ```
-///
-/// Here, there is no units conversion to worry about, but `i32::MAX + 1` cannot be
-/// cast to an `i32`.
-/// ```rust,should_panic
-/// # use embedded_time::{prelude::*, units::*};
-/// let _ = Seconds(i32::MAX) - Seconds(i32::MAX as i64 + 1);
-/// ```
-///
-/// ## Examples
-/// ```rust
-/// # use embedded_time::{prelude::*, units::*};
-/// assert_eq!((Milliseconds(3_234) - Seconds(2)), Milliseconds(1_234));
-/// assert_eq!((Milliseconds(3_234_i64) - Seconds(2_i32)), Milliseconds(1_234_i64));
-/// assert_eq!((Seconds(i32::MAX) - Milliseconds((i32::MAX as i64) + 1)), Seconds(2_145_336_164_i32));
-/// ```
-///
-/// # Equality
-/// ```rust
-/// # use embedded_time::{prelude::*, units::*};
-/// assert_eq!(Seconds(123), Seconds(123));
-/// assert_eq!(Seconds(123), Milliseconds(123_000));
-///
-/// assert_ne!(Seconds(123), Milliseconds(123_001));
-/// assert_ne!(Milliseconds(123_001), Seconds(123));
-/// assert_ne!(Milliseconds(123_001_i64), Seconds(123_i64));
-/// assert_ne!(Seconds(123_i64), Milliseconds(123_001_i64));
-/// assert_ne!(Seconds(123_i64), Milliseconds(123_001_i32));
-/// ```
-///
-/// # Comparisons
-/// ```rust
-/// # use embedded_time::{prelude::*, units::*};
-/// assert!(Seconds(2) < Seconds(3));
-/// assert!(Seconds(2) < Milliseconds(2_001));
-/// assert!(Seconds(2) == Milliseconds(2_000));
-/// assert!(Seconds(2) > Milliseconds(1_999));
-/// assert!(Seconds(2_i32) < Milliseconds(2_001_i64));
-/// assert!(Seconds(2_i64) < Milliseconds(2_001_i32));
-/// ```
-///
-/// # Remainder
-/// ```rust
-/// # use embedded_time::{prelude::*, units::*};
-/// assert_eq!(Minutes(62) % Hours(1), Minutes(2));
-/// ```
 pub mod units {
     use crate::{
         duration::{Duration, TryConvertFrom},

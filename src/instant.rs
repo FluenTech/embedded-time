@@ -4,7 +4,7 @@ use crate::Duration;
 use core::{cmp::Ordering, convert::TryFrom, ops};
 use num::traits::{WrappingAdd, WrappingSub};
 
-/// Represents an instant of time relative to a specific clock
+/// Represents an instant of time relative to a specific [`Clock`](crate::clock::Clock)
 ///
 /// # Example
 /// Create an `Instant` that is `23 * SomeClock::PERIOD` seconds since the clock's epoch:
@@ -12,17 +12,12 @@ use num::traits::{WrappingAdd, WrappingSub};
 /// Instant::<SomeClock>::new(23);
 /// ```
 #[derive(Debug)]
-pub struct Instant<Clock>
-where
-    Clock: crate::Clock,
-{
+pub struct Instant<Clock: crate::Clock> {
     ticks: Clock::Rep,
 }
 
-impl<Clock> Instant<Clock>
-where
-    Clock: crate::Clock,
-{
+impl<Clock: crate::Clock> Instant<Clock> {
+    /// Construct a new Instant with ticks of the provided [`Clock`](crate::clock::Clock).
     pub fn new(ticks: Clock::Rep) -> Self {
         Self { ticks }
     }
@@ -53,17 +48,16 @@ where
     /// let diff: Option<Seconds<i64>> = Instant::<Clock>::new(1_000).duration_since(&Instant::<Clock>::new(-1_000));
     /// assert_eq!(diff, Some(Seconds(2_i64)));
     /// ```
-    pub fn duration_since<Dur>(&self, other: &Self) -> Option<Dur>
+    pub fn duration_since<Dur: Duration>(&self, other: &Self) -> Option<Dur>
     where
-        Dur: Duration,
         Dur::Rep: TryFrom<Clock::Rep>,
     {
         Dur::from_ticks(self.ticks.wrapping_sub(&other.ticks), Clock::PERIOD)
     }
 
-    pub fn duration_since_epoch<Dur>(&self) -> Option<Dur>
+    /// Returns the [`Duration`] (in the provided units) since the beginning of time (or the [`Clock`](crate::clock::Clock)'s 0)
+    pub fn duration_since_epoch<Dur: Duration>(&self) -> Option<Dur>
     where
-        Dur: Duration,
         Dur::Rep: TryFrom<Clock::Rep>,
         Clock::Rep: From<i32>,
     {
@@ -76,32 +70,23 @@ where
     }
 }
 
-impl<Clock> Copy for Instant<Clock> where Clock: crate::Clock {}
+impl<Clock: crate::Clock> Copy for Instant<Clock> {}
 
-impl<Clock> Clone for Instant<Clock>
-where
-    Clock: crate::Clock,
-{
+impl<Clock: crate::Clock> Clone for Instant<Clock> {
     fn clone(&self) -> Self {
         Self { ticks: self.ticks }
     }
 }
 
-impl<Clock> PartialEq for Instant<Clock>
-where
-    Clock: crate::Clock,
-{
+impl<Clock: crate::Clock> PartialEq for Instant<Clock> {
     fn eq(&self, other: &Self) -> bool {
         self.ticks == other.ticks
     }
 }
 
-impl<Clock> Eq for Instant<Clock> where Clock: crate::Clock {}
+impl<Clock: crate::Clock> Eq for Instant<Clock> {}
 
-impl<Clock> PartialOrd for Instant<Clock>
-where
-    Clock: crate::Clock,
-{
+impl<Clock: crate::Clock> PartialOrd for Instant<Clock> {
     /// Calculates the difference between two `Instance`s resulting in a [`Duration`]
     ///
     /// # Examples
@@ -125,10 +110,7 @@ where
     }
 }
 
-impl<Clock> Ord for Instant<Clock>
-where
-    Clock: crate::Clock,
-{
+impl<Clock: crate::Clock> Ord for Instant<Clock> {
     fn cmp(&self, other: &Self) -> Ordering {
         self.ticks
             .wrapping_sub(&other.ticks)
@@ -136,11 +118,9 @@ where
     }
 }
 
-impl<Clock, Dur> ops::Add<Dur> for Instant<Clock>
+impl<Clock: crate::Clock, Dur: Duration> ops::Add<Dur> for Instant<Clock>
 where
-    Clock: crate::Clock,
     Clock::Rep: TryFrom<Dur::Rep>,
-    Dur: Duration,
 {
     type Output = Self;
 
@@ -190,11 +170,9 @@ where
     }
 }
 
-impl<Clock, Dur> ops::Sub<Dur> for Instant<Clock>
+impl<Clock: crate::Clock, Dur: Duration> ops::Sub<Dur> for Instant<Clock>
 where
-    Clock: crate::clock::Clock,
     Clock::Rep: TryFrom<Dur::Rep>,
-    Dur: Duration,
 {
     type Output = Self;
 
