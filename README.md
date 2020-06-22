@@ -10,6 +10,7 @@ hardware and work with _clocks_, _instants_, _durations_, _periods_, and _freque
 - `Clock` trait allowing abstraction of hardware timers for timekeeping.
 - Work with time using _milliseconds_, _seconds_, _hertz_, etc. rather than _cycles_ or _ticks_.
 - Includes example for the nRF52_DK board
+- Conversion to/from core::time::Duration
 
 ## License
 This project is licensed under either of

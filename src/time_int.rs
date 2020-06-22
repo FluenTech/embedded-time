@@ -40,7 +40,9 @@ pub trait TimeInt:
     + From<i32>
     + TryInto<i32>
     + TryFrom<i64>
+    + TryInto<u64>
     + Into<i64>
+    + TryFrom<u128>
     + fmt::Display
     + fmt::Debug
 {

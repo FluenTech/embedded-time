@@ -75,6 +75,66 @@ use num::Bounded;
 /// // ...
 /// ```
 ///
+/// # Converting to [`core::time::Duration`]
+/// ## Examples
+/// ```rust
+/// # use embedded_time::prelude::*;
+/// # use core::convert::TryFrom;
+/// #
+/// let core_duration = core::time::Duration::try_from(2_569.milliseconds()).unwrap();
+/// assert_eq!(2, core_duration.as_secs());
+/// assert_eq!(569_000_000, core_duration.subsec_nanos());
+/// ```
+/// ```rust
+/// # use embedded_time::prelude::*;
+/// # use core::convert::TryInto;
+/// #
+/// let core_duration: core::time::Duration = 2_569.milliseconds().try_into().unwrap();
+/// assert_eq!(2, core_duration.as_secs());
+/// assert_eq!(569_000_000, core_duration.subsec_nanos());
+/// ```
+///
+/// ## Errors
+/// Attempting to convert from a _negative_ duration will fail
+/// ```rust
+/// # use embedded_time::prelude::*;
+/// # use core::convert::{TryFrom, TryInto};
+/// #
+/// assert!(core::time::Duration::try_from((-2_569).milliseconds()).is_err());
+///
+/// let core_duration: Result<core::time::Duration, _> = (-2_569).milliseconds().try_into();
+/// assert!(core_duration.is_err());
+/// ```
+///
+/// # Converting from [`core::time::Duration`]
+/// ## Examples
+/// ```rust
+/// # use embedded_time::{prelude::*, units::*};
+/// # use core::convert::TryFrom;
+/// #
+/// let core_duration = core::time::Duration::new(5, 730023852);
+/// assert_eq!(Milliseconds::<i32>::try_from(core_duration), Ok(5_730.milliseconds()));
+/// ```
+/// ```rust
+/// # use embedded_time::{prelude::*, units::*};
+/// # use core::convert::TryInto;
+/// #
+/// let duration: Result<Milliseconds<i32>, _> = core::time::Duration::new(5, 730023852).try_into();
+/// assert_eq!(duration, Ok(5_730.milliseconds()));
+/// ```
+///
+/// ## Errors
+/// The duration doesn't fit in the type specified
+/// ```rust
+/// # use embedded_time::{prelude::*, units::*};
+/// # use core::convert::{TryFrom, TryInto};
+/// #
+/// assert!(Milliseconds::<i32>::try_from(core::time::Duration::from_millis((i32::MAX as u64) + 1)).is_err());
+///
+/// let duration: Result<Milliseconds<i32>, _> = core::time::Duration::from_millis((i32::MAX as u64) + 1).try_into();
+/// assert!(duration.is_err());
+/// ```
+///
 /// # Add/Sub
 ///
 /// ## Panics
@@ -447,139 +507,183 @@ pub mod units {
     };
     use core::{
         cmp,
-        convert::TryFrom,
+        convert::{self, TryInto as _},
         fmt::{self, Formatter},
         ops,
     };
 
-    macro_rules! durations {
-        ( $( $name:ident, ($numer:expr, $denom:expr) );+ ) => {
-            $(
-                /// A duration unit type
-                #[derive(Copy, Clone, Debug, Eq, Ord)]
-                pub struct $name<T: TimeInt>(pub T);
+    macro_rules! impl_duration {
+        ( $name:ident, ($numer:expr, $denom:expr) ) => {
+            /// A duration unit type
+            #[derive(Copy, Clone, Debug, Eq, Ord)]
+            pub struct $name<T: TimeInt>(pub T);
 
-                impl<Rep: TimeInt> Duration for $name<Rep> {
-                    type Rep = Rep;
-                    const PERIOD: Period = Period::new($numer, $denom);
+            impl<Rep: TimeInt> Duration for $name<Rep> {
+                type Rep = Rep;
+                const PERIOD: Period = Period::new($numer, $denom);
 
-                    fn new(value: Self::Rep) -> Self {
-                        Self(value)
-                    }
-
-                    fn count(self) -> Self::Rep {
-                        self.0
-                    }
+                fn new(value: Self::Rep) -> Self {
+                    Self(value)
                 }
 
-                impl<T: TimeInt> fmt::Display for $name<T> {
-                    /// See module-level documentation for details about this type
-                    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-                        fmt::Display::fmt(&self.0, f)
+                fn count(self) -> Self::Rep {
+                    self.0
+                }
+            }
+
+            impl<T: TimeInt> fmt::Display for $name<T> {
+                /// See module-level documentation for details about this type
+                fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+                    fmt::Display::fmt(&self.0, f)
+                }
+            }
+
+            impl<Rep, RhsDur> ops::Add<RhsDur> for $name<Rep>
+            where
+                RhsDur: Duration,
+                RhsDur::Rep: TimeInt,
+                Rep: TimeInt + convert::TryFrom<RhsDur::Rep>,
+            {
+                type Output = Self;
+
+                /// See module-level documentation for details about this type
+                #[inline]
+                fn add(self, rhs: RhsDur) -> Self::Output {
+                    Self(self.count() + Self::try_convert_from(rhs).unwrap().count())
+                }
+            }
+
+            impl<Rep, RhsDur> ops::Sub<RhsDur> for $name<Rep>
+            where
+                Rep: TimeInt + convert::TryFrom<RhsDur::Rep>,
+                RhsDur: Duration,
+            {
+                type Output = Self;
+
+                /// See module-level documentation for details about this type
+                #[inline]
+                fn sub(self, rhs: RhsDur) -> Self::Output {
+                    Self(self.count() - Self::try_convert_from(rhs).unwrap().count())
+                }
+            }
+
+            impl<Rep, Dur> ops::Rem<Dur> for $name<Rep>
+            where
+                Rep: TimeInt + convert::TryFrom<Dur::Rep>,
+                Dur: Duration,
+            {
+                type Output = Self;
+
+                fn rem(self, rhs: Dur) -> Self::Output {
+                    let rhs = <Self as TryConvertFrom<Dur>>::try_convert_from(rhs)
+                        .unwrap()
+                        .count();
+
+                    if rhs > Rep::from(0) {
+                        Self(self.count() % rhs)
+                    } else {
+                        Self(Rep::from(0))
                     }
                 }
+            }
 
-                impl<Rep, RhsDur> ops::Add<RhsDur> for $name<Rep>
-                where
-                    RhsDur: Duration,
-                    RhsDur::Rep: TimeInt,
-                    Rep: TimeInt + TryFrom<RhsDur::Rep>,
-                {
-                    type Output = Self;
-
-                    /// See module-level documentation for details about this type
-                    #[inline]
-                    fn add(self, rhs: RhsDur) -> Self::Output {
-                        Self(self.count() + Self::try_convert_from(rhs).unwrap().count())
+            impl<Rep, OtherDur> cmp::PartialEq<OtherDur> for $name<Rep>
+            where
+                Rep: TimeInt + convert::TryFrom<OtherDur::Rep>,
+                OtherDur: Duration,
+                OtherDur::Rep: convert::TryFrom<Rep>,
+            {
+                /// See module-level documentation for details about this type
+                fn eq(&self, other: &OtherDur) -> bool {
+                    if Self::PERIOD < OtherDur::PERIOD {
+                        self.count() == Self::try_convert_from(*other).unwrap().count()
+                    } else {
+                        OtherDur::try_convert_from(*self).unwrap().count() == other.count()
                     }
                 }
+            }
 
-                impl<Rep, RhsDur> ops::Sub<RhsDur> for $name<Rep>
-                where
-                    Rep: TimeInt + TryFrom<RhsDur::Rep>,
-                    RhsDur: Duration,
-                {
-                    type Output = Self;
-
-                    /// See module-level documentation for details about this type
-                    #[inline]
-                    fn sub(self, rhs: RhsDur) -> Self::Output {
-                        Self(self.count() - Self::try_convert_from(rhs).unwrap().count())
+            impl<Rep, OtherDur> PartialOrd<OtherDur> for $name<Rep>
+            where
+                Rep: TimeInt + convert::TryFrom<OtherDur::Rep>,
+                OtherDur: Duration,
+                OtherDur::Rep: convert::TryFrom<Rep>,
+            {
+                /// See module-level documentation for details about this type
+                fn partial_cmp(&self, other: &OtherDur) -> Option<core::cmp::Ordering> {
+                    if Self::PERIOD < OtherDur::PERIOD {
+                        Some(
+                            self.count()
+                                .cmp(&Self::try_convert_from(*other).unwrap().count()),
+                        )
+                    } else {
+                        Some(
+                            OtherDur::try_convert_from(*self)
+                                .unwrap()
+                                .count()
+                                .cmp(&other.count()),
+                        )
                     }
                 }
+            }
+        };
+        ( $name:ident, ($numer:expr, $denom:expr), ge_secs ) => {
+            impl_duration![$name, ($numer, $denom)];
 
-                impl<Rep, Dur> ops::Rem<Dur> for $name<Rep>
-                where
-                    Rep: TimeInt + TryFrom<Dur::Rep>,
-                    Dur: Duration,
-                {
-                    type Output = Self;
+            impl<Rep: TimeInt> convert::TryFrom<$name<Rep>> for core::time::Duration {
+                type Error = ();
 
-                    fn rem(self, rhs: Dur) -> Self::Output {
-                        let rhs = <Self as TryConvertFrom<Dur>>::try_convert_from(rhs)
-                            .unwrap()
-                            .count();
-
-                        if rhs > Rep::from(0) {
-                            Self(self.count() % rhs)
-                        } else {
-                            Self(Rep::from(0))
-                        }
-                    }
+                /// Convert an embedded_time::[`Duration`] into a [`core::time::Duration`]
+                fn try_from(duration: $name<Rep>) -> Result<Self, Self::Error> {
+                    let seconds = Seconds::<i64>::try_convert_from(duration).ok_or(())?;
+                    Ok(Self::from_secs(seconds.count().try_into().or(Err(()))?))
                 }
+            }
 
-                impl<Rep, OtherDur> cmp::PartialEq<OtherDur> for $name<Rep>
-                where
-                    Rep: TimeInt + TryFrom<OtherDur::Rep>,
-                    OtherDur: Duration,
-                    OtherDur::Rep: TryFrom<Rep>,
-                {
-                    /// See module-level documentation for details about this type
-                    fn eq(&self, other: &OtherDur) -> bool {
-                        if Self::PERIOD < OtherDur::PERIOD {
-                            self.count() == Self::try_convert_from(*other).unwrap().count()
-                        } else {
-                            OtherDur::try_convert_from(*self).unwrap().count() == other.count()
-                        }
-                    }
-                }
+            impl<Rep: TimeInt> convert::TryFrom<core::time::Duration> for $name<Rep> {
+                type Error = ();
 
-                impl<Rep, OtherDur> PartialOrd<OtherDur> for $name<Rep>
-                where
-                    Rep: TimeInt + TryFrom<OtherDur::Rep>,
-                    OtherDur: Duration,
-                    OtherDur::Rep: TryFrom<Rep>,
-                {
-                    /// See module-level documentation for details about this type
-                    fn partial_cmp(&self, other: &OtherDur) -> Option<core::cmp::Ordering> {
-                        if Self::PERIOD < OtherDur::PERIOD {
-                            Some(self.count().cmp(&Self::try_convert_from(*other).unwrap().count()))
-                        } else {
-                            Some(
-                                OtherDur::try_convert_from(*self)
-                                    .unwrap()
-                                    .count()
-                                    .cmp(&other.count()),
-                            )
-                        }
-                    }
+                /// Convert a [`core::time::Duration`] into an embedded_time::[`Duration`]
+                fn try_from(core_duration: core::time::Duration) -> Result<Self, Self::Error> {
+                    let seconds = Seconds::<i64>(core_duration.as_secs().try_into().or(Err(()))?);
+                    Ok(Self::try_convert_from(seconds).ok_or(())?)
                 }
-             )+
-         };
+            }
+        };
+        ( $name:ident, ($numer:expr, $denom:expr), $from_core_dur:ident, $as_core_dur:ident ) => {
+            impl_duration![$name, ($numer, $denom)];
+
+            impl<Rep: TimeInt> convert::TryFrom<$name<Rep>> for core::time::Duration {
+                type Error = <Rep as convert::TryInto<u64>>::Error;
+
+                /// Convert an embedded_time::[`Duration`] into a [`core::time::Duration`]
+                fn try_from(duration: $name<Rep>) -> Result<Self, Self::Error> {
+                    Ok(Self::$from_core_dur(duration.count().try_into()?))
+                }
+            }
+
+            impl<Rep: TimeInt> convert::TryFrom<core::time::Duration> for $name<Rep> {
+                type Error = <Rep as convert::TryFrom<u128>>::Error;
+
+                /// Convert a [`core::time::Duration`] into an embedded_time::[`Duration`]
+                fn try_from(core_duration: core::time::Duration) -> Result<Self, Self::Error> {
+                    Ok(Self(core_duration.$as_core_dur().try_into()?))
+                }
+            }
+        };
     }
-    durations![
-        Hours,     (3600, 1);
-        Minutes,     (60, 1);
-        Seconds,      (1, 1);
-        Milliseconds, (1, 1_000);
-        Microseconds, (1, 1_000_000);
-        Nanoseconds,  (1, 1_000_000_000)
-    ];
+    impl_duration![Hours, (3600, 1), ge_secs];
+    impl_duration![Minutes, (60, 1), ge_secs];
+    impl_duration![Seconds, (1, 1), ge_secs];
+    impl_duration![Milliseconds, (1, 1_000), from_millis, as_millis];
+    impl_duration![Microseconds, (1, 1_000_000), from_micros, as_micros];
+    impl_duration![Nanoseconds, (1, 1_000_000_000), from_nanos, as_nanos];
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use core::convert::TryInto;
     use units::*;
 
     #[test]
@@ -602,5 +706,50 @@ mod tests {
         assert_eq!(Minutes(62) % Hours(1), Minutes(2));
         assert_eq!(Minutes(62) % Milliseconds(1), Minutes(0));
         assert_eq!(Minutes(62) % Minutes(60), Minutes(2));
+    }
+
+    #[test]
+    fn convert_from_core_duration() {
+        let core_duration = core::time::Duration::from_nanos(5_025_678_901_234);
+        assert_eq!(
+            core_duration.try_into(),
+            Ok(Nanoseconds::<i64>(5_025_678_901_234))
+        );
+        assert_eq!(
+            core_duration.try_into(),
+            Ok(Microseconds::<i64>(5_025_678_901))
+        );
+        assert_eq!(core_duration.try_into(), Ok(Milliseconds::<i32>(5_025_678)));
+        assert_eq!(core_duration.try_into(), Ok(Seconds::<i32>(5_025)));
+        assert_eq!(core_duration.try_into(), Ok(Minutes::<i32>(83)));
+        assert_eq!(core_duration.try_into(), Ok(Hours::<i32>(1)));
+    }
+
+    #[test]
+    fn convert_to_core_duration() {
+        assert_eq!(
+            Nanoseconds(123).try_into(),
+            Ok(core::time::Duration::from_nanos(123))
+        );
+        assert_eq!(
+            Microseconds(123).try_into(),
+            Ok(core::time::Duration::from_micros(123))
+        );
+        assert_eq!(
+            Milliseconds(123).try_into(),
+            Ok(core::time::Duration::from_millis(123))
+        );
+        assert_eq!(
+            Seconds(123).try_into(),
+            Ok(core::time::Duration::from_secs(123))
+        );
+        assert_eq!(
+            Minutes(123).try_into(),
+            Ok(core::time::Duration::from_secs(123 * 60))
+        );
+        assert_eq!(
+            Hours(123).try_into(),
+            Ok(core::time::Duration::from_secs(123 * 3600))
+        );
     }
 }

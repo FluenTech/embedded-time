@@ -6,6 +6,7 @@ hardware and work with _clocks_, _instants_, _durations_, _periods_, and _freque
 - `Clock` trait allowing abstraction of hardware timers for timekeeping.
 - Work with time using _milliseconds_, _seconds_, _hertz_, etc. rather than _cycles_ or _ticks_.
 - Includes example for the nRF52_DK board
+- Conversion to/from core::time::Duration
 
 ## Motivation
 The handling of time on embedded systems is generally much different than that of OSs. For instance, on an OS, the time is measured against an arbitrary epoch. Embedded systems generally don't know (nor do they care) what the *real* time is, but rather how much time has passed since the system has started.
