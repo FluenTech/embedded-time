@@ -4,7 +4,9 @@
 
 ### Added
 
-- Add fallibility to `Clock` methods
+- A `Timer` type supporting one-shot and periodic software timers utilizing a `Clock` implementation
+- `Timer` unit tests
+- Fallibility to `Clock` methods
 - `Instant::duration_until()` with order checking
 - Order checking to `Instant::duration_since()`
 - Bounds checking on `Instant` impls of Add/Sub
@@ -12,7 +14,7 @@
 
 ### Changed
 
-- Add `&mut self` to `Clock` functions (make stateful, or at least allow stateful implementations)
+- Add `&self` to `Clock` functions (make stateful, or at least allow stateful implementations)
 - All time-type inner types from signed to unsigned
 - `Instant::duration_since()` return type to `Result`
 - Refactor `examples/nrf52_dk`

@@ -1,6 +1,7 @@
 //! The `Clock` trait can be implemented over hardware timers or other time-keeping device
 
-use crate::{time_int::TimeInt, Duration, Instant, Period};
+use crate::timer::param;
+use crate::{time_int::TimeInt, Duration, Instant, Period, Timer};
 use core::convert::TryFrom;
 
 /// Potential `Clock` errors
@@ -40,5 +41,10 @@ pub trait Clock: Sized {
         let end = start + dur;
         while self.now()? < end {}
         Ok(())
+    }
+
+    /// Spawn a new, `OneShot` [`Timer`] from this clock
+    fn new_timer<Dur: Duration>(&self) -> Timer<param::OneShot, param::Disarmed, Self, Dur> {
+        Timer::<param::None, param::None, Self, Dur>::new(&self)
     }
 }
