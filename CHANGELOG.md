@@ -4,6 +4,8 @@
 
 ### Added
 
+- A `Timer` type supporting one-shot and periodic software timers utilizing a `Clock` implementation
+- `Timer` unit tests
 - Changelog back to v0.5.0 release
 
 ### Changed
