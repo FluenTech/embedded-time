@@ -13,7 +13,7 @@
 //! [`Milliseconds`]: units::Milliseconds
 //!
 //! ## Definitions
-//! **Clock**: Any entity that periodically counts (ie a hardware timer peripheral). Generally,
+//! **Clock**: Any entity that periodically counts (ie a hardware timer/counter peripheral). Generally,
 //! this needs to be monotonic. A wrapping clock is considered monotonic in this context as long as
 //! it fulfills the other requirements.
 //!

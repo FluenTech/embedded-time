@@ -13,10 +13,8 @@ pub trait Clock: Sized {
     fn now() -> Instant<Self>;
 
     /// Blocking delay
-    fn delay<Dur>(dur: Dur)
+    fn delay<Dur: Duration>(dur: Dur)
     where
-        Dur: Duration,
-        Dur::Rep: TimeInt,
         Self::Rep: TryFrom<Dur::Rep>,
     {
         let start = Self::now();
