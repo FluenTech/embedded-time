@@ -26,6 +26,8 @@
 //! **Wrapping Clock**: A clock that when at its maximum value, the next count is the minimum
 //! value.
 //!
+//! **Timer**: An entity that counts toward an expiration.
+//!
 //! **Instant**: A specific instant in time ("time-point") read from a clock.
 //!
 //! **Duration**: The difference of two instances. The time that has elapsed since an instant. A
@@ -77,6 +79,7 @@ mod frequency;
 mod instant;
 mod period;
 mod time_int;
+mod timer;
 
 pub use clock::Clock;
 use core::{convert::Infallible, fmt};
@@ -84,6 +87,7 @@ pub use duration::Duration;
 pub use instant::Instant;
 pub use period::Period;
 pub use time_int::TimeInt;
+pub use timer::Timer;
 
 /// Public _traits_
 ///
