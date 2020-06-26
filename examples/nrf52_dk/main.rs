@@ -5,7 +5,7 @@ extern crate panic_rtt;
 
 use cortex_m::mutex::CriticalSectionMutex as Mutex;
 use cortex_m_rt::entry;
-use embedded_time::{self as time, Clock, Instant, Period, TimeInt};
+use embedded_time::{self as time, traits::*, Clock, Instant, Period};
 use mutex_trait::Mutex as _;
 
 pub mod nrf52 {
@@ -40,8 +40,8 @@ pub mod nrf52 {
 pub struct SysClock;
 
 impl time::Clock for SysClock {
-    type Rep = i64;
-    const PERIOD: Period = Period::new(1, 16_000_000);
+    type Rep = u64;
+    const PERIOD: Period = <Period>::new(1, 16_000_000);
 
     fn now() -> Instant<Self> {
         let ticks = (&CLOCK64).lock(|clock| match clock {
@@ -156,12 +156,12 @@ where
         led2.set_high()?;
         led3.set_high()?;
         led4.set_low()?;
-        SysClock::delay(250.milliseconds());
+        SysClock::delay(250_u32.milliseconds());
 
         led1.set_high()?;
         led2.set_low()?;
         led3.set_low()?;
         led4.set_high()?;
-        SysClock::delay(250.milliseconds());
+        SysClock::delay(250_u32.milliseconds());
     }
 }

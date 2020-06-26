@@ -6,12 +6,12 @@ pub(crate) mod units {
 
     /// A frequency unit type
     #[derive(Ord, PartialOrd, Eq, PartialEq, Debug)]
-    pub struct Hertz<T: TimeInt = i32>(pub T);
+    pub struct Hertz<T: TimeInt = u32>(pub T);
 
     impl<T: TimeInt> Hertz<T> {
         /// ```rust
         /// # use embedded_time::{Period, units::*};
-        /// assert_eq!(Hertz(1_000).into_period(), Period::new(1, 1_000));
+        /// assert_eq!(Hertz(1_000_u32).into_period(), <Period>::new(1, 1_000));
         /// ```
         pub fn into_period(self) -> Period<T> {
             Period::from_frequency(self)
@@ -19,7 +19,7 @@ pub(crate) mod units {
 
         /// ```rust
         /// # use embedded_time::{Period, units::*};
-        /// assert_eq!(Hertz::from_period(Period::new(1, 1_000)), Hertz(1_000));
+        /// assert_eq!(Hertz::from_period(Period::new(1, 1_000)), Hertz(1_000_u32));
         /// ```
         pub fn from_period(period: Period<T>) -> Self {
             period.to_frequency()
@@ -34,7 +34,7 @@ pub(crate) mod units {
 
         /// ```rust
         /// # use embedded_time::units::*;
-        /// assert_eq!(Hertz(100) * 3, Hertz(300));
+        /// assert_eq!(Hertz(100_u32) * 3_u32, Hertz(300_u32));
         /// ```
         fn mul(self, rhs: Rhs) -> Self::Output {
             Self(self.0 * <T as convert::From<Rhs>>::from(rhs))
@@ -49,7 +49,7 @@ pub(crate) mod units {
 
         /// ```rust
         /// # use embedded_time::units::*;
-        /// assert_eq!(Hertz(300) / 3, Hertz(100));
+        /// assert_eq!(Hertz(300_u32) / 3_u32, Hertz(100_u32));
         /// ```
         fn div(self, rhs: Rhs) -> Self::Output {
             Self(self.0 / <T as convert::From<Rhs>>::from(rhs))
