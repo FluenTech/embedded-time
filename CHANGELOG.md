@@ -4,10 +4,15 @@
 
 ### Added
 
+- `Instant::duration_until()` with order checking
+- Order checking to `Instant::duration_since()`
+- Bounds checking on `Instant` impls of Add/Sub
 - Changelog back to v0.5.0 release
 
 ### Changed
 
+- All time-type inner types from signed to unsigned
+- `Instant::duration_since()` return type to `Result`
 - Refactor `examples/nrf52_dk`
 
 [unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.5.2...HEAD
