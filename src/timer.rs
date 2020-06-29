@@ -1,8 +1,12 @@
-use crate::timer::param::{Armed, Disarmed, OneShot, Periodic, Running};
-use crate::{Duration, Instant, TimeInt};
-use core::convert::TryFrom;
-use core::marker::PhantomData;
-use core::ops::Add;
+use crate::duration::TryConvertFrom;
+use crate::timer::param::*;
+use crate::{prelude::*, units::*, Duration, Instant, TimeInt};
+use core::{
+    convert::{TryFrom, TryInto},
+    marker::PhantomData,
+    ops::{Add, Sub},
+    prelude::v1::*,
+};
 
 pub mod param {
     #[derive(Debug)]
@@ -33,10 +37,11 @@ pub struct Timer<Type, State, Clock: crate::Clock, Dur: Duration> {
 }
 
 impl<Clock: crate::Clock, Dur: Duration> Timer<param::None, param::None, Clock, Dur> {
+    /// Construct a new, one-shot timer
     pub fn new() -> Timer<OneShot, Disarmed, Clock, Dur> {
         Timer::<OneShot, Disarmed, Clock, Dur> {
-            duration: None,
-            expiration: None,
+            duration: Option::None,
+            expiration: Option::None,
             _type: PhantomData,
             _state: PhantomData,
         }
@@ -44,6 +49,7 @@ impl<Clock: crate::Clock, Dur: Duration> Timer<param::None, param::None, Clock, 
 }
 
 impl<Type, State, Clock: crate::Clock, Dur: Duration> Timer<Type, State, Clock, Dur> {
+    /// Change timer type to one-shot
     pub fn into_oneshot(self) -> Timer<OneShot, State, Clock, Dur> {
         Timer::<OneShot, State, Clock, Dur> {
             duration: self.duration,
@@ -53,6 +59,7 @@ impl<Type, State, Clock: crate::Clock, Dur: Duration> Timer<Type, State, Clock, 
         }
     }
 
+    /// Change timer type into periodic
     pub fn into_periodic(self) -> Timer<Periodic, State, Clock, Dur> {
         Timer::<Periodic, State, Clock, Dur> {
             duration: self.duration,
@@ -64,10 +71,13 @@ impl<Type, State, Clock: crate::Clock, Dur: Duration> Timer<Type, State, Clock, 
 }
 
 impl<Type, Clock: crate::Clock, Dur: Duration> Timer<Type, Disarmed, Clock, Dur> {
+    /// Set the [`Duration`] of the timer
+    ///
+    /// This _arms_ the timer (makes it ready to run).
     pub fn set_duration(self, duration: Dur) -> Timer<Type, Armed, Clock, Dur> {
         Timer::<Type, Armed, Clock, Dur> {
             duration: Some(duration),
-            expiration: None,
+            expiration: Option::None,
             _type: PhantomData,
             _state: PhantomData,
         }
@@ -75,6 +85,7 @@ impl<Type, Clock: crate::Clock, Dur: Duration> Timer<Type, Disarmed, Clock, Dur>
 }
 
 impl<Type, Clock: crate::Clock, Dur: Duration> Timer<Type, Armed, Clock, Dur> {
+    /// Start the _armed_ timer from this instant
     pub fn start(self) -> Timer<Type, Running, Clock, Dur>
     where
         Instant<Clock>: Add<Dur, Output = Instant<Clock>>,
@@ -92,9 +103,39 @@ impl<Type, Clock: crate::Clock, Dur: Duration> Timer<Type, Running, Clock, Dur> 
     fn _is_expired(&self) -> bool {
         Clock::now() >= self.expiration.unwrap()
     }
+
+    /// Returns the [`Duration`] of time elapsed since it was started
+    ///
+    /// The units of the [`Duration`] are the same as that used with [`set_duration()`].
+    pub fn elapsed(&self) -> Dur
+    where
+        Dur::Rep: TryFrom<Clock::Rep>,
+        Clock::Rep: TryFrom<Dur::Rep>,
+    {
+        Clock::now()
+            .duration_since(&(self.expiration.unwrap() - self.duration.unwrap()))
+            .unwrap()
+    }
+
+    /// Returns the [`Duration`] until the expiration of the timer
+    ///
+    /// The units of the [`Duration`] are the same as that used with [`set_duration()`].
+    pub fn remaining(&self) -> Dur
+    where
+        Dur::Rep: TryFrom<Clock::Rep>,
+        Clock::Rep: TryFrom<Dur::Rep>,
+        Dur: TryConvertFrom<Seconds<i32>>,
+    {
+        if let Some(duration) = self.expiration.unwrap().duration_since(&Clock::now()) {
+            duration
+        } else {
+            0.seconds().try_convert_into().unwrap()
+        }
+    }
 }
 
 impl<Clock: crate::Clock, Dur: Duration> Timer<OneShot, Running, Clock, Dur> {
+    /// Block until the timer has expired
     pub fn wait(self) {
         // since the timer is running, _is_expired() will return a value
         while !self._is_expired() {}
@@ -102,12 +143,18 @@ impl<Clock: crate::Clock, Dur: Duration> Timer<OneShot, Running, Clock, Dur> {
 }
 
 impl<Clock: crate::Clock, Dur: Duration> Timer<OneShot, Running, Clock, Dur> {
+    /// Check whether the timer has expired
+    ///
+    /// The timer is not restarted
     pub fn is_expired(&self) -> bool {
         self._is_expired()
     }
 }
 
 impl<Clock: crate::Clock, Dur: Duration> Timer<Periodic, Running, Clock, Dur> {
+    /// Block until the timer has expired
+    ///
+    /// The timer is restarted
     pub fn wait(self) -> Self
     where
         Instant<Clock>: Add<Dur, Output = Instant<Clock>>,
@@ -125,6 +172,9 @@ impl<Clock: crate::Clock, Dur: Duration> Timer<Periodic, Running, Clock, Dur> {
         }
     }
 
+    /// Check whether a _periodic_ timer has elapsed
+    ///
+    /// The timer is restarted if it has elapsed.
     pub fn period_complete(&mut self) -> bool
     where
         Instant<Clock>: Add<Dur, Output = Instant<Clock>>,
@@ -221,5 +271,30 @@ mod test {
 
         assert!(timer.period_complete());
         assert!(timer.period_complete());
+    }
+
+    #[test]
+    fn read_timer() {
+        init_start_time();
+
+        let timer = Clock::new_timer().set_duration(2.seconds()).start();
+
+        assert_eq!(timer.elapsed(), 0.seconds());
+        assert_eq!(timer.remaining(), 1.seconds());
+
+        std::thread::sleep(std::time::Duration::from_secs(1));
+
+        assert_eq!(timer.elapsed(), 1.seconds());
+        assert_eq!(timer.remaining(), 0.seconds());
+
+        std::thread::sleep(std::time::Duration::from_secs(1));
+
+        assert_eq!(timer.elapsed(), 2.seconds());
+        assert_eq!(timer.remaining(), (0).seconds());
+
+        std::thread::sleep(std::time::Duration::from_secs(1));
+
+        assert_eq!(timer.elapsed(), 3.seconds());
+        assert_eq!(timer.remaining(), (-1).seconds());
     }
 }
