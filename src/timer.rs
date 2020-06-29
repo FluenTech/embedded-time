@@ -1,14 +1,9 @@
 use crate::duration::TryConvertFrom;
 use crate::timer::param::*;
 use crate::{prelude::*, units::*, Duration, Instant, TimeInt};
-use core::{
-    convert::{TryFrom, TryInto},
-    marker::PhantomData,
-    ops::{Add, Sub},
-    prelude::v1::*,
-};
+use core::{convert::TryFrom, marker::PhantomData, ops::Add, prelude::v1::*};
 
-pub mod param {
+pub(crate) mod param {
     #[derive(Debug)]
     pub struct None;
 
@@ -28,6 +23,8 @@ pub mod param {
     pub struct OneShot;
 }
 
+/// A `Timer` counts toward an expiration, can be polled for elapsed and remaining time, as
+/// well as optionally execute a task upon expiration.
 #[derive(Debug)]
 pub struct Timer<Type, State, Clock: crate::Clock, Dur: Duration> {
     duration: Option<Dur>,
@@ -37,7 +34,7 @@ pub struct Timer<Type, State, Clock: crate::Clock, Dur: Duration> {
 }
 
 impl<Clock: crate::Clock, Dur: Duration> Timer<param::None, param::None, Clock, Dur> {
-    /// Construct a new, one-shot timer
+    /// Construct a new, `OneShot` `Timer`
     pub fn new() -> Timer<OneShot, Disarmed, Clock, Dur> {
         Timer::<OneShot, Disarmed, Clock, Dur> {
             duration: Option::None,
@@ -71,7 +68,7 @@ impl<Type, State, Clock: crate::Clock, Dur: Duration> Timer<Type, State, Clock, 
 }
 
 impl<Type, Clock: crate::Clock, Dur: Duration> Timer<Type, Disarmed, Clock, Dur> {
-    /// Set the [`Duration`] of the timer
+    /// Set the [`Duration`](trait.Duration.html) of the timer
     ///
     /// This _arms_ the timer (makes it ready to run).
     pub fn set_duration(self, duration: Dur) -> Timer<Type, Armed, Clock, Dur> {
@@ -104,9 +101,10 @@ impl<Type, Clock: crate::Clock, Dur: Duration> Timer<Type, Running, Clock, Dur> 
         Clock::now() >= self.expiration.unwrap()
     }
 
-    /// Returns the [`Duration`] of time elapsed since it was started
+    /// Returns the [`Duration`](trait.Duration.html) of time elapsed since it was started
     ///
-    /// The units of the [`Duration`] are the same as that used with [`set_duration()`].
+    /// The units of the [`Duration`](trait.Duration.html) are the same as that used with
+    /// [`set_duration()`](struct.Timer.html#method.set_duration).
     pub fn elapsed(&self) -> Dur
     where
         Dur::Rep: TryFrom<Clock::Rep>,
@@ -117,9 +115,10 @@ impl<Type, Clock: crate::Clock, Dur: Duration> Timer<Type, Running, Clock, Dur> 
             .unwrap()
     }
 
-    /// Returns the [`Duration`] until the expiration of the timer
+    /// Returns the [`Duration`](trait.Duration.html) until the expiration of the timer
     ///
-    /// The units of the [`Duration`] are the same as that used with [`set_duration()`].
+    /// The units of the [`Duration`](trait.Duration.html) are the same as that used with
+    /// [`set_duration()`](struct.Timer.html#method.set_duration).
     pub fn remaining(&self) -> Dur
     where
         Dur::Rep: TryFrom<Clock::Rep>,
@@ -194,8 +193,8 @@ impl<Clock: crate::Clock, Dur: Duration> Timer<Periodic, Running, Clock, Dur> {
 mod test {
     #![allow(unsafe_code)]
 
-    use crate::{units::*, Clock as _, Duration, Instant, Period, TimeInt, Timer};
-    use std::convert::{TryFrom, TryInto};
+    use crate::{units::*, Clock as _, Duration, Instant, Period, TimeInt};
+    use std::convert::TryFrom;
 
     #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
     struct Clock;
@@ -226,10 +225,12 @@ mod test {
     fn oneshot_wait() {
         init_start_time();
 
+        // WHEN blocking on a timer
         Clock::new_timer().set_duration(1.seconds()).start().wait();
 
+        // THEN the block occurs for _at least_ the given duration
         unsafe {
-            assert!(Seconds::<i32>::try_from(START.unwrap().elapsed()).unwrap() == 1.seconds());
+            assert!(Seconds::<i32>::try_from(START.unwrap().elapsed()).unwrap() >= 1.seconds());
         }
     }
 
@@ -252,7 +253,7 @@ mod test {
             assert!(Seconds::<i32>::try_from(START.unwrap().elapsed()).unwrap() == 2.seconds());
         }
 
-        let timer = timer.wait();
+        timer.wait();
         unsafe {
             assert!(Seconds::<i32>::try_from(START.unwrap().elapsed()).unwrap() == 3.seconds());
         }
