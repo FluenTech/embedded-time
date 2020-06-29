@@ -156,12 +156,18 @@ where
         led2.set_high()?;
         led3.set_high()?;
         led4.set_low()?;
-        SysClock::delay(250.milliseconds());
+        SysClock::new_timer()
+            .set_duration(250.milliseconds())
+            .start()
+            .wait();
 
         led1.set_high()?;
         led2.set_low()?;
         led3.set_low()?;
         led4.set_high()?;
-        SysClock::delay(250.milliseconds());
+        SysClock::new_timer()
+            .set_duration(250.milliseconds())
+            .start()
+            .wait();
     }
 }

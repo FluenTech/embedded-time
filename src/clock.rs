@@ -12,7 +12,7 @@ pub trait Clock: Sized {
     /// Get the current Instant
     fn now() -> Instant<Self>;
 
-    /// Spawn a new, `OneShot` timer from this clock
+    /// Spawn a new, `OneShot` [`Timer`] from this clock
     fn new_timer<Dur: Duration>() -> Timer<OneShot, Disarmed, Self, Dur> {
         Timer::<param::None, param::None, Self, Dur>::new()
     }
