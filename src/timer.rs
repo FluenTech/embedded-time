@@ -190,93 +190,85 @@ impl<Clock: crate::Clock, Dur: Duration> Timer<Periodic, Running, Clock, Dur> {
 }
 
 #[cfg(test)]
+#[allow(unused_imports)]
+#[allow(unsafe_code)]
 mod test {
-    #![allow(unsafe_code)]
-
     use crate::{units::*, Clock as _, Duration, Instant, Period, TimeInt};
     use std::convert::TryFrom;
+    use std::sync::atomic::{AtomicI64, Ordering};
+    use std::thread;
 
     #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
     struct Clock;
 
-    static mut START: Option<std::time::Instant> = None;
+    static TICKS: AtomicI64 = AtomicI64::new(0);
 
     impl crate::Clock for Clock {
         type Rep = i64;
-        const PERIOD: Period = Period::new(1, 64_000_000);
+        const PERIOD: Period = Period::new(1, 1_000);
 
         fn now() -> Instant<Self> {
-            let since_start = unsafe { START.unwrap() }.elapsed();
-            let ticks = Nanoseconds::<i64>::try_from(since_start)
-                .unwrap()
-                .into_ticks(Self::PERIOD)
-                .unwrap();
-            Instant::new(ticks)
-        }
-    }
-
-    fn init_start_time() {
-        unsafe {
-            START = Some(std::time::Instant::now());
+            Instant::new(TICKS.load(Ordering::Acquire))
         }
     }
 
     #[test]
     fn oneshot_wait() {
-        init_start_time();
+        init_ticks();
 
-        // WHEN blocking on a timer
-        let timer = Clock::new_timer().set_duration(1.seconds()).start().wait();
+        let timer = Clock::new_timer().set_duration(1.seconds()).start();
+        let timer_handle = thread::spawn(move || timer.wait());
 
-        // THEN the block occurs for _at least_ the given duration
-        unsafe {
-            assert!(Seconds::<i32>::try_from(START.unwrap().elapsed()).unwrap() >= 1.seconds());
-        }
+        add_to_ticks(1.seconds());
 
-        // WHEN blocking on a timer
-        timer.start().wait();
+        let result = timer_handle.join();
 
-        // THEN the block occurs for _at least_ the given duration
-        unsafe {
-            assert!(Seconds::<i32>::try_from(START.unwrap().elapsed()).unwrap() >= 2.seconds());
-        }
+        assert!(result.is_ok());
+
+        let timer = result.unwrap().start();
+        let timer_handle = thread::spawn(move || timer.wait());
+
+        add_to_ticks(1.seconds());
+
+        assert!(timer_handle.join().is_ok());
     }
 
     #[test]
     fn periodic_wait() {
-        init_start_time();
+        init_ticks();
 
         let timer = Clock::new_timer()
             .into_periodic()
             .set_duration(1.seconds())
-            .start()
-            .wait();
+            .start();
+        let timer_handle = thread::spawn(move || timer.wait());
 
-        unsafe {
-            assert!(Seconds::<i32>::try_from(START.unwrap().elapsed()).unwrap() == 1.seconds());
-        }
+        add_to_ticks(1.seconds());
 
-        let timer = timer.wait();
-        unsafe {
-            assert!(Seconds::<i32>::try_from(START.unwrap().elapsed()).unwrap() == 2.seconds());
-        }
+        let result = timer_handle.join();
 
-        timer.wait();
-        unsafe {
-            assert!(Seconds::<i32>::try_from(START.unwrap().elapsed()).unwrap() == 3.seconds());
-        }
+        assert!(result.is_ok());
+
+        let timer = result.unwrap();
+
+        // WHEN blocking on a timer
+        let timer_handle = thread::spawn(move || timer.wait());
+
+        add_to_ticks(1.seconds());
+
+        assert!(timer_handle.join().is_ok());
     }
 
     #[test]
     fn periodic_expiration() {
-        init_start_time();
+        init_ticks();
 
         let mut timer = Clock::new_timer()
             .into_periodic()
             .set_duration(1.seconds())
             .start();
 
-        std::thread::sleep(std::time::Duration::from_secs(2));
+        add_to_ticks(2.seconds());
 
         assert!(timer.period_complete());
         assert!(timer.period_complete());
@@ -284,26 +276,39 @@ mod test {
 
     #[test]
     fn read_timer() {
-        init_start_time();
+        init_ticks();
 
         let timer = Clock::new_timer().set_duration(2.seconds()).start();
+
+        add_to_ticks(1.milliseconds());
 
         assert_eq!(timer.elapsed(), 0.seconds());
         assert_eq!(timer.remaining(), 1.seconds());
 
-        std::thread::sleep(std::time::Duration::from_secs(1));
+        add_to_ticks(1.seconds());
 
         assert_eq!(timer.elapsed(), 1.seconds());
         assert_eq!(timer.remaining(), 0.seconds());
 
-        std::thread::sleep(std::time::Duration::from_secs(1));
+        add_to_ticks(1.seconds());
 
         assert_eq!(timer.elapsed(), 2.seconds());
         assert_eq!(timer.remaining(), (0).seconds());
 
-        std::thread::sleep(std::time::Duration::from_secs(1));
+        add_to_ticks(1.seconds());
 
         assert_eq!(timer.elapsed(), 3.seconds());
         assert_eq!(timer.remaining(), (-1).seconds());
+    }
+
+    fn init_ticks() {}
+
+    fn add_to_ticks<Dur: Duration>(duration: Dur) {
+        let ticks = TICKS.load(Ordering::Acquire);
+        let ticks = ticks
+            + duration
+                .into_ticks::<<Clock as crate::Clock>::Rep>(Clock::PERIOD)
+                .unwrap();
+        TICKS.store(ticks, Ordering::Release);
     }
 }
