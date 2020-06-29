@@ -84,7 +84,7 @@ pub use duration::Duration;
 pub use instant::Instant;
 pub use period::Period;
 pub use time_int::TimeInt;
-pub use timer::Timer;
+pub use timer::{Timer, TimerBuilder};
 
 /// Public _traits_
 ///

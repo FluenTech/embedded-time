@@ -1,5 +1,8 @@
-use crate::timer::param::{self, Disarmed, OneShot};
-use crate::{time_int::TimeInt, Duration, Instant, Period, Timer};
+use crate::{
+    time_int::TimeInt,
+    timer::{param, TimerBuilder},
+    Duration, Instant, Period,
+};
 
 /// An abstraction for time-keeping items such as hardware timers
 pub trait Clock: Sized {
@@ -12,8 +15,11 @@ pub trait Clock: Sized {
     /// Get the current Instant
     fn now() -> Instant<Self>;
 
-    /// Spawn a new, `OneShot` [`Timer`] from this clock
-    fn new_timer<Dur: Duration>() -> Timer<OneShot, Disarmed, Self, Dur> {
-        Timer::<param::None, param::None, Self, Dur>::new()
+    /// Construct a new [`TimerBuilder`] based on this `Clock`
+    ///
+    /// The new [`TimerBuilder`]'s type is `OneShot`, but can be changed to
+    /// `Periodic` with the [`TimerBuilder::into_periodic()`] method
+    fn new_timer<Dur: Duration>() -> TimerBuilder<param::OneShot, param::Disarmed, Self, Dur> {
+        TimerBuilder::<param::None, param::None, Self, Dur>::new()
     }
 }
