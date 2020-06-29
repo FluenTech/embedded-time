@@ -135,9 +135,11 @@ impl<Type, Clock: crate::Clock, Dur: Duration> Timer<Type, Running, Clock, Dur> 
 
 impl<Clock: crate::Clock, Dur: Duration> Timer<OneShot, Running, Clock, Dur> {
     /// Block until the timer has expired
-    pub fn wait(self) {
+    pub fn wait(self) -> Timer<OneShot, Armed, Clock, Dur> {
         // since the timer is running, _is_expired() will return a value
         while !self._is_expired() {}
+
+        Timer::<param::None, param::None, Clock, Dur>::new().set_duration(self.duration.unwrap())
     }
 
     /// Check whether the timer has expired
@@ -224,11 +226,19 @@ mod test {
         init_start_time();
 
         // WHEN blocking on a timer
-        Clock::new_timer().set_duration(1.seconds()).start().wait();
+        let timer = Clock::new_timer().set_duration(1.seconds()).start().wait();
 
         // THEN the block occurs for _at least_ the given duration
         unsafe {
             assert!(Seconds::<i32>::try_from(START.unwrap().elapsed()).unwrap() >= 1.seconds());
+        }
+
+        // WHEN blocking on a timer
+        timer.start().wait();
+
+        // THEN the block occurs for _at least_ the given duration
+        unsafe {
+            assert!(Seconds::<i32>::try_from(START.unwrap().elapsed()).unwrap() >= 2.seconds());
         }
     }
 
