@@ -1,6 +1,5 @@
-use crate::timer::param::*;
-use crate::{traits::*, Duration, Instant};
-use core::{marker::PhantomData, ops::Add, prelude::v1::*};
+use crate::{duration::TryConvertFrom, timer::param::*, traits::*, units::*, Duration, Instant};
+use core::{convert::TryFrom, marker::PhantomData, ops::Add, prelude::v1::*};
 
 pub(crate) mod param {
     #[derive(Debug)]
@@ -105,13 +104,53 @@ impl<Type, Clock: crate::Clock, Dur: Duration> Timer<'_, Type, Running, Clock, D
     fn _is_expired(&self) -> bool {
         self.clock.now().unwrap() >= self.expiration.unwrap()
     }
+
+    /// Returns the [`Duration`](trait.Duration.html) of time elapsed since it was started
+    ///
+    /// The units of the [`Duration`](trait.Duration.html) are the same as that used with
+    /// [`set_duration()`](struct.Timer.html#method.set_duration).
+    pub fn elapsed(&self) -> Dur
+    where
+        Dur::Rep: TryFrom<Clock::Rep>,
+        Clock::Rep: TryFrom<Dur::Rep>,
+    {
+        self.clock
+            .now()
+            .unwrap()
+            .duration_since(&(self.expiration.unwrap() - self.duration.unwrap()))
+            .unwrap()
+    }
+
+    /// Returns the [`Duration`](trait.Duration.html) until the expiration of the timer
+    ///
+    /// The units of the [`Duration`](trait.Duration.html) are the same as that used with
+    /// [`set_duration()`](struct.Timer.html#method.set_duration).
+    pub fn remaining(&self) -> Dur
+    where
+        Dur::Rep: TryFrom<Clock::Rep>,
+        Clock::Rep: TryFrom<Dur::Rep>,
+        Dur: TryConvertFrom<Seconds<u32>>,
+    {
+        if let Ok(duration) = self
+            .expiration
+            .unwrap()
+            .duration_since(&self.clock.now().unwrap())
+        {
+            duration
+        } else {
+            0.seconds().try_convert_into().unwrap()
+        }
+    }
 }
 
 impl<'a, Clock: crate::Clock, Dur: Duration> Timer<'a, OneShot, Running, Clock, Dur> {
     /// Block until the timer has expired
-    pub fn wait(self) {
+    pub fn wait(self) -> Timer<'a, OneShot, Armed, Clock, Dur> {
         // since the timer is running, _is_expired() will return a value
         while !self._is_expired() {}
+
+        Timer::<param::None, param::None, Clock, Dur>::new(self.clock)
+            .set_duration(self.duration.unwrap())
     }
 
     /// Check whether the timer has expired
@@ -207,7 +246,7 @@ mod test {
             .wait();
 
         unsafe {
-            assert!(Seconds::<u32>::try_from(START.unwrap().elapsed()).unwrap() == 1_u32.seconds());
+            assert!(Seconds::<u32>::try_from(START.unwrap().elapsed()).unwrap() >= 1_u32.seconds());
         }
     }
 
@@ -224,17 +263,17 @@ mod test {
             .wait();
 
         unsafe {
-            assert!(Seconds::<u32>::try_from(START.unwrap().elapsed()).unwrap() == 1_u32.seconds());
+            assert!(Seconds::<u32>::try_from(START.unwrap().elapsed()).unwrap() >= 1_u32.seconds());
         }
 
         let timer = timer.wait();
         unsafe {
-            assert!(Seconds::<u32>::try_from(START.unwrap().elapsed()).unwrap() == 2_u32.seconds());
+            assert!(Seconds::<u32>::try_from(START.unwrap().elapsed()).unwrap() >= 2_u32.seconds());
         }
 
-        let timer = timer.wait();
+        timer.wait();
         unsafe {
-            assert!(Seconds::<u32>::try_from(START.unwrap().elapsed()).unwrap() == 3_u32.seconds());
+            assert!(Seconds::<u32>::try_from(START.unwrap().elapsed()).unwrap() >= 3_u32.seconds());
         }
     }
 
@@ -253,5 +292,31 @@ mod test {
 
         assert!(timer.period_complete());
         assert!(timer.period_complete());
+    }
+
+    #[test]
+    fn read_timer() {
+        init_start_time();
+        let clock = Clock;
+
+        let timer = clock.new_timer().set_duration(2_u32.seconds()).start();
+
+        assert_eq!(timer.elapsed(), 0_u32.seconds());
+        assert_eq!(timer.remaining(), 1_u32.seconds());
+
+        std::thread::sleep(std::time::Duration::from_secs(1));
+
+        assert_eq!(timer.elapsed(), 1_u32.seconds());
+        assert_eq!(timer.remaining(), 0_u32.seconds());
+
+        std::thread::sleep(std::time::Duration::from_secs(1));
+
+        assert_eq!(timer.elapsed(), 2_u32.seconds());
+        assert_eq!(timer.remaining(), 0_u32.seconds());
+
+        std::thread::sleep(std::time::Duration::from_secs(1));
+
+        assert_eq!(timer.elapsed(), 3_u32.seconds());
+        assert_eq!(timer.remaining(), 0_u32.seconds());
     }
 }
