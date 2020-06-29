@@ -239,7 +239,7 @@ mod test {
         init_start_time();
         let clock = Clock;
 
-        clock
+        let timer = clock
             .new_timer()
             .set_duration(1_u32.seconds())
             .start()
@@ -247,6 +247,14 @@ mod test {
 
         unsafe {
             assert!(Seconds::<u32>::try_from(START.unwrap().elapsed()).unwrap() >= 1_u32.seconds());
+        }
+
+        // WHEN blocking on a timer
+        timer.start().wait();
+
+        // THEN the block occurs for _at least_ the given duration
+        unsafe {
+            assert!(Seconds::<u32>::try_from(START.unwrap().elapsed()).unwrap() >= 2_u32.seconds());
         }
     }
 
