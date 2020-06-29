@@ -22,5 +22,8 @@ panic_rtt = "0.3.0"
 nrf52832-hal = { version = "0.10.0", default-features = false, features = ["rt", "xxAA-package"] }
 mutex-trait = "0.2.0"
 
+[target.'cfg(not(target_arch = "arm"))'.dev-dependencies]
+crossbeam-utils = "0.7.2"
+
 [patch.crates-io]
 cortex-m = { git = "https://github.com/rust-embedded/cortex-m", branch = "mutex_add" }

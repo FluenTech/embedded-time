@@ -11,6 +11,7 @@
 - Order checking to `Instant::duration_since()`
 - Bounds checking on `Instant` impls of Add/Sub
 - Changelog back to v0.5.0 release
+- [`crossbeam-utils`](https://crates.io/crates/crossbeam-utils) dev-dependency for scoped threads in tests
 
 ### Changed
 
