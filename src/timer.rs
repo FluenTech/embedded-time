@@ -81,7 +81,6 @@ impl<Type, Clock: crate::Clock, Dur: Duration> Timer<Type, Disarmed, Clock, Dur>
         }
     }
 }
-
 impl<Type, Clock: crate::Clock, Dur: Duration> Timer<Type, Armed, Clock, Dur> {
     /// Start the _armed_ timer from this instant
     pub fn start(self) -> Timer<Type, Running, Clock, Dur>
@@ -140,9 +139,7 @@ impl<Clock: crate::Clock, Dur: Duration> Timer<OneShot, Running, Clock, Dur> {
         // since the timer is running, _is_expired() will return a value
         while !self._is_expired() {}
     }
-}
 
-impl<Clock: crate::Clock, Dur: Duration> Timer<OneShot, Running, Clock, Dur> {
     /// Check whether the timer has expired
     ///
     /// The timer is not restarted
