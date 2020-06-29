@@ -35,6 +35,7 @@ pub struct Timer<Type, State, Clock: crate::Clock, Dur: Duration> {
 
 impl<Clock: crate::Clock, Dur: Duration> Timer<param::None, param::None, Clock, Dur> {
     /// Construct a new, `OneShot` `Timer`
+    #[allow(clippy::new_ret_no_self)]
     pub fn new() -> Timer<OneShot, Disarmed, Clock, Dur> {
         Timer::<OneShot, Disarmed, Clock, Dur> {
             duration: Option::None,
