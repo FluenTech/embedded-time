@@ -2,20 +2,26 @@
 //! hardware to generate [`Instant`]s and using [`Duration`]s ([`Seconds`], [`Milliseconds`], etc)
 //! in embedded systems. The approach is similar to the C++ `chrono` library. A [`Duration`]
 //! consists of an integer (whose type is chosen by the user to be either [`i32`] or [`i64`]) as
-//! well as a `const` ratio where the integer value multiplied by the ratio is the [`Duration`] in
-//! seconds. Put another way, the ratio is the precision of the LSbit of the integer. This structure
-//! avoids unnecessary arithmetic. For example, if the [`Duration`] type is [`Milliseconds`], a call
-//! to the [`Duration::count()`] method simply returns the stored integer value directly which is
-//! the number of milliseconds being represented. Conversion arithmetic is only performed when
-//! explicitly converting between time units.
+//! well as a `const` fraction ([`Period`]) where the integer value multiplied by the fraction is
+//! the [`Duration`] in seconds. Put another way, the ratio is the precision of the LSbit of the
+//! integer. This structure avoids unnecessary arithmetic. For example, if the [`Duration`] type is
+//! [`Milliseconds`], a call to the [`Duration::count()`] method simply returns the stored integer
+//! value directly which is the number of milliseconds being represented. Conversion arithmetic is
+//! only performed when explicitly converting between time units.
+//!
+//! In addition frequency-type types are available including [`Hertz`] ([`i32`]) and it's reciprocal
+//! [`Period`] ([`i32`]/[`i32`] seconds).
 //!
 //! [`Seconds`]: units::Seconds
 //! [`Milliseconds`]: units::Milliseconds
+//! [`Hertz`]: units::Hertz
+//! [`Duration`]: trait.Duration.html
+//! [`Clock`]: trait.Clock.html
 //!
 //! ## Definitions
-//! **Clock**: Any entity that periodically counts (ie a hardware timer/counter peripheral). Generally,
-//! this needs to be monotonic. A wrapping clock is considered monotonic in this context as long as
-//! it fulfills the other requirements.
+//! **Clock**: Any entity that periodically counts (ie a hardware timer/counter peripheral).
+//! Generally, this needs to be monotonic. A wrapping clock is considered monotonic in this context
+//! as long as it fulfills the other requirements.
 //!
 //! **Wrapping Clock**: A clock that when at its maximum value, the next count is the minimum
 //! value.

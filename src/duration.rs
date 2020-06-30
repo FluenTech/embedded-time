@@ -210,7 +210,8 @@ pub trait Duration: Sized + Copy + fmt::Display {
     /// The inner type of the `Duration` representing the count of the implementation unit
     type Rep: TimeInt;
 
-    /// A fraction/ratio representing the period of the count's LSbit. The precision of the `Duration`.
+    /// A fraction/ratio representing the period of the count's LSbit. The precision of the
+    /// `Duration`.
     const PERIOD: Period;
 
     /// Not generally useful or needed as the duration can be constructed like this:

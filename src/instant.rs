@@ -4,7 +4,7 @@ use crate::Duration;
 use core::{cmp::Ordering, convert::TryFrom, ops};
 use num::traits::{WrappingAdd, WrappingSub};
 
-/// Represents an instant of time relative to a specific [`Clock`](crate::clock::Clock)
+/// Represents an instant of time relative to a specific [`Clock`](trait.Clock.html)
 ///
 /// # Example
 /// Create an `Instant` that is `23 * SomeClock::PERIOD` seconds since the clock's epoch:
@@ -55,7 +55,8 @@ impl<Clock: crate::Clock> Instant<Clock> {
         Dur::from_ticks(self.ticks.wrapping_sub(&other.ticks), Clock::PERIOD)
     }
 
-    /// Returns the [`Duration`] (in the provided units) since the beginning of time (or the [`Clock`](crate::clock::Clock)'s 0)
+    /// Returns the [`Duration`](trait.Duration.html) (in the provided units) since the beginning of
+    /// time (or the [`Clock`](trait.Clock.html)'s 0)
     pub fn duration_since_epoch<Dur: Duration>(&self) -> Option<Dur>
     where
         Dur::Rep: TryFrom<Clock::Rep>,
