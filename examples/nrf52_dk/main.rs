@@ -3,10 +3,8 @@
 
 extern crate panic_rtt;
 
-use cortex_m::mutex::CriticalSectionMutex as Mutex;
 use cortex_m_rt::entry;
 use embedded_time::{self as time, Clock, Instant, Period, TimeInt};
-use mutex_trait::Mutex as _;
 
 pub mod nrf52 {
     pub use nrf52832_hal::{
@@ -14,46 +12,41 @@ pub mod nrf52 {
         prelude::*,
         target::{self as pac, Peripherals},
     };
+}
 
-    pub struct Clock64 {
-        low: pac::TIMER0,
-        high: pac::TIMER1,
-        capture_task: pac::EGU0,
-    }
+pub struct SysClock {
+    low: nrf52::pac::TIMER0,
+    high: nrf52::pac::TIMER1,
+    capture_task: nrf52::pac::EGU0,
+}
 
-    impl Clock64 {
-        pub fn take(low: pac::TIMER0, high: pac::TIMER1, capture_task: pac::EGU0) -> Self {
-            Self {
-                low,
-                high,
-                capture_task,
-            }
-        }
-
-        pub(crate) fn read(&mut self) -> u64 {
-            self.capture_task.tasks_trigger[0].write(|write| unsafe { write.bits(1) });
-            self.low.cc[0].read().bits() as u64 | ((self.high.cc[0].read().bits() as u64) << 32)
+impl SysClock {
+    pub fn take(
+        low: nrf52::pac::TIMER0,
+        high: nrf52::pac::TIMER1,
+        capture_task: nrf52::pac::EGU0,
+    ) -> Self {
+        Self {
+            low,
+            high,
+            capture_task,
         }
     }
 }
-
-pub struct SysClock;
 
 impl time::Clock for SysClock {
     type Rep = i64;
     const PERIOD: Period = Period::new(1, 16_000_000);
 
-    fn now() -> Instant<Self> {
-        let ticks = (&CLOCK64).lock(|clock| match clock {
-            Some(clock) => clock.read(),
-            None => 0,
-        });
+    fn now(&mut self) -> Instant<Self> {
+        self.capture_task.tasks_trigger[0].write(|write| unsafe { write.bits(1) });
+
+        let ticks =
+            self.low.cc[0].read().bits() as u64 | ((self.high.cc[0].read().bits() as u64) << 32);
 
         Instant::new(ticks as Self::Rep)
     }
 }
-
-static CLOCK64: Mutex<Option<nrf52::Clock64>> = Mutex::new(None);
 
 #[entry]
 fn main() -> ! {
@@ -106,8 +99,7 @@ fn main() -> ! {
     // This moves these peripherals to prevent conflicting usage, however not the entire EGU0 is
     // used. A ref to EGU0 could be sent instead, although that provides no protection for the
     // fields that are being used by Clock64.
-    let clock64 = nrf52::Clock64::take(device.TIMER0, device.TIMER1, device.EGU0);
-    (&CLOCK64).lock(|ticks| *ticks = Some(clock64));
+    let mut clock = SysClock::take(device.TIMER0, device.TIMER1, device.EGU0);
 
     let port0 = nrf52::gpio::p0::Parts::new(device.P0);
 
@@ -136,6 +128,7 @@ fn main() -> ! {
         &mut led2.degrade(),
         &mut led3.degrade(),
         &mut led4.degrade(),
+        &mut clock,
     )
     .unwrap();
 
@@ -147,6 +140,7 @@ fn run<Led>(
     led2: &mut Led,
     led3: &mut Led,
     led4: &mut Led,
+    clock: &mut SysClock,
 ) -> Result<(), <Led as nrf52::OutputPin>::Error>
 where
     Led: nrf52::OutputPin,
@@ -156,12 +150,12 @@ where
         led2.set_high()?;
         led3.set_high()?;
         led4.set_low()?;
-        SysClock::delay(250.milliseconds());
+        clock.delay(250.milliseconds());
 
         led1.set_high()?;
         led2.set_low()?;
         led3.set_low()?;
         led4.set_high()?;
-        SysClock::delay(250.milliseconds());
+        clock.delay(250.milliseconds());
     }
 }

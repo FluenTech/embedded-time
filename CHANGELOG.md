@@ -8,6 +8,7 @@
 
 ### Changed
 
+- Add `&mut self` to `Clock` functions (make stateful, or at least allow stateful implementations)
 - Refactor `examples/nrf52_dk`
 
 [unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.5.2...HEAD

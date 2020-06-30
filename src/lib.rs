@@ -46,15 +46,16 @@
 //!     type Rep = i64;
 //!     const PERIOD: Period = Period::new(1, 16_000_000);
 //!
-//!     fn now() -> Instant<Self> {
+//!     fn now(&mut self) -> Instant<Self> {
 //!         // ...
 //! #         unimplemented!()
 //!     }
 //! }
 //!
-//! let instant1 = SomeClock::now();
+//! let mut clock = SomeClock;
+//! let instant1 = clock.now();
 //! // ...
-//! let instant2 = SomeClock::now();
+//! let instant2 = clock.now();
 //! assert!(instant1 < instant2);    // instant1 is *before* instant2
 //!
 //! // duration is the difference between the instances
@@ -117,7 +118,7 @@ mod tests {
         type Rep = i64;
         const PERIOD: time::Period = time::Period::new(1, 64_000_000);
 
-        fn now() -> time::Instant<Self> {
+        fn now(&mut self) -> time::Instant<Self> {
             time::Instant::new(128_000_000)
         }
     }
@@ -129,25 +130,25 @@ mod tests {
         type Rep = i32;
         const PERIOD: time::Period = time::Period::new(1, 16_000_000);
 
-        fn now() -> time::Instant<Self> {
+        fn now(&mut self) -> time::Instant<Self> {
             time::Instant::new(32_000_000)
         }
     }
 
-    fn get_time<M>()
-    where
-        M: time::Clock,
-    {
-        assert_eq!(M::now().duration_since_epoch(), Some(Seconds(2)));
+    fn get_time(clock: &mut impl time::Clock) {
+        assert_eq!(clock.now().duration_since_epoch(), Some(Seconds(2)));
     }
 
     #[test]
     fn common_types() {
-        let then = MockClock32::now();
-        let now = MockClock32::now();
+        let then = MockClock32.now();
+        let now = MockClock32.now();
 
-        get_time::<MockClock64>();
-        get_time::<MockClock32>();
+        let mut clock64 = MockClock64 {};
+        let mut clock32 = MockClock32 {};
+
+        get_time(&mut clock64);
+        get_time(&mut clock32);
 
         let then = then - Seconds(1);
         assert_ne!(then, now);
