@@ -10,15 +10,15 @@ pub trait Clock: Sized {
     const PERIOD: Period;
 
     /// Get the current Instant
-    fn now() -> Instant<Self>;
+    fn now(&mut self) -> Instant<Self>;
 
     /// Blocking delay
-    fn delay<Dur: Duration>(dur: Dur)
+    fn delay<Dur: Duration>(&mut self, dur: Dur)
     where
         Self::Rep: TryFrom<Dur::Rep>,
     {
-        let start = Self::now();
+        let start = self.now();
         let end = start + dur;
-        while Self::now() < end {}
+        while self.now() < end {}
     }
 }
