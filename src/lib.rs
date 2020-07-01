@@ -1,7 +1,7 @@
 //! `embedded-time` provides a comprehensive library for implementing [`Clock`] abstractions over
 //! hardware to generate [`Instant`]s and using [`Duration`]s ([`Seconds`], [`Milliseconds`], etc)
 //! in embedded systems. The approach is similar to the C++ `chrono` library. A [`Duration`]
-//! consists of an integer (whose type is chosen by the user to be either [`i32`] or [`i64`]) as
+//! consists of an integer (whose type is chosen by the user to be either [`u32`] or [`u64`]) as
 //! well as a `const` fraction ([`Period`]) where the integer value multiplied by the fraction is
 //! the [`Duration`] in seconds. Put another way, the ratio is the precision of the LSbit of the
 //! integer. This structure avoids unnecessary arithmetic. For example, if the [`Duration`] type is
@@ -9,8 +9,8 @@
 //! value directly which is the number of milliseconds being represented. Conversion arithmetic is
 //! only performed when explicitly converting between time units.
 //!
-//! In addition frequency-type types are available including [`Hertz`] ([`i32`]) and it's reciprocal
-//! [`Period`] ([`i32`]/[`i32`] seconds).
+//! In addition frequency-type types are available including [`Hertz`] ([`u32`]) and it's reciprocal
+//! [`Period`] ([`u32`]/[`u32`] seconds).
 //!
 //! [`Seconds`]: units::Seconds
 //! [`Milliseconds`]: units::Milliseconds
@@ -39,12 +39,12 @@
 //!
 //! # Example Usage
 //! ```rust,no_run
-//! # use embedded_time::{prelude::*, units::*, Instant, Period};
+//! # use embedded_time::{traits::*, units::*, Instant, Period};
 //! # #[derive(Debug)]
 //! struct SomeClock;
 //! impl embedded_time::Clock for SomeClock {
-//!     type Rep = i64;
-//!     const PERIOD: Period = Period::new(1, 16_000_000);
+//!     type Rep = u64;
+//!     const PERIOD: Period = <Period>::new(1, 16_000_000);
 //!
 //!     fn now() -> Instant<Self> {
 //!         // ...
@@ -58,9 +58,9 @@
 //! assert!(instant1 < instant2);    // instant1 is *before* instant2
 //!
 //! // duration is the difference between the instances
-//! let duration: Option<Microseconds<i64>> = instant2.duration_since(&instant1);    
+//! let duration: Result<Microseconds<u64>, _> = instant2.duration_since(&instant1);    
 //!
-//! assert!(duration.is_some());
+//! assert!(duration.is_ok());
 //! assert_eq!(instant1 + duration.unwrap(), instant2);
 //! ```
 
@@ -85,15 +85,16 @@ pub use time_int::TimeInt;
 /// Public _traits_
 ///
 /// ```rust,no_run
-/// use embedded_time::prelude::*;
+/// use embedded_time::traits::*;
 /// ```
-pub mod prelude {
+pub mod traits {
     // Rename traits to `_` to avoid any potential name conflicts.
+    pub use crate::clock::Clock as _;
     pub use crate::duration::Duration as _;
     pub use crate::duration::TryConvertFrom as _;
     pub use crate::duration::TryConvertInto as _;
+    pub use crate::time_int::NumericConstructor as _;
     pub use crate::time_int::TimeInt as _;
-    pub use crate::Clock as _;
 }
 
 pub mod units {
@@ -106,16 +107,19 @@ pub mod units {
 #[allow(unused_imports)]
 mod tests {
     use crate as time;
-    use crate::prelude::*;
-    use crate::units::*;
-    use core::fmt::{self, Formatter};
+    use core::{
+        convert::TryFrom,
+        convert::TryInto,
+        fmt::{self, Formatter},
+    };
+    use time::{traits::*, units::*};
 
     #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
     struct MockClock64;
 
     impl time::Clock for MockClock64 {
-        type Rep = i64;
-        const PERIOD: time::Period = time::Period::new(1, 64_000_000);
+        type Rep = u64;
+        const PERIOD: time::Period = <time::Period>::new(1, 64_000_000);
 
         fn now() -> time::Instant<Self> {
             time::Instant::new(128_000_000)
@@ -126,19 +130,19 @@ mod tests {
     struct MockClock32;
 
     impl time::Clock for MockClock32 {
-        type Rep = i32;
-        const PERIOD: time::Period = time::Period::new(1, 16_000_000);
+        type Rep = u32;
+        const PERIOD: time::Period = <time::Period>::new(1, 16_000_000);
 
         fn now() -> time::Instant<Self> {
             time::Instant::new(32_000_000)
         }
     }
 
-    fn get_time<M>()
+    fn get_time<M: time::Clock>()
     where
-        M: time::Clock,
+        u32: TryFrom<M::Rep>,
     {
-        assert_eq!(M::now().duration_since_epoch(), Some(Seconds(2)));
+        assert_eq!(M::now().duration_since_epoch(), Ok(Seconds(2_u32)));
     }
 
     #[test]
@@ -149,7 +153,7 @@ mod tests {
         get_time::<MockClock64>();
         get_time::<MockClock32>();
 
-        let then = then - Seconds(1);
+        let then = then - Seconds(1_u32);
         assert_ne!(then, now);
         assert!(then < now);
     }
@@ -174,16 +178,17 @@ mod tests {
         fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
             let duration = self
                 .0
-                .duration_since_epoch::<Milliseconds<i64>>()
-                .ok_or(fmt::Error {})?;
+                .duration_since_epoch::<Milliseconds<u64>>()
+                .map_err(|_| fmt::Error {})?;
 
-            let hours = Hours::<i32>::try_convert_from(duration).ok_or(fmt::Error {})?;
+            let hours = Hours::<u32>::try_convert_from(duration).ok_or(fmt::Error {})?;
             let minutes =
-                Minutes::<i32>::try_convert_from(duration).ok_or(fmt::Error {})? % Hours(1);
+                Minutes::<u32>::try_convert_from(duration).ok_or(fmt::Error {})? % Hours(1_u32);
             let seconds =
-                Seconds::<i32>::try_convert_from(duration).ok_or(fmt::Error {})? % Minutes(1);
-            let milliseconds =
-                Milliseconds::<i32>::try_convert_from(duration).ok_or(fmt::Error {})? % Seconds(1);
+                Seconds::<u32>::try_convert_from(duration).ok_or(fmt::Error {})? % Minutes(1_u32);
+            let milliseconds = Milliseconds::<u32>::try_convert_from(duration)
+                .ok_or(fmt::Error {})?
+                % Seconds(1_u32);
 
             f.write_fmt(format_args!(
                 "{}:{:02}:{:02}.{:03}",
