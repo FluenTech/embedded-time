@@ -38,13 +38,13 @@ impl time::Clock for SysClock {
     type Rep = i64;
     const PERIOD: Period = Period::new(1, 16_000_000);
 
-    fn now(&mut self) -> Instant<Self> {
+    fn now(&mut self) -> Result<Instant<Self>, time::Error> {
         self.capture_task.tasks_trigger[0].write(|write| unsafe { write.bits(1) });
 
         let ticks =
             self.low.cc[0].read().bits() as u64 | ((self.high.cc[0].read().bits() as u64) << 32);
 
-        Instant::new(ticks as Self::Rep)
+        Ok(Instant::new(ticks as Self::Rep))
     }
 }
 
@@ -150,12 +150,12 @@ where
         led2.set_high()?;
         led3.set_high()?;
         led4.set_low()?;
-        clock.delay(250.milliseconds());
+        clock.delay(250.milliseconds()).unwrap();
 
         led1.set_high()?;
         led2.set_low()?;
         led3.set_low()?;
         led4.set_high()?;
-        clock.delay(250.milliseconds());
+        clock.delay(250.milliseconds()).unwrap();
     }
 }

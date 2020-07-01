@@ -33,7 +33,7 @@ impl<Clock: crate::Clock> Instant<Clock> {
     ///     type Rep = i32;
     ///     const PERIOD: Period = Period::new(1, 1_000);
     ///     // ...
-    /// # fn now(&mut self) -> Instant<Self> {unimplemented!()}
+    /// # fn now(&mut self) -> Result<Instant<Self>, embedded_time::Error> {unimplemented!()}
     /// }
     ///
     /// let diff: Option<Milliseconds<_>> = Instant::<Clock>::new(5).duration_since(&Instant::<Clock>::new(3));
@@ -99,7 +99,7 @@ impl<Clock: crate::Clock> PartialOrd for Instant<Clock> {
     ///     type Rep = i32;
     ///     const PERIOD: Period = Period::new(1, 1_000);
     ///     // ...
-    /// # fn now(&mut self) -> Instant<Self> {unimplemented!()}
+    /// # fn now(&mut self) -> Result<Instant<Self>, embedded_time::Error> {unimplemented!()}
     /// }
     ///
     /// assert!(Instant::<Clock>::new(5) > Instant::<Clock>::new(3));
@@ -138,7 +138,7 @@ where
     ///     type Rep = i32;
     ///     const PERIOD: Period = Period::new(1, 1_000);
     ///     // ...
-    /// # fn now(&mut self) -> Instant<Self> {unimplemented!()}
+    /// # fn now(&mut self) -> Result<Instant<Self>, embedded_time::Error> {unimplemented!()}
     /// }
     ///
     /// Instant::<Clock>::new(1) + Seconds(i32::MAX);
@@ -154,7 +154,7 @@ where
     ///     type Rep = i32;
     ///     const PERIOD: Period = Period::new(1, 1_000);
     ///     // ...
-    /// # fn now(&mut self) -> Instant<Self> {unimplemented!()}
+    /// # fn now(&mut self) -> Result<Instant<Self>, embedded_time::Error> {unimplemented!()}
     /// }
     ///
     /// assert_eq!(Instant::<Clock>::new(1) + Seconds(3), Instant::<Clock>::new(3_001));
@@ -190,7 +190,7 @@ where
     ///     type Rep = i32;
     ///     const PERIOD: Period = Period::new(1, 1_000);
     ///     // ...
-    /// # fn now(&mut self) -> Instant<Self> {unimplemented!()}
+    /// # fn now(&mut self) -> Result<Instant<Self>, embedded_time::Error> {unimplemented!()}
     /// }
     ///
     /// Instant::<Clock>::new(1) - Seconds(i32::MAX);
@@ -206,7 +206,7 @@ where
     ///     type Rep = i32;
     ///     const PERIOD: Period = Period::new(1, 1_000);
     ///     // ...
-    /// # fn now(&mut self) -> Instant<Self> {unimplemented!()}
+    /// # fn now(&mut self) -> Result<Instant<Self>, embedded_time::Error> {unimplemented!()}
     /// }
     ///
     /// assert_eq!(Instant::<Clock>::new(1) - Seconds(3), Instant::<Clock>::new(-2_999));

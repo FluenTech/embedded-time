@@ -4,6 +4,7 @@
 
 ### Added
 
+- Add fallibility to `Clock` methods
 - Changelog back to v0.5.0 release
 
 ### Changed
@@ -12,6 +13,7 @@
 - Refactor `examples/nrf52_dk`
 
 [unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.5.2...HEAD
+
 
 ## [0.5.2] - 2020-06-21
 
