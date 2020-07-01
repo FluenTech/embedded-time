@@ -16,6 +16,7 @@ license = "MIT OR Apache-2.0"
 num = { version = "0.3.0", default-features = false }
 
 [dev-dependencies]
+panic-never = "0.1.0"
 cortex-m = "0.6.2"
 cortex-m-rt = "0.6.12"
 panic_rtt = "0.3.0"
