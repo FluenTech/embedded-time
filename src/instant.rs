@@ -38,7 +38,7 @@ impl<Clock: crate::Clock> Instant<Clock> {
     ///     type Rep = u32;
     ///     const PERIOD: Period = <Period>::new(1, 1_000);
     ///     // ...
-    /// # fn now() -> Instant<Self> {unimplemented!()}
+    /// # fn now(&mut self) -> Instant<Self> {unimplemented!()}
     /// }
     ///
     /// assert_eq!(Instant::<Clock>::new(5).duration_since::<Microseconds<u64>>(&Instant::<Clock>::new(3)),
@@ -74,7 +74,7 @@ impl<Clock: crate::Clock> Instant<Clock> {
     ///     type Rep = u32;
     ///     const PERIOD: Period =<Period>::new(1, 1_000);
     ///     // ...
-    /// # fn now() -> Instant<Self> {unimplemented!()}
+    /// # fn now(&mut self) -> Instant<Self> {unimplemented!()}
     /// }
     ///
     /// assert_eq!(Instant::<Clock>::new(5).duration_until::<Microseconds<u64>>(&Instant::<Clock>::new(7)),
@@ -99,6 +99,7 @@ impl<Clock: crate::Clock> Instant<Clock> {
     pub fn duration_since_epoch<Dur: Duration>(&self) -> Result<Dur, ()>
     where
         Dur::Rep: TryFrom<Clock::Rep>,
+        Clock::Rep: TryFrom<Dur::Rep>,
     {
         Self::duration_since::<Dur>(
             &self,
@@ -137,7 +138,7 @@ impl<Clock: crate::Clock> PartialOrd for Instant<Clock> {
     ///     type Rep = u32;
     ///     const PERIOD: Period =<Period>::new(1, 1_000);
     ///     // ...
-    /// # fn now() -> Instant<Self> {unimplemented!()}
+    /// # fn now(&mut self) -> Instant<Self> {unimplemented!()}
     /// }
     ///
     /// assert!(Instant::<Clock>::new(5) > Instant::<Clock>::new(3));
@@ -177,7 +178,7 @@ where
     ///     type Rep = u32;
     ///     const PERIOD: Period =<Period>::new(1, 1_000);
     ///     // ...
-    /// # fn now() -> Instant<Self> {unimplemented!()}
+    /// # fn now(&mut self) -> Instant<Self> {unimplemented!()}
     /// }
     ///
     /// Instant::<Clock>::new(1) + Seconds(u32::MAX);
@@ -193,7 +194,7 @@ where
     ///     type Rep = u32;
     ///     const PERIOD: Period =<Period>::new(1, 1_000);
     ///     // ...
-    /// # fn now() -> Instant<Self> {unimplemented!()}
+    /// # fn now(&mut self) -> Instant<Self> {unimplemented!()}
     /// }
     ///
     /// let _ = Instant::<Clock>::new(0) + Milliseconds(i32::MAX as u32 + 1);
@@ -210,7 +211,7 @@ where
     ///     type Rep = u32;
     ///     const PERIOD: Period =<Period>::new(1, 1_000);
     ///     // ...
-    /// # fn now() -> Instant<Self> {unimplemented!()}
+    /// # fn now(&mut self) -> Instant<Self> {unimplemented!()}
     /// }
     ///
     /// assert_eq!(Instant::<Clock>::new(1) + Seconds(3_u32), Instant::<Clock>::new(3_001));
@@ -250,7 +251,7 @@ where
     ///     type Rep = u32;
     ///     const PERIOD: Period =<Period>::new(1, 1_000);
     ///     // ...
-    /// # fn now() -> Instant<Self> {unimplemented!()}
+    /// # fn now(&mut self) -> Instant<Self> {unimplemented!()}
     /// }
     ///
     /// Instant::<Clock>::new(1) - Seconds(u32::MAX);
@@ -266,7 +267,7 @@ where
     ///     type Rep = u32;
     ///     const PERIOD: Period = <Period>::new(1, 1_000);
     ///     // ...
-    /// # fn now() -> Instant<Self> {unimplemented!()}
+    /// # fn now(&mut self) -> Instant<Self> {unimplemented!()}
     /// }
     ///
     /// let _ = Instant::<Clock>::new(u32::MAX) - Milliseconds(i32::MAX as u32 + 1);
@@ -283,7 +284,7 @@ where
     ///     type Rep = u32;
     ///     const PERIOD: Period =<Period>::new(1, 1_000);
     ///     // ...
-    /// # fn now() -> Instant<Self> {unimplemented!()}
+    /// # fn now(&mut self) -> Instant<Self> {unimplemented!()}
     /// }
     ///
     /// assert_eq!(Instant::<Clock>::new(800) - Milliseconds(700_u32), Instant::<Clock>::new(100));
@@ -314,7 +315,7 @@ mod tests {
         type Rep = u32;
         const PERIOD: Period = <Period>::new(1, 1_000);
 
-        fn now() -> Instant<Self> {
+        fn now(&mut self) -> Instant<Self> {
             unimplemented!()
         }
     }

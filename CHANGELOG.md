@@ -11,6 +11,7 @@
 
 ### Changed
 
+- Add `&mut self` to `Clock` functions (make stateful, or at least allow stateful implementations)
 - All time-type inner types from signed to unsigned
 - `Instant::duration_since()` return type to `Result`
 - Refactor `examples/nrf52_dk`
