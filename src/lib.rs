@@ -105,8 +105,24 @@ pub mod units {
 }
 
 /// Time-related error
+#[non_exhaustive]
 #[derive(Debug, Eq, PartialEq)]
-pub struct Error;
+pub enum Error {
+    /// Communication with the clock failed
+    ClockInterfaceFailure,
+    /// The clock has not been started
+    ClockNotStarted,
+    /// Reading an `Instant` from the clock failed for some reason
+    UnableToReadFromClock,
+    /// Negative `Duration`s are not supported
+    NegativeDurationNotAllowed,
+    /// An integer overflow was detected
+    Overflow,
+    /// An integer underflow was detected
+    Underflow,
+    /// A divide-by-zero was detected
+    DivByZero,
+}
 
 #[cfg(test)]
 #[allow(unused_imports)]
@@ -150,7 +166,7 @@ mod tests {
         const PERIOD: time::Period = time::Period::new(1, 16_000_000);
 
         fn now(&mut self) -> Result<time::Instant<Self>, time::Error> {
-            Err(time::Error)
+            Err(time::Error::UnableToReadFromClock)
         }
     }
 
@@ -183,7 +199,7 @@ mod tests {
 
     #[test]
     fn clock_error() {
-        assert_eq!(BadClock.now(), Err(time::Error));
+        assert_eq!(BadClock.now(), Err(time::Error::UnableToReadFromClock));
     }
 
     struct Timestamp<Clock>(time::Instant<Clock>)
