@@ -4,6 +4,7 @@
 
 ### Added
 
+- Add fallibility to `Clock` methods
 - `Instant::duration_until()` with order checking
 - Order checking to `Instant::duration_since()`
 - Bounds checking on `Instant` impls of Add/Sub
