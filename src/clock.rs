@@ -1,7 +1,15 @@
 //! The `Clock` trait can be implemented over hardware timers or other time-keeping device
 
-use crate::{time_int::TimeInt, Duration, Error, Instant, Period};
+use crate::{time_int::TimeInt, Duration, Instant, Period};
 use core::convert::TryFrom;
+
+/// Potential `Clock` errors
+#[non_exhaustive]
+#[derive(Debug, Eq, PartialEq)]
+pub enum Error<E: crate::Error = ()> {
+    /// specific implementation error
+    Other(E),
+}
 
 /// An abstraction for time-keeping items such as hardware timers
 pub trait Clock: Sized {
@@ -11,17 +19,20 @@ pub trait Clock: Sized {
     /// The duration of one clock tick in seconds, AKA the clock precision.
     const PERIOD: Period;
 
+    /// Implementation-specific error type
+    type ImplError: crate::Error;
+
     /// Get the current Instant
     ///
     /// # Errors
-    /// - Error: The current instant was not readable
-    fn now(&self) -> Result<Instant<Self>, Error>;
+    /// Implementation-specific error returned through [`Error::Other(ImplError)`]
+    fn now(&self) -> Result<Instant<Self>, Error<Self::ImplError>>;
 
     /// Blocking delay
     ///
     /// # Errors
-    /// - Error: The current instant was not readable, actual delay (if any) is unknown
-    fn delay<Dur: Duration>(&self, dur: Dur) -> Result<(), Error>
+    /// Implementation-specific error returned through [`Error::Other(ImplError)`]
+    fn delay<Dur: Duration>(&self, dur: Dur) -> Result<(), Error<Self::ImplError>>
     where
         Self::Rep: TryFrom<Dur::Rep>,
     {
