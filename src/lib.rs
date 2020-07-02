@@ -45,17 +45,18 @@
 //! impl embedded_time::Clock for SomeClock {
 //!     type Rep = u64;
 //!     const PERIOD: Period = <Period>::new(1, 16_000_000);
-//!
-//!     fn now(&self) -> Instant<Self> {
+//!     type ImplError = ();
+//!     
+//!     fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {
 //!         // ...
 //! #         unimplemented!()
 //!     }
 //! }
 //!
 //! let mut clock = SomeClock;
-//! let instant1 = clock.now();
+//! let instant1 = clock.now().unwrap();
 //! // ...
-//! let instant2 = clock.now();
+//! let instant2 = clock.now().unwrap();
 //! assert!(instant1 < instant2);    // instant1 is *before* instant2
 //!
 //! // duration is the difference between the instances
@@ -70,7 +71,7 @@
 #![warn(missing_docs)]
 #![deny(intra_doc_link_resolution_failure)]
 
-mod clock;
+pub mod clock;
 mod duration;
 mod frequency;
 mod instant;
@@ -78,6 +79,7 @@ mod period;
 mod time_int;
 
 pub use clock::Clock;
+use core::{convert::Infallible, fmt};
 pub use duration::Duration;
 pub use instant::Instant;
 pub use period::Period;
@@ -104,63 +106,97 @@ pub mod units {
     pub use crate::frequency::units::*;
 }
 
+/// An implementation-specific error
+pub trait Error: fmt::Debug {}
+impl Error for () {}
+impl Error for Infallible {}
+
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    use crate as time;
+    use crate::{self as time, clock, traits::*, units::*};
     use core::{
-        convert::TryFrom,
-        convert::TryInto,
+        convert::{Infallible, TryFrom, TryInto},
         fmt::{self, Formatter},
     };
-    use time::{traits::*, units::*};
 
-    #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
     struct MockClock64;
-
     impl time::Clock for MockClock64 {
         type Rep = u64;
         const PERIOD: time::Period = <time::Period>::new(1, 64_000_000);
+        type ImplError = Infallible;
 
-        fn now(&self) -> time::Instant<Self> {
-            time::Instant::new(128_000_000)
+        fn now(&self) -> Result<time::Instant<Self>, time::clock::Error<Self::ImplError>> {
+            Ok(time::Instant::new(128_000_000))
         }
     }
 
-    #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
+    #[derive(Debug)]
     struct MockClock32;
 
     impl time::Clock for MockClock32 {
         type Rep = u32;
         const PERIOD: time::Period = <time::Period>::new(1, 16_000_000);
+        type ImplError = Infallible;
 
-        fn now(&self) -> time::Instant<Self> {
-            time::Instant::new(32_000_000)
+        fn now(&self) -> Result<time::Instant<Self>, time::clock::Error<Self::ImplError>> {
+            Ok(time::Instant::new(32_000_000))
         }
     }
 
-    fn get_time<Clock: time::Clock>(clock: &mut Clock)
+    #[non_exhaustive]
+    #[derive(Debug, Eq, PartialEq)]
+    pub enum ClockImplError {
+        NotStarted,
+    }
+    impl crate::Error for ClockImplError {}
+
+    #[derive(Debug)]
+    struct BadClock;
+
+    impl time::Clock for BadClock {
+        type Rep = u32;
+        const PERIOD: time::Period = time::Period::new(1, 16_000_000);
+        type ImplError = ClockImplError;
+
+        fn now(&self) -> Result<time::Instant<Self>, time::clock::Error<Self::ImplError>> {
+            Err(time::clock::Error::Other(ClockImplError::NotStarted))
+        }
+    }
+
+    fn get_time<Clock: time::Clock>(clock: &Clock)
     where
         u32: TryFrom<Clock::Rep>,
         Clock::Rep: TryFrom<u32>,
     {
-        assert_eq!(clock.now().duration_since_epoch(), Ok(Seconds(2_u32)));
+        assert_eq!(
+            clock.now().unwrap().duration_since_epoch(),
+            Ok(Seconds(2_u32))
+        );
     }
 
     #[test]
     fn common_types() {
-        let then = MockClock32.now();
-        let now = MockClock32.now();
+        let then = MockClock32.now().unwrap();
+        let now = MockClock32.now().unwrap();
 
-        let mut clock64 = MockClock64 {};
-        let mut clock32 = MockClock32 {};
+        let clock64 = MockClock64 {};
+        let clock32 = MockClock32 {};
 
-        get_time(&mut clock64);
-        get_time(&mut clock32);
+        get_time(&clock64);
+        get_time(&clock32);
 
         let then = then - Seconds(1_u32);
         assert_ne!(then, now);
         assert!(then < now);
+    }
+
+    #[test]
+    fn clock_error() {
+        assert_eq!(
+            BadClock.now(),
+            Err(time::clock::Error::Other(ClockImplError::NotStarted))
+        );
     }
 
     struct Timestamp<Clock>(time::Instant<Clock>)
