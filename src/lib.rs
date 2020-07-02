@@ -46,7 +46,7 @@
 //!     type Rep = u64;
 //!     const PERIOD: Period = <Period>::new(1, 16_000_000);
 //!
-//!     fn now(&mut self) -> Instant<Self> {
+//!     fn now(&self) -> Instant<Self> {
 //!         // ...
 //! #         unimplemented!()
 //!     }
@@ -122,7 +122,7 @@ mod tests {
         type Rep = u64;
         const PERIOD: time::Period = <time::Period>::new(1, 64_000_000);
 
-        fn now(&mut self) -> time::Instant<Self> {
+        fn now(&self) -> time::Instant<Self> {
             time::Instant::new(128_000_000)
         }
     }
@@ -134,7 +134,7 @@ mod tests {
         type Rep = u32;
         const PERIOD: time::Period = <time::Period>::new(1, 16_000_000);
 
-        fn now(&mut self) -> time::Instant<Self> {
+        fn now(&self) -> time::Instant<Self> {
             time::Instant::new(32_000_000)
         }
     }
