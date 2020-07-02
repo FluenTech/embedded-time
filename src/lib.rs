@@ -79,7 +79,7 @@ mod period;
 mod time_int;
 
 pub use clock::Clock;
-use core::fmt;
+use core::{convert::Infallible, fmt};
 pub use duration::Duration;
 pub use instant::Instant;
 pub use period::Period;
@@ -109,14 +109,14 @@ pub mod units {
 /// An implementation-specific error
 pub trait Error: fmt::Debug {}
 impl Error for () {}
+impl Error for Infallible {}
 
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
     use crate::{self as time, clock, traits::*, units::*};
     use core::{
-        convert::TryFrom,
-        convert::TryInto,
+        convert::{Infallible, TryFrom, TryInto},
         fmt::{self, Formatter},
     };
 
@@ -124,7 +124,7 @@ mod tests {
     impl time::Clock for MockClock64 {
         type Rep = u64;
         const PERIOD: time::Period = <time::Period>::new(1, 64_000_000);
-        type ImplError = ClockImplError;
+        type ImplError = Infallible;
 
         fn now(&self) -> Result<time::Instant<Self>, time::clock::Error<Self::ImplError>> {
             Ok(time::Instant::new(128_000_000))
@@ -137,7 +137,7 @@ mod tests {
     impl time::Clock for MockClock32 {
         type Rep = u32;
         const PERIOD: time::Period = <time::Period>::new(1, 16_000_000);
-        type ImplError = ClockImplError;
+        type ImplError = Infallible;
 
         fn now(&self) -> Result<time::Instant<Self>, time::clock::Error<Self::ImplError>> {
             Ok(time::Instant::new(32_000_000))
