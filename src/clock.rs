@@ -1,3 +1,5 @@
+//! The `Clock` trait can be implemented over hardware timers or other time-keeping device
+
 use crate::{time_int::TimeInt, Duration, Instant, Period};
 use core::convert::TryFrom;
 
@@ -10,10 +12,10 @@ pub trait Clock: Sized {
     const PERIOD: Period;
 
     /// Get the current Instant
-    fn now(&mut self) -> Instant<Self>;
+    fn now(&self) -> Instant<Self>;
 
     /// Blocking delay
-    fn delay<Dur: Duration>(&mut self, dur: Dur)
+    fn delay<Dur: Duration>(&self, dur: Dur)
     where
         Self::Rep: TryFrom<Dur::Rep>,
     {

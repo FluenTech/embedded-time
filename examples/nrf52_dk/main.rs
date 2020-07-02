@@ -38,7 +38,7 @@ impl time::Clock for SysClock {
     type Rep = u64;
     const PERIOD: time::Period = <time::Period>::new(1, 16_000_000);
 
-    fn now(&mut self) -> time::Instant<Self> {
+    fn now(&self) -> time::Instant<Self> {
         self.capture_task.tasks_trigger[0].write(|write| unsafe { write.bits(1) });
 
         let ticks =
