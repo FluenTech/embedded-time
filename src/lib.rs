@@ -45,8 +45,9 @@
 //! impl embedded_time::Clock for SomeClock {
 //!     type Rep = u64;
 //!     const PERIOD: Period = <Period>::new(1, 16_000_000);
-//!
-//!     fn now(&self) -> Result<Instant<Self>, embedded_time::Error> {
+//!     type ImplError = ();
+//!     
+//!     fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {
 //!         // ...
 //! #         unimplemented!()
 //!     }
@@ -78,6 +79,7 @@ mod period;
 mod time_int;
 
 pub use clock::Clock;
+use core::fmt;
 pub use duration::Duration;
 pub use instant::Instant;
 pub use period::Period;
@@ -104,44 +106,27 @@ pub mod units {
     pub use crate::frequency::units::*;
 }
 
-/// Time-related error
-#[non_exhaustive]
-#[derive(Debug, Eq, PartialEq)]
-pub enum Error {
-    /// Communication with the clock failed
-    ClockInterfaceFailure,
-    /// The clock has not been started
-    ClockNotStarted,
-    /// Reading an `Instant` from the clock failed for some reason
-    UnableToReadFromClock,
-    /// Negative `Duration`s are not supported
-    NegativeDurationNotAllowed,
-    /// An integer overflow was detected
-    Overflow,
-    /// An integer underflow was detected
-    Underflow,
-    /// A divide-by-zero was detected
-    DivByZero,
-}
+/// An implementation-specific error
+pub trait Error: fmt::Debug {}
+impl Error for () {}
 
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    use crate as time;
+    use crate::{self as time, clock, traits::*, units::*};
     use core::{
         convert::TryFrom,
         convert::TryInto,
         fmt::{self, Formatter},
     };
-    use time::{traits::*, units::*};
 
     struct MockClock64;
-
     impl time::Clock for MockClock64 {
         type Rep = u64;
         const PERIOD: time::Period = <time::Period>::new(1, 64_000_000);
+        type ImplError = ClockImplError;
 
-        fn now(&self) -> Result<time::Instant<Self>, time::Error> {
+        fn now(&self) -> Result<time::Instant<Self>, time::clock::Error<Self::ImplError>> {
             Ok(time::Instant::new(128_000_000))
         }
     }
@@ -152,11 +137,19 @@ mod tests {
     impl time::Clock for MockClock32 {
         type Rep = u32;
         const PERIOD: time::Period = <time::Period>::new(1, 16_000_000);
+        type ImplError = ClockImplError;
 
-        fn now(&self) -> Result<time::Instant<Self>, time::Error> {
+        fn now(&self) -> Result<time::Instant<Self>, time::clock::Error<Self::ImplError>> {
             Ok(time::Instant::new(32_000_000))
         }
     }
+
+    #[non_exhaustive]
+    #[derive(Debug, Eq, PartialEq)]
+    pub enum ClockImplError {
+        NotStarted,
+    }
+    impl crate::Error for ClockImplError {}
 
     #[derive(Debug)]
     struct BadClock;
@@ -164,13 +157,14 @@ mod tests {
     impl time::Clock for BadClock {
         type Rep = u32;
         const PERIOD: time::Period = time::Period::new(1, 16_000_000);
+        type ImplError = ClockImplError;
 
-        fn now(&mut self) -> Result<time::Instant<Self>, time::Error> {
-            Err(time::Error::UnableToReadFromClock)
+        fn now(&self) -> Result<time::Instant<Self>, time::clock::Error<Self::ImplError>> {
+            Err(time::clock::Error::Other(ClockImplError::NotStarted))
         }
     }
 
-    fn get_time<Clock: time::Clock>(clock: &mut Clock)
+    fn get_time<Clock: time::Clock>(clock: &Clock)
     where
         u32: TryFrom<Clock::Rep>,
         Clock::Rep: TryFrom<u32>,
@@ -186,11 +180,11 @@ mod tests {
         let then = MockClock32.now().unwrap();
         let now = MockClock32.now().unwrap();
 
-        let mut clock64 = MockClock64 {};
-        let mut clock32 = MockClock32 {};
+        let clock64 = MockClock64 {};
+        let clock32 = MockClock32 {};
 
-        get_time(&mut clock64);
-        get_time(&mut clock32);
+        get_time(&clock64);
+        get_time(&clock32);
 
         let then = then - Seconds(1_u32);
         assert_ne!(then, now);
@@ -199,7 +193,10 @@ mod tests {
 
     #[test]
     fn clock_error() {
-        assert_eq!(BadClock.now(), Err(time::Error::UnableToReadFromClock));
+        assert_eq!(
+            BadClock.now(),
+            Err(time::clock::Error::Other(ClockImplError::NotStarted))
+        );
     }
 
     struct Timestamp<Clock>(time::Instant<Clock>)
