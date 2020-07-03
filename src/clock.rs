@@ -43,7 +43,10 @@ pub trait Clock: Sized {
     fn now(&self) -> Result<Instant<Self>, Error<Self::ImplError>>;
 
     /// Spawn a new, `OneShot` [`Timer`] from this clock
-    fn new_timer<Dur: Duration>(&self) -> Timer<param::OneShot, param::Disarmed, Self, Dur> {
-        Timer::<param::None, param::None, Self, Dur>::new(&self)
+    fn new_timer<Dur: Duration>(
+        &self,
+        duration: Dur,
+    ) -> Timer<param::OneShot, param::Armed, Self, Dur> {
+        Timer::<param::None, param::None, Self, Dur>::new(&self, duration)
     }
 }

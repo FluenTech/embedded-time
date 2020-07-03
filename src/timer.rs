@@ -8,9 +8,6 @@ pub(crate) mod param {
     pub struct None;
 
     #[derive(Debug)]
-    pub struct Disarmed;
-
-    #[derive(Debug)]
     pub struct Armed;
 
     #[derive(Debug)]
@@ -28,7 +25,7 @@ pub(crate) mod param {
 #[derive(Debug)]
 pub struct Timer<'a, Type, State, Clock: crate::Clock, Dur: Duration> {
     clock: &'a Clock,
-    duration: Option<Dur>,
+    duration: Dur,
     expiration: Option<Instant<Clock>>,
     _type: PhantomData<Type>,
     _state: PhantomData<State>,
@@ -37,10 +34,10 @@ pub struct Timer<'a, Type, State, Clock: crate::Clock, Dur: Duration> {
 impl<'a, Clock: crate::Clock, Dur: Duration> Timer<'_, param::None, param::None, Clock, Dur> {
     /// Construct a new, `OneShot` `Timer`
     #[allow(clippy::new_ret_no_self)]
-    pub fn new(clock: &Clock) -> Timer<OneShot, Disarmed, Clock, Dur> {
-        Timer::<OneShot, Disarmed, Clock, Dur> {
+    pub fn new(clock: &Clock, duration: Dur) -> Timer<OneShot, Armed, Clock, Dur> {
+        Timer::<OneShot, Armed, Clock, Dur> {
             clock,
-            duration: Option::None,
+            duration,
             expiration: Option::None,
             _type: PhantomData,
             _state: PhantomData,
@@ -72,22 +69,8 @@ impl<'a, Type, State, Clock: crate::Clock, Dur: Duration> Timer<'a, Type, State,
     }
 }
 
-impl<'a, Type, Clock: crate::Clock, Dur: Duration> Timer<'a, Type, Disarmed, Clock, Dur> {
-    /// Set the [`Duration`] of the timer
-    ///
-    /// This _arms_ the timer (makes it ready to run).
-    pub fn set_duration(self, duration: Dur) -> Timer<'a, Type, Armed, Clock, Dur> {
-        Timer::<Type, Armed, Clock, Dur> {
-            clock: self.clock,
-            duration: Some(duration),
-            expiration: Option::None,
-            _type: PhantomData,
-            _state: PhantomData,
-        }
-    }
-}
 impl<'a, Type, Clock: crate::Clock, Dur: Duration> Timer<'a, Type, Armed, Clock, Dur> {
-    /// Start the _armed_ timer from this instant
+    /// Start the timer from this instant
     pub fn start(self) -> Timer<'a, Type, Running, Clock, Dur>
     where
         Instant<Clock>: Add<Dur, Output = Instant<Clock>>,
@@ -95,7 +78,7 @@ impl<'a, Type, Clock: crate::Clock, Dur: Duration> Timer<'a, Type, Armed, Clock,
         Timer::<Type, Running, Clock, Dur> {
             clock: self.clock,
             duration: self.duration,
-            expiration: Some(self.clock.now().unwrap() + self.duration.unwrap()),
+            expiration: Some(self.clock.now().unwrap() + self.duration),
             _type: PhantomData,
             _state: PhantomData,
         }
@@ -109,8 +92,9 @@ impl<Type, Clock: crate::Clock, Dur: Duration> Timer<'_, Type, Running, Clock, D
 
     /// Returns the [`Duration`] of time elapsed since it was started
     ///
-    /// The units of the [`Duration`] are the same as that used with
-    /// [`set_duration()`](struct.Timer.html#method.set_duration).
+    /// **The duration is truncated, not rounded**.
+    ///
+    /// The units of the [`Duration`] are the same as that used to construct the `Timer`.
     pub fn elapsed(&self) -> Dur
     where
         Dur::Rep: TryFrom<Clock::Rep>,
@@ -119,14 +103,15 @@ impl<Type, Clock: crate::Clock, Dur: Duration> Timer<'_, Type, Running, Clock, D
         self.clock
             .now()
             .unwrap()
-            .duration_since(&(self.expiration.unwrap() - self.duration.unwrap()))
+            .duration_since(&(self.expiration.unwrap() - self.duration))
             .unwrap()
     }
 
     /// Returns the [`Duration`] until the expiration of the timer
     ///
-    /// The units of the [`Duration`] are the same as that used with
-    /// [`set_duration()`](struct.Timer.html#method.set_duration).
+    /// **The duration is truncated, not rounded**.
+    ///
+    /// The units of the [`Duration`] are the same as that used to construct the `Timer`.
     pub fn remaining(&self) -> Dur
     where
         Dur::Rep: TryFrom<Clock::Rep>,
@@ -151,8 +136,7 @@ impl<'a, Clock: crate::Clock, Dur: Duration> Timer<'a, OneShot, Running, Clock, 
         // since the timer is running, _is_expired() will return a value
         while !self._is_expired() {}
 
-        Timer::<param::None, param::None, Clock, Dur>::new(self.clock)
-            .set_duration(self.duration.unwrap())
+        Timer::<param::None, param::None, Clock, Dur>::new(self.clock, self.duration)
     }
 
     /// Check whether the timer has expired
@@ -177,9 +161,7 @@ impl<Clock: crate::Clock, Dur: Duration> Timer<'_, Periodic, Running, Clock, Dur
         Self {
             clock: self.clock,
             duration: self.duration,
-            expiration: self
-                .expiration
-                .map(|expiration| expiration + self.duration.unwrap()),
+            expiration: self.expiration.map(|expiration| expiration + self.duration),
             _type: PhantomData,
             _state: PhantomData,
         }
@@ -194,7 +176,7 @@ impl<Clock: crate::Clock, Dur: Duration> Timer<'_, Periodic, Running, Clock, Dur
     {
         // since the timer is running, _is_expired() will return a value
         if self._is_expired() {
-            self.expiration = Some(self.expiration.unwrap() + self.duration.unwrap());
+            self.expiration = Some(self.expiration.unwrap() + self.duration);
 
             true
         } else {
@@ -231,7 +213,7 @@ mod test {
         init_ticks();
         let clock = Clock;
 
-        let timer = clock.new_timer().set_duration(1_u32.seconds()).start();
+        let timer = clock.new_timer(1_u32.seconds()).start();
 
         thread::scope(|s| {
             let timer_handle = s.spawn(|_| timer.wait());
@@ -260,11 +242,7 @@ mod test {
         init_ticks();
         let clock = Clock;
 
-        let timer = clock
-            .new_timer()
-            .into_periodic()
-            .set_duration(1_u32.seconds())
-            .start();
+        let timer = clock.new_timer(1_u32.seconds()).into_periodic().start();
 
         thread::scope(|s| {
             let timer_handle = s.spawn(|_| timer.wait());
@@ -292,11 +270,7 @@ mod test {
         init_ticks();
         let clock = Clock;
 
-        let mut timer = clock
-            .new_timer()
-            .into_periodic()
-            .set_duration(1_u32.seconds())
-            .start();
+        let mut timer = clock.new_timer(1_u32.seconds()).into_periodic().start();
 
         add_to_ticks(2_u32.seconds());
 
@@ -309,7 +283,7 @@ mod test {
         init_ticks();
         let clock = Clock;
 
-        let timer = clock.new_timer().set_duration(2_u32.seconds()).start();
+        let timer = clock.new_timer(2_u32.seconds()).start();
 
         add_to_ticks(1_u32.milliseconds());
 
