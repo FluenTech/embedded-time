@@ -1,11 +1,10 @@
 #![cfg_attr(not(test), no_std)]
 #![cfg_attr(not(test), no_main)]
 
-extern crate panic_rtt;
-
 use core::convert::Infallible;
 use cortex_m_rt::entry;
 use embedded_time::{self as time, traits::*};
+use panic_never as _;
 
 pub mod nrf52 {
     pub use nrf52832_hal::{
