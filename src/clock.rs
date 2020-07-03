@@ -8,7 +8,7 @@ use crate::{
 /// Potential `Clock` errors
 #[non_exhaustive]
 #[derive(Debug, Eq, PartialEq)]
-pub enum Error<E: crate::Error = ()> {
+pub enum Error<E: crate::Error> {
     /// implementation-specific error
     Other(E),
 }
