@@ -1,4 +1,6 @@
-use crate::{duration::TryConvertFrom, timer::param::*, traits::*, units::*, Duration, Instant};
+use crate::{
+    duration::Duration, duration::TryConvertFrom, timer::param::*, traits::*, units::*, Instant,
+};
 use core::{convert::TryFrom, marker::PhantomData, ops::Add, prelude::v1::*};
 
 pub(crate) mod param {
@@ -205,7 +207,7 @@ impl<Clock: crate::Clock, Dur: Duration> Timer<'_, Periodic, Running, Clock, Dur
 #[allow(unused_imports)]
 #[allow(unsafe_code)]
 mod test {
-    use crate::{traits::*, units::*, Duration, Error, Instant, Period};
+    use crate::{duration::Duration, traits::*, units::*, Error, Instant, Period};
     use core::convert::{Infallible, TryFrom};
     use crossbeam_utils::thread;
     use std::sync::atomic::{AtomicU64, Ordering};

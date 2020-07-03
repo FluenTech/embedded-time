@@ -1,7 +1,9 @@
 //! The `Clock` trait can be implemented over hardware timers or other time-keeping device
 
-use crate::timer::param;
-use crate::{time_int::TimeInt, Duration, Instant, Period, Timer};
+use crate::{
+    duration::Duration, instant::Instant, period::Period, time_int::TimeInt, timer::param,
+    timer::Timer,
+};
 
 /// Potential `Clock` errors
 #[non_exhaustive]

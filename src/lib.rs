@@ -15,8 +15,8 @@
 //! [`Seconds`]: units::Seconds
 //! [`Milliseconds`]: units::Milliseconds
 //! [`Hertz`]: units::Hertz
-//! [`Duration`]: trait.Duration.html
-//! [`Clock`]: trait.Clock.html
+//! [`Duration`]: duration/trait.Duration.html
+//! [`Duration::count()`]: duration/trait.Duration.html#tymethod.count
 //!
 //! ## Definitions
 //! **Clock**: Any entity that periodically counts (ie a hardware timer/counter peripheral).
@@ -74,19 +74,19 @@
 #![deny(intra_doc_link_resolution_failure)]
 
 pub mod clock;
-mod duration;
+pub mod duration;
 mod frequency;
 mod instant;
+mod numeric_constructor;
 mod period;
 mod time_int;
 mod timer;
 
 pub use clock::Clock;
 use core::{convert::Infallible, fmt};
-pub use duration::Duration;
 pub use instant::Instant;
 pub use period::Period;
-pub use time_int::TimeInt;
+pub(crate) use time_int::TimeInt;
 pub use timer::Timer;
 
 /// Public _traits_
@@ -100,7 +100,7 @@ pub mod traits {
     pub use crate::duration::Duration as _;
     pub use crate::duration::TryConvertFrom as _;
     pub use crate::duration::TryConvertInto as _;
-    pub use crate::time_int::NumericConstructor as _;
+    pub use crate::numeric_constructor::NumericConstructor as _;
     pub use crate::time_int::TimeInt as _;
 }
 

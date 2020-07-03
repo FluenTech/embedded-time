@@ -1,6 +1,6 @@
 //! An instant of time
 
-use crate::Duration;
+use crate::duration::Duration;
 use core::{cmp::Ordering, convert::TryFrom, ops};
 use num::traits::{WrappingAdd, WrappingSub};
 
