@@ -2,15 +2,20 @@
 
 ## [Unreleased]
 
+
+[unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.6.0...HEAD
+
+## [0.6.0] - 2020-07-03
+
 ### Added
 
 - A `Timer` type supporting one-shot and periodic software timers utilizing a `Clock` implementation
-- `Timer` unit tests
-- Fallibility to `Clock` methods
+- Fallibility and error handling for `Clock` methods
 - `Instant::duration_until()` with order checking
 - Order checking to `Instant::duration_since()`
 - Bounds checking on `Instant` impls of Add/Sub
 - Changelog back to v0.5.0 release
+- [`crossbeam-utils`](https://crates.io/crates/crossbeam-utils) dev-dependency for scoped threads in tests
 
 ### Changed
 
@@ -19,7 +24,7 @@
 - `Instant::duration_since()` return type to `Result`
 - Refactor `examples/nrf52_dk`
 
-[unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.5.2...HEAD
+[0.6.0]: https://github.com/FluenTech/embedded-time/compare/v0.5.2...v0.6.0
 
 ## [0.5.2] - 2020-06-21
 

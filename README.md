@@ -5,12 +5,42 @@
 [docs.rs]: https://docs.rs/embedded-time/badge.svg
 
 `embedded-time` provides a comprehensive library for implementing abstractions over
-hardware and work with _clocks_, _instants_, _durations_, _periods_, and _frequencies_ in a more intuitive way.
- 
+hardware and work with _clocks_, _timers_, _instants_, _durations_, _periods_, and _frequencies_ in a more intuitive way.
+
+## Hardware Abstraction
+
 - `Clock` trait allowing abstraction of hardware timers for timekeeping.
-- Work with time using _milliseconds_, _seconds_, _hertz_, etc. rather than _cycles_ or _ticks_.
-- Includes example for the nRF52_DK board
-- Conversion to/from core::time::Duration
+
+## Timers
+
+- Software timers spawned from a `Clock` impl object.
+- One-shot or periodic/continuous
+- Blocking delay
+- Poll for expiration
+- Read elapsed/remaining duration
+
+## Duration Types
+
+- Nanoseconds
+- Microseconds
+- Milliseconds
+- Seconds
+- Minutes
+- Hours
+
+## Frequency Type
+
+- Hertz
+
+## `core` Compatibility
+
+- Conversion to/from `core::time::Duration`
+
+## Reliability and Usability
+- Extensive tests
+- Thorough documentation with examples
+- Example for the nRF52_DK board
+
 
 ## License
 This project is licensed under either of
