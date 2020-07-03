@@ -1,24 +1,32 @@
 //! `embedded-time` provides a comprehensive library for implementing [`Clock`] abstractions over
 //! hardware to generate [`Instant`]s and using [`Duration`]s ([`Seconds`], [`Milliseconds`], etc)
 //! in embedded systems. The approach is similar to the C++ `chrono` library. A [`Duration`]
-//! consists of an integer (whose type is chosen by the user to be either [`i32`] or [`i64`]) as
-//! well as a `const` ratio where the integer value multiplied by the ratio is the [`Duration`] in
-//! seconds. Put another way, the ratio is the precision of the LSbit of the integer. This structure
-//! avoids unnecessary arithmetic. For example, if the [`Duration`] type is [`Milliseconds`], a call
-//! to the [`Duration::count()`] method simply returns the stored integer value directly which is
-//! the number of milliseconds being represented. Conversion arithmetic is only performed when
-//! explicitly converting between time units.
+//! consists of an integer (whose type is chosen by the user to be either [`u32`] or [`u64`]) as
+//! well as a `const` fraction ([`Period`]) where the integer value multiplied by the fraction is
+//! the [`Duration`] in seconds. Put another way, the ratio is the precision of the LSbit of the
+//! integer. This structure avoids unnecessary arithmetic. For example, if the [`Duration`] type is
+//! [`Milliseconds`], a call to the [`Duration::count()`] method simply returns the stored integer
+//! value directly which is the number of milliseconds being represented. Conversion arithmetic is
+//! only performed when explicitly converting between time units.
+//!
+//! In addition frequency-type types are available including [`Hertz`] ([`u32`]) and it's reciprocal
+//! [`Period`] ([`u32`]/[`u32`] seconds).
 //!
 //! [`Seconds`]: units::Seconds
 //! [`Milliseconds`]: units::Milliseconds
+//! [`Hertz`]: units::Hertz
+//! [`Duration`]: duration/trait.Duration.html
+//! [`Duration::count()`]: duration/trait.Duration.html#tymethod.count
 //!
 //! ## Definitions
-//! **Clock**: Any entity that periodically counts (ie a hardware timer peripheral). Generally,
-//! this needs to be monotonic. A wrapping clock is considered monotonic in this context as long as
-//! it fulfills the other requirements.
+//! **Clock**: Any entity that periodically counts (ie an external or peripheral hardware
+//! timer/counter). Generally, this needs to be monotonic. A wrapping clock is considered monotonic
+//! in this context as long as it fulfills the other requirements.
 //!
 //! **Wrapping Clock**: A clock that when at its maximum value, the next count is the minimum
 //! value.
+//!
+//! **Timer**: An entity that counts toward an expiration.
 //!
 //! **Instant**: A specific instant in time ("time-point") read from a clock.
 //!
@@ -33,28 +41,30 @@
 //!
 //! # Example Usage
 //! ```rust,no_run
-//! # use embedded_time::{prelude::*, units::*, Instant, Period};
+//! # use embedded_time::{traits::*, units::*, Instant, Period};
 //! # #[derive(Debug)]
 //! struct SomeClock;
 //! impl embedded_time::Clock for SomeClock {
-//!     type Rep = i64;
-//!     const PERIOD: Period = Period::new(1, 16_000_000);
-//!
-//!     fn now() -> Instant<Self> {
+//!     type Rep = u64;
+//!     const PERIOD: Period = <Period>::new(1, 16_000_000);
+//!     type ImplError = ();
+//!     
+//!     fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {
 //!         // ...
 //! #         unimplemented!()
 //!     }
 //! }
 //!
-//! let instant1 = SomeClock::now();
+//! let mut clock = SomeClock;
+//! let instant1 = clock.now().unwrap();
 //! // ...
-//! let instant2 = SomeClock::now();
+//! let instant2 = clock.now().unwrap();
 //! assert!(instant1 < instant2);    // instant1 is *before* instant2
 //!
 //! // duration is the difference between the instances
-//! let duration: Option<Microseconds<i64>> = instant2.duration_since(&instant1);    
+//! let duration: Result<Microseconds<u64>, _> = instant2.duration_since(&instant1);    
 //!
-//! assert!(duration.is_some());
+//! assert!(duration.is_ok());
 //! assert_eq!(instant1 + duration.unwrap(), instant2);
 //! ```
 
@@ -63,89 +73,137 @@
 #![warn(missing_docs)]
 #![deny(intra_doc_link_resolution_failure)]
 
-mod clock;
-mod duration;
+pub mod clock;
+pub mod duration;
 mod frequency;
 mod instant;
+mod numeric_constructor;
 mod period;
 mod time_int;
+mod timer;
 
 pub use clock::Clock;
-pub use duration::Duration;
+use core::{convert::Infallible, fmt};
 pub use instant::Instant;
 pub use period::Period;
-pub use time_int::TimeInt;
+pub(crate) use time_int::TimeInt;
+pub use timer::Timer;
 
 /// Public _traits_
 ///
 /// ```rust,no_run
-/// use embedded_time::prelude::*;
+/// use embedded_time::traits::*;
 /// ```
-pub mod prelude {
+#[doc(hidden)]
+pub mod traits {
     // Rename traits to `_` to avoid any potential name conflicts.
+    pub use crate::clock::Clock as _;
     pub use crate::duration::Duration as _;
     pub use crate::duration::TryConvertFrom as _;
     pub use crate::duration::TryConvertInto as _;
+    pub use crate::numeric_constructor::NumericConstructor as _;
     pub use crate::time_int::TimeInt as _;
-    pub use crate::Clock as _;
 }
 
 pub mod units {
     //! Time-based units of measure ([`Milliseconds`], [`Hertz`], etc)
+    #[doc(inline)]
     pub use crate::duration::units::*;
+    #[doc(inline)]
     pub use crate::frequency::units::*;
 }
+
+/// General error-type trait implemented for all error types in this crate
+pub trait Error: fmt::Debug {}
+impl Error for () {}
+impl Error for Infallible {}
 
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    use crate as time;
-    use crate::prelude::*;
-    use crate::units::*;
-    use core::fmt::{self, Formatter};
+    use crate::{self as time, clock, traits::*, units::*};
+    use core::{
+        convert::{Infallible, TryFrom, TryInto},
+        fmt::{self, Formatter},
+    };
 
-    #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
     struct MockClock64;
-
     impl time::Clock for MockClock64 {
-        type Rep = i64;
-        const PERIOD: time::Period = time::Period::new(1, 64_000_000);
+        type Rep = u64;
+        const PERIOD: time::Period = <time::Period>::new(1, 64_000_000);
+        type ImplError = Infallible;
 
-        fn now() -> time::Instant<Self> {
-            time::Instant::new(128_000_000)
+        fn now(&self) -> Result<time::Instant<Self>, time::clock::Error<Self::ImplError>> {
+            Ok(time::Instant::new(128_000_000))
         }
     }
 
-    #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
+    #[derive(Debug)]
     struct MockClock32;
 
     impl time::Clock for MockClock32 {
-        type Rep = i32;
-        const PERIOD: time::Period = time::Period::new(1, 16_000_000);
+        type Rep = u32;
+        const PERIOD: time::Period = <time::Period>::new(1, 16_000_000);
+        type ImplError = Infallible;
 
-        fn now() -> time::Instant<Self> {
-            time::Instant::new(32_000_000)
+        fn now(&self) -> Result<time::Instant<Self>, time::clock::Error<Self::ImplError>> {
+            Ok(time::Instant::new(32_000_000))
         }
     }
 
-    fn get_time<M>()
+    #[non_exhaustive]
+    #[derive(Debug, Eq, PartialEq)]
+    pub enum ClockImplError {
+        NotStarted,
+    }
+    impl crate::Error for ClockImplError {}
+
+    #[derive(Debug)]
+    struct BadClock;
+
+    impl time::Clock for BadClock {
+        type Rep = u32;
+        const PERIOD: time::Period = time::Period::new(1, 16_000_000);
+        type ImplError = ClockImplError;
+
+        fn now(&self) -> Result<time::Instant<Self>, time::clock::Error<Self::ImplError>> {
+            Err(time::clock::Error::Other(ClockImplError::NotStarted))
+        }
+    }
+
+    fn get_time<Clock: time::Clock>(clock: &Clock)
     where
-        M: time::Clock,
+        u32: TryFrom<Clock::Rep>,
+        Clock::Rep: TryFrom<u32>,
     {
-        assert_eq!(M::now().duration_since_epoch(), Some(Seconds(2)));
+        assert_eq!(
+            clock.now().unwrap().duration_since_epoch(),
+            Ok(Seconds(2_u32))
+        );
     }
 
     #[test]
     fn common_types() {
-        let then = MockClock32::now();
-        let now = MockClock32::now();
+        let then = MockClock32.now().unwrap();
+        let now = MockClock32.now().unwrap();
 
-        get_time::<MockClock64>();
-        get_time::<MockClock32>();
+        let clock64 = MockClock64 {};
+        let clock32 = MockClock32 {};
 
-        let then = then - Seconds(1);
+        get_time(&clock64);
+        get_time(&clock32);
+
+        let then = then - Seconds(1_u32);
         assert_ne!(then, now);
         assert!(then < now);
+    }
+
+    #[test]
+    fn clock_error() {
+        assert_eq!(
+            BadClock.now(),
+            Err(time::clock::Error::Other(ClockImplError::NotStarted))
+        );
     }
 
     struct Timestamp<Clock>(time::Instant<Clock>)
@@ -168,16 +226,17 @@ mod tests {
         fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
             let duration = self
                 .0
-                .duration_since_epoch::<Milliseconds<i64>>()
-                .ok_or(fmt::Error {})?;
+                .duration_since_epoch::<Milliseconds<u64>>()
+                .map_err(|_| fmt::Error {})?;
 
-            let hours = Hours::<i32>::try_convert_from(duration).ok_or(fmt::Error {})?;
+            let hours = Hours::<u32>::try_convert_from(duration).ok_or(fmt::Error {})?;
             let minutes =
-                Minutes::<i32>::try_convert_from(duration).ok_or(fmt::Error {})? % Hours(1);
+                Minutes::<u32>::try_convert_from(duration).ok_or(fmt::Error {})? % Hours(1_u32);
             let seconds =
-                Seconds::<i32>::try_convert_from(duration).ok_or(fmt::Error {})? % Minutes(1);
-            let milliseconds =
-                Milliseconds::<i32>::try_convert_from(duration).ok_or(fmt::Error {})? % Seconds(1);
+                Seconds::<u32>::try_convert_from(duration).ok_or(fmt::Error {})? % Minutes(1_u32);
+            let milliseconds = Milliseconds::<u32>::try_convert_from(duration)
+                .ok_or(fmt::Error {})?
+                % Seconds(1_u32);
 
             f.write_fmt(format_args!(
                 "{}:{:02}:{:02}.{:03}",

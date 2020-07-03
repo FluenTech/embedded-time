@@ -5,9 +5,14 @@ use num::{rational::Ratio, CheckedDiv, CheckedMul};
 
 /// A fractional time period
 ///
-/// Used primarily to define the period of one count of a [`crate::Duration`] type
+/// Used primarily to define the period of one count of a [`Duration`], [`Instant`] and [`Clock`]
+/// impl types but also convertable to/from [`Hertz`].
+///
+/// [`Duration`]: duration/trait.Duration.html
+/// [`Clock`]: clock/trait.Clock.html
+/// [`Instant`]: instant/struct.Instant.html
 #[derive(Debug)]
-pub struct Period<T = i32>(Ratio<T>);
+pub struct Period<T = u32>(Ratio<T>);
 
 impl<T> Period<T> {
     /// Construct a new fractional `Period`.
@@ -46,9 +51,7 @@ impl<T: TimeInt> Period<T> {
         Self(Ratio::from_integer(freq.0).recip())
     }
 
-    /// Returns an integer approximation of the Period
-    ///
-    /// Any remainder is truncated.
+    /// Returns the value truncated to an integer
     pub fn to_integer(&self) -> T {
         self.0.to_integer()
     }
@@ -62,9 +65,9 @@ impl<T: TimeInt> Period<T> {
 
     /// ```rust
     /// # use embedded_time::Period;
-    /// assert_eq!(Period::new(1000, 1).checked_mul_integer(5), Some(Period::new(5_000, 1)));
+    /// assert_eq!(Period::new(1000, 1).checked_mul_integer(5_u32), Some(Period::new(5_000, 1)));
     ///
-    /// assert_eq!(Period::new(i32::MAX, 1).checked_mul_integer(2), None);
+    /// assert_eq!(Period::new(u32::MAX, 1).checked_mul_integer(2_u32), None);
     /// ```
     pub fn checked_mul_integer(&self, multiplier: T) -> Option<Self> {
         Some(Self(Ratio::checked_mul(
@@ -75,10 +78,10 @@ impl<T: TimeInt> Period<T> {
 
     /// ```rust
     /// # use embedded_time::Period;
-    /// assert_eq!(Period::new(1000, 1).checked_div_integer(5), Some(Period::new(200, 1)));
-    /// assert_eq!(Period::new(1, 1000).checked_div_integer(5), Some(Period::new(1, 5000)));
+    /// assert_eq!(Period::new(1000, 1).checked_div_integer(5_u32), Some(Period::new(200, 1)));
+    /// assert_eq!(Period::new(1, 1000).checked_div_integer(5_u32), Some(Period::new(1, 5000)));
     ///
-    /// assert_eq!(Period::new(1, i32::MAX).checked_div_integer(2), None);
+    /// assert_eq!(Period::new(1, u32::MAX).checked_div_integer(2_u32), None);
     /// ```
     pub fn checked_div_integer(&self, divisor: T) -> Option<Self> {
         Some(Self(Ratio::checked_div(
@@ -96,8 +99,8 @@ where
 
     /// ```rust
     /// # use embedded_time::Period;
-    /// assert_eq!(Period::new(1000, 1) * Period::new(5,5),
-    ///     Period::new(5_000, 5));
+    /// assert_eq!(Period::<u32>::new(1000, 1) * <Period>::new(5,5),
+    ///     <Period>::new(5_000, 5));
     /// ```
     fn mul(self, rhs: Self) -> Self::Output {
         Self(self.0 * rhs.0)
@@ -113,7 +116,7 @@ where
     /// assert_eq!(<Period as num::CheckedMul>::checked_mul(&Period::new(1000, 1),
     ///     &Period::new(5,5)), Some(Period::new(5_000, 5)));
     ///
-    /// assert_eq!(<Period as num::CheckedMul>::checked_mul(&Period::new(i32::MAX, 1),
+    /// assert_eq!(<Period as num::CheckedMul>::checked_mul(&Period::new(u32::MAX, 1),
     ///     &Period::new(2,1)), None);
     /// ```
     fn checked_mul(&self, v: &Self) -> Option<Self> {
@@ -129,8 +132,8 @@ where
 
     /// ```rust
     /// # use embedded_time::Period;
-    /// assert_eq!(Period::new(1000, 1) / Period::new(10, 1_000),
-    ///     Period::new(1_000_000, 10));
+    /// assert_eq!(Period::<u32>::new(1000, 1) / <Period>::new(10, 1_000),
+    ///     <Period>::new(1_000_000, 10));
     /// ```
     fn div(self, rhs: Self) -> Self::Output {
         Self(self.0 / rhs.0)
@@ -146,7 +149,7 @@ where
     /// assert_eq!(<Period as num::CheckedDiv>::checked_div(&Period::new(1000, 1),
     ///     &Period::new(10, 1000)), Some(Period::new(1_000_000, 10)));
     ///
-    /// assert_eq!(<Period as num::CheckedDiv>::checked_div(&Period::new(1, i32::MAX),
+    /// assert_eq!(<Period as num::CheckedDiv>::checked_div(&Period::new(1, u32::MAX),
     ///     &Period::new(2,1)), None);
     /// ```
     fn checked_div(&self, v: &Self) -> Option<Self> {

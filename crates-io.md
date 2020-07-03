@@ -1,12 +1,41 @@
 # embedded-time
 
 `embedded-time` provides a comprehensive library for implementing abstractions over
-hardware and work with _clocks_, _instants_, _durations_, _periods_, and _frequencies_ in a more intuitive way.
- 
+hardware and work with _clocks_, _timers_, _instants_, _durations_, _periods_, and _frequencies_ in a more intuitive way.
+
+## Hardware Abstraction
+
 - `Clock` trait allowing abstraction of hardware timers for timekeeping.
-- Work with time using _milliseconds_, _seconds_, _hertz_, etc. rather than _cycles_ or _ticks_.
-- Includes example for the nRF52_DK board
-- Conversion to/from core::time::Duration
+
+## Timers
+
+- Software timers spawned from a `Clock` impl object.
+- One-shot or periodic/continuous
+- Blocking delay
+- Poll for expiration
+- Read elapsed/remaining duration
+
+## Duration Types
+
+- Nanoseconds
+- Microseconds
+- Milliseconds
+- Seconds
+- Minutes
+- Hours
+
+## Frequency Type
+
+- Hertz
+
+## `core` Compatibility
+
+- Conversion to/from `core::time::Duration`
+
+## Reliability and Usability
+- Extensive tests
+- Thorough documentation with examples
+- Example for the nRF52_DK board
 
 ## Motivation
 The handling of time on embedded systems is generally much different than that of OSs. For instance, on an OS, the time is measured against an arbitrary epoch. Embedded systems generally don't know (nor do they care) what the *real* time is, but rather how much time has passed since the system has started.

@@ -3,11 +3,9 @@
 
 extern crate panic_rtt;
 
-use core::borrow::Borrow;
-use cortex_m::mutex::CriticalSectionMutex as Mutex;
+use core::convert::Infallible;
 use cortex_m_rt::entry;
-use embedded_time::{self as time, Clock, Instant, Period, TimeInt};
-use mutex_trait::Mutex as _;
+use embedded_time::{self as time, traits::*};
 
 pub mod nrf52 {
     pub use nrf52832_hal::{
@@ -15,46 +13,42 @@ pub mod nrf52 {
         prelude::*,
         target::{self as pac, Peripherals},
     };
+}
 
-    pub struct Timer64 {
-        low: pac::TIMER0,
-        high: pac::TIMER1,
-        capture_task: pac::EGU0,
-    }
+pub struct SysClock {
+    low: nrf52::pac::TIMER0,
+    high: nrf52::pac::TIMER1,
+    capture_task: nrf52::pac::EGU0,
+}
 
-    impl Timer64 {
-        pub fn take(low: pac::TIMER0, high: pac::TIMER1, capture_task: pac::EGU0) -> Self {
-            Self {
-                low,
-                high,
-                capture_task,
-            }
-        }
-
-        pub(crate) fn read(&mut self) -> u64 {
-            self.capture_task.tasks_trigger[0].write(|write| unsafe { write.bits(1) });
-            self.low.cc[0].read().bits() as u64 | ((self.high.cc[0].read().bits() as u64) << 32)
+impl SysClock {
+    pub fn take(
+        low: nrf52::pac::TIMER0,
+        high: nrf52::pac::TIMER1,
+        capture_task: nrf52::pac::EGU0,
+    ) -> Self {
+        Self {
+            low,
+            high,
+            capture_task,
         }
     }
 }
-
-pub struct SysClock;
 
 impl time::Clock for SysClock {
-    type Rep = i64;
-    const PERIOD: Period = Period::new(1, 16_000_000);
+    type Rep = u64;
+    const PERIOD: time::Period = <time::Period>::new(1, 16_000_000);
+    type ImplError = Infallible;
 
-    fn now() -> Instant<Self> {
-        let ticks = (&SYSTEM_TICKS).lock(|timer64| match timer64 {
-            Some(timer64) => timer64.read(),
-            None => 0,
-        });
+    fn now(&self) -> Result<time::Instant<Self>, time::clock::Error<Self::ImplError>> {
+        self.capture_task.tasks_trigger[0].write(|write| unsafe { write.bits(1) });
 
-        Instant::new(ticks as Self::Rep)
+        let ticks =
+            self.low.cc[0].read().bits() as u64 | ((self.high.cc[0].read().bits() as u64) << 32);
+
+        Ok(time::Instant::new(ticks as Self::Rep))
     }
 }
-
-static SYSTEM_TICKS: Mutex<Option<nrf52::Timer64>> = Mutex::new(None);
 
 #[entry]
 fn main() -> ! {
@@ -76,35 +70,21 @@ fn main() -> ! {
 
     unsafe {
         device.PPI.ch[0].eep.write(|w| {
-            w.bits(
-                device.TIMER0.events_compare[1].borrow() as *const nrf52::pac::generic::Reg<_, _>
-                    as u32,
-            )
+            w.bits(&device.TIMER0.events_compare[1] as *const nrf52::pac::generic::Reg<_, _> as u32)
         });
         device.PPI.ch[0].tep.write(|w| {
-            w.bits(
-                device.TIMER1.tasks_count.borrow() as *const nrf52::pac::generic::Reg<_, _> as u32,
-            )
+            w.bits(&device.TIMER1.tasks_count as *const nrf52::pac::generic::Reg<_, _> as u32)
         });
         device.PPI.chen.modify(|_, w| w.ch0().enabled());
 
         device.PPI.ch[1].eep.write(|w| {
-            w.bits(
-                device.EGU0.events_triggered[0].borrow() as *const nrf52::pac::generic::Reg<_, _>
-                    as u32,
-            )
+            w.bits(&device.EGU0.events_triggered[0] as *const nrf52::pac::generic::Reg<_, _> as u32)
         });
         device.PPI.ch[1].tep.write(|w| {
-            w.bits(
-                device.TIMER0.tasks_capture[0].borrow() as *const nrf52::pac::generic::Reg<_, _>
-                    as u32,
-            )
+            w.bits(&device.TIMER0.tasks_capture[0] as *const nrf52::pac::generic::Reg<_, _> as u32)
         });
         device.PPI.fork[1].tep.write(|w| {
-            w.bits(
-                device.TIMER1.tasks_capture[0].borrow() as *const nrf52::pac::generic::Reg<_, _>
-                    as u32,
-            )
+            w.bits(&device.TIMER1.tasks_capture[0] as *const nrf52::pac::generic::Reg<_, _> as u32)
         });
         device.PPI.chen.modify(|_, w| w.ch1().enabled());
     }
@@ -118,8 +98,10 @@ fn main() -> ! {
         .tasks_start
         .write(|write| unsafe { write.bits(1) });
 
-    let timer64 = nrf52::Timer64::take(device.TIMER0, device.TIMER1, device.EGU0);
-    (&SYSTEM_TICKS).lock(|ticks| *ticks = Some(timer64));
+    // This moves these peripherals to prevent conflicting usage, however not the entire EGU0 is
+    // used. A ref to EGU0 could be sent instead, although that provides no protection for the
+    // fields that are being used by Clock64.
+    let mut clock = SysClock::take(device.TIMER0, device.TIMER1, device.EGU0);
 
     let port0 = nrf52::gpio::p0::Parts::new(device.P0);
 
@@ -148,6 +130,7 @@ fn main() -> ! {
         &mut led2.degrade(),
         &mut led3.degrade(),
         &mut led4.degrade(),
+        &mut clock,
     )
     .unwrap();
 
@@ -159,6 +142,7 @@ fn run<Led>(
     led2: &mut Led,
     led3: &mut Led,
     led4: &mut Led,
+    clock: &mut SysClock,
 ) -> Result<(), <Led as nrf52::OutputPin>::Error>
 where
     Led: nrf52::OutputPin,
@@ -168,12 +152,12 @@ where
         led2.set_high()?;
         led3.set_high()?;
         led4.set_low()?;
-        SysClock::delay(250.milliseconds());
+        clock.new_timer(250_u32.milliseconds()).start().wait();
 
         led1.set_high()?;
         led2.set_low()?;
         led3.set_low()?;
         led4.set_high()?;
-        SysClock::delay(250.milliseconds());
+        clock.new_timer(250_u32.milliseconds()).start().wait();
     }
 }
