@@ -9,36 +9,6 @@ use num::Bounded;
 /// Each implementation defines a constant [`Period`] which is a fraction/ratio representing the
 /// period of the count's LSbit
 ///
-/// # Implementation Example
-/// ```rust,no_run
-/// # use embedded_time::{Duration, Period, TimeInt};
-/// # use core::{fmt, fmt::Formatter};
-/// #
-/// #[derive(Copy, Clone)]
-/// struct Milliseconds<T: TimeInt>(pub T);
-///
-/// impl<T: TimeInt> Duration for Milliseconds<T> {
-///     type Rep = T;   // set the storage type
-///
-///     // set LSbit period to 1 millisecond
-///     const PERIOD: Period = <Period>::new(1, 1_000);
-///
-///     fn new(value: Self::Rep) -> Self {
-///         Self(value)
-///     }
-///
-///     fn count(self) -> Self::Rep {
-///         self.0
-///     }
-/// }
-///
-/// impl<T: TimeInt> fmt::Display for Milliseconds<T> {
-///     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
-///         unimplemented!()
-///     }
-///     
-/// }
-/// ```
 ///
 /// # Constructing a duration
 /// ```rust
@@ -75,7 +45,9 @@ use num::Bounded;
 /// // ...
 /// ```
 ///
-/// # Converting to [`core::time::Duration`]
+/// # Converting to `core` types
+/// [`core::time::Duration`]
+///
 /// ## Examples
 /// ```rust
 /// # use embedded_time::traits::*;
@@ -94,7 +66,9 @@ use num::Bounded;
 /// assert_eq!(569_000_000, core_duration.subsec_nanos());
 /// ```
 ///
-/// # Converting from [`core::time::Duration`]
+/// # Converting from `core` types
+/// [`core::time::Duration`]
+///
 /// ## Examples
 /// ```rust
 /// # use embedded_time::{traits::*, units::*};
@@ -212,7 +186,7 @@ pub trait Duration: Sized + Copy + fmt::Display {
     /// new duration
     fn new(value: Self::Rep) -> Self;
 
-    /// Returns the integer value of the [`Duration`]
+    /// Returns the integer value of the `Duration`
     ///
     /// # Examples
     /// ```rust
@@ -221,7 +195,7 @@ pub trait Duration: Sized + Copy + fmt::Display {
     /// ```
     fn count(self) -> Self::Rep;
 
-    /// Constructs a [`Duration`] from a value of ticks and a period
+    /// Constructs a `Duration` from a value of ticks and a period
     ///
     /// # Examples
     /// ```rust
@@ -484,6 +458,7 @@ where
     }
 }
 
+#[doc(hidden)]
 pub mod units {
     use crate::{
         duration::{Duration, TryConvertFrom},

@@ -4,11 +4,36 @@ use crate::duration::Duration;
 use core::{cmp::Ordering, convert::TryFrom, ops};
 use num::traits::{WrappingAdd, WrappingSub};
 
-/// Represents an instant of time relative to a specific [`Clock`](trait.Clock.html)
+/// Represents an instant of time relative to a specific [`Clock`](crate::clock::Clock)
 ///
 /// # Example
-/// Create an `Instant` that is `23 * SomeClock::PERIOD` seconds since the clock's epoch:
-/// ```rust,ignore
+/// Typically an `Instant` will be obtained from a [`Clock`](crate::clock::Clock)
+/// ```rust
+/// # use embedded_time::{Period, traits::*, Instant};
+/// # #[derive(Debug)]
+/// # struct SomeClock;
+/// # impl embedded_time::Clock for SomeClock {
+/// #     type Rep = u32;
+/// #     const PERIOD: Period = <Period>::new(1, 1_000);
+/// #     type ImplError = ();
+/// #     fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {Ok(Instant::<Self>::new(23))}
+/// # }
+/// let some_clock = SomeClock;
+/// let some_instant = some_clock.now().unwrap();
+/// ```
+///
+/// However, an `Instant` can also be constructed directly. In this case the constructed `Instant`
+/// is `23 * SomeClock::PERIOD` seconds since the clock's epoch
+/// ```rust,no_run
+/// # use embedded_time::{Period, Instant};
+/// # #[derive(Debug)]
+/// # struct SomeClock;
+/// # impl embedded_time::Clock for SomeClock {
+/// #     type Rep = u32;
+/// #     const PERIOD: Period = <Period>::new(1, 1_000);
+/// #     type ImplError = ();
+/// #     fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
+/// # }
 /// Instant::<SomeClock>::new(23);
 /// ```
 #[derive(Debug)]
@@ -96,7 +121,7 @@ impl<Clock: crate::Clock> Instant<Clock> {
         }
     }
 
-    /// Returns the [`Duration`](trait.Duration.html) (in the provided units) since the beginning of
+    /// Returns the [`Duration`] (in the provided units) since the beginning of
     /// time (or the [`Clock`](trait.Clock.html)'s 0)
     pub fn duration_since_epoch<Dur: Duration>(&self) -> Result<Dur, ()>
     where

@@ -5,7 +5,12 @@ use num::{rational::Ratio, CheckedDiv, CheckedMul};
 
 /// A fractional time period
 ///
-/// Used primarily to define the period of one count of a [`crate::Duration`] type
+/// Used primarily to define the period of one count of a [`Duration`], [`Instant`] and [`Clock`]
+/// impl types but also convertable to/from [`Hertz`].
+///
+/// [`Duration`]: duration/trait.Duration.html
+/// [`Clock`]: clock/trait.Clock.html
+/// [`Instant`]: instant/struct.Instant.html
 #[derive(Debug)]
 pub struct Period<T = u32>(Ratio<T>);
 

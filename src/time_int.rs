@@ -20,6 +20,10 @@ pub trait TimeInt:
     + fmt::Display
     + fmt::Debug
 {
+    /// A checked multiplication with a [`Period`]
+    ///
+    /// # Examples
+    ///
     /// ```rust
     /// # use embedded_time::{Period, traits::*};
     /// assert_eq!(8_u32.checked_mul_period(&Period::new(1,2)), Some(4_u32));
@@ -34,6 +38,10 @@ pub trait TimeInt:
         )?)
     }
 
+    /// A checked division with a [`Period`]
+    ///
+    /// # Examples
+    ///
     /// ```rust
     /// # use embedded_time::{Period, traits::*};
     /// assert_eq!(8_u32.checked_div_period(&Period::new(1,2)), Some(16_u32));

@@ -23,8 +23,8 @@ pub(crate) mod param {
     pub struct OneShot;
 }
 
-/// A `Timer` counts toward an expiration, can be polled for elapsed and remaining time, as
-/// well as optionally execute a task upon expiration.
+/// A `Timer` counts toward an expiration, can be polled for elapsed and remaining time, and can be
+/// one-shot or continuous/periodic.
 #[derive(Debug)]
 pub struct Timer<'a, Type, State, Clock: crate::Clock, Dur: Duration> {
     clock: &'a Clock,
@@ -73,7 +73,7 @@ impl<'a, Type, State, Clock: crate::Clock, Dur: Duration> Timer<'a, Type, State,
 }
 
 impl<'a, Type, Clock: crate::Clock, Dur: Duration> Timer<'a, Type, Disarmed, Clock, Dur> {
-    /// Set the [`Duration`](trait.Duration.html) of the timer
+    /// Set the [`Duration`] of the timer
     ///
     /// This _arms_ the timer (makes it ready to run).
     pub fn set_duration(self, duration: Dur) -> Timer<'a, Type, Armed, Clock, Dur> {
@@ -107,9 +107,9 @@ impl<Type, Clock: crate::Clock, Dur: Duration> Timer<'_, Type, Running, Clock, D
         self.clock.now().unwrap() >= self.expiration.unwrap()
     }
 
-    /// Returns the [`Duration`](trait.Duration.html) of time elapsed since it was started
+    /// Returns the [`Duration`] of time elapsed since it was started
     ///
-    /// The units of the [`Duration`](trait.Duration.html) are the same as that used with
+    /// The units of the [`Duration`] are the same as that used with
     /// [`set_duration()`](struct.Timer.html#method.set_duration).
     pub fn elapsed(&self) -> Dur
     where
@@ -123,9 +123,9 @@ impl<Type, Clock: crate::Clock, Dur: Duration> Timer<'_, Type, Running, Clock, D
             .unwrap()
     }
 
-    /// Returns the [`Duration`](trait.Duration.html) until the expiration of the timer
+    /// Returns the [`Duration`] until the expiration of the timer
     ///
-    /// The units of the [`Duration`](trait.Duration.html) are the same as that used with
+    /// The units of the [`Duration`] are the same as that used with
     /// [`set_duration()`](struct.Timer.html#method.set_duration).
     pub fn remaining(&self) -> Dur
     where

@@ -19,9 +19,9 @@
 //! [`Duration::count()`]: duration/trait.Duration.html#tymethod.count
 //!
 //! ## Definitions
-//! **Clock**: Any entity that periodically counts (ie a hardware timer/counter peripheral).
-//! Generally, this needs to be monotonic. A wrapping clock is considered monotonic in this context
-//! as long as it fulfills the other requirements.
+//! **Clock**: Any entity that periodically counts (ie an external or peripheral hardware
+//! timer/counter). Generally, this needs to be monotonic. A wrapping clock is considered monotonic
+//! in this context as long as it fulfills the other requirements.
 //!
 //! **Wrapping Clock**: A clock that when at its maximum value, the next count is the minimum
 //! value.
@@ -94,6 +94,7 @@ pub use timer::Timer;
 /// ```rust,no_run
 /// use embedded_time::traits::*;
 /// ```
+#[doc(hidden)]
 pub mod traits {
     // Rename traits to `_` to avoid any potential name conflicts.
     pub use crate::clock::Clock as _;
@@ -106,11 +107,13 @@ pub mod traits {
 
 pub mod units {
     //! Time-based units of measure ([`Milliseconds`], [`Hertz`], etc)
+    #[doc(inline)]
     pub use crate::duration::units::*;
+    #[doc(inline)]
     pub use crate::frequency::units::*;
 }
 
-/// An implementation-specific error
+/// General error-type trait implemented for all error types in this crate
 pub trait Error: fmt::Debug {}
 impl Error for () {}
 impl Error for Infallible {}
