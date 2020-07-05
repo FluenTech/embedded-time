@@ -1,6 +1,6 @@
 //! An instant of time
 
-use crate::duration::Duration;
+use crate::{duration::Duration, Error, TimeError};
 use core::{cmp::Ordering, convert::TryFrom, ops};
 use num::traits::{WrappingAdd, WrappingSub};
 
@@ -50,12 +50,14 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// Returns the [`Duration`] since the given `Instant`
     ///
     /// # Errors
-    /// - `()`: RHS is a future `Instant`
-    /// - `()`: problem coverting to desired [`Duration`]
+    /// - `TimeError::DisorderedOperands`: RHS is a future `Instant`
+    /// - `TimeError::WouldOverflow`: problem coverting to the desired [`Duration`]
+    /// - `TimeError::WouldUnderflow`: problem coverting to the desired [`Duration`]
+    /// - `TimeError::CastWouldFail`: problem coverting to the desired [`Duration`]
     ///
     /// # Examples
     /// ```rust
-    /// # use embedded_time::{Period, units::*, Instant};
+    /// # use embedded_time::{Period, units::*, Instant, TimeError};
     /// # #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
     /// #
     /// struct Clock;
@@ -67,20 +69,20 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// # fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
     /// }
     ///
-    /// assert_eq!(Instant::<Clock>::new(5).duration_since::<Microseconds<u64>>(&Instant::<Clock>::new(3)),
+    /// assert_eq!(Instant::<Clock>::new(5).duration_since::<Microseconds<u64>, _>(&Instant::<Clock>::new(3)),
     ///     Ok(Microseconds(2_000_u64)));
     ///
-    /// assert_eq!(Instant::<Clock>::new(3).duration_since::<Microseconds<u64>>(&Instant::<Clock>::new(5)),
-    ///     Err(()));
+    /// assert_eq!(Instant::<Clock>::new(3).duration_since::<Microseconds<u64>, _>(&Instant::<Clock>::new(5)),
+    ///     Err(TimeError::DisorderedOperands));
     /// ```
-    pub fn duration_since<Dur: Duration>(&self, other: &Self) -> Result<Dur, ()>
+    pub fn duration_since<Dur: Duration, E: Error>(&self, other: &Self) -> Result<Dur, TimeError<E>>
     where
         Dur::Rep: TryFrom<Clock::Rep>,
     {
         if self < other {
-            Err(())
+            Err(TimeError::DisorderedOperands)
         } else {
-            Dur::from_ticks(self.ticks.wrapping_sub(&other.ticks), Clock::PERIOD).ok_or(())
+            Dur::from_ticks(self.ticks.wrapping_sub(&other.ticks), Clock::PERIOD)
         }
     }
 
@@ -92,7 +94,7 @@ impl<Clock: crate::Clock> Instant<Clock> {
     ///
     /// # Examples
     /// ```rust
-    /// # use embedded_time::{Period, units::*, Instant};
+    /// # use embedded_time::{Period, units::*, Instant, TimeError};
     /// # #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
     /// #
     /// struct Clock;
@@ -104,170 +106,38 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// # fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
     /// }
     ///
-    /// assert_eq!(Instant::<Clock>::new(5).duration_until::<Microseconds<u64>>(&Instant::<Clock>::new(7)),
+    /// assert_eq!(Instant::<Clock>::new(5).duration_until::<Microseconds<u64>, _>(&Instant::<Clock>::new(7)),
     ///     Ok(Microseconds(2_000_u64)));
     ///
-    /// assert_eq!(Instant::<Clock>::new(7).duration_until::<Microseconds<u64>>(&Instant::<Clock>::new(5)),
-    ///     Err(()));
+    /// assert_eq!(Instant::<Clock>::new(7).duration_until::<Microseconds<u64>, _>(&Instant::<Clock>::new(5)),
+    ///     Err(TimeError::DisorderedOperands));
     /// ```
-    pub fn duration_until<Dur: Duration>(&self, other: &Self) -> Result<Dur, ()>
+    pub fn duration_until<Dur: Duration>(&self, other: &Self) -> Result<Dur, TimeError>
     where
         Dur::Rep: TryFrom<Clock::Rep>,
     {
         if self > other {
-            Err(())
+            Err(TimeError::DisorderedOperands)
         } else {
-            Dur::from_ticks(other.ticks.wrapping_sub(&self.ticks), Clock::PERIOD).ok_or(())
+            Dur::from_ticks(other.ticks.wrapping_sub(&self.ticks), Clock::PERIOD)
         }
     }
 
-    /// Returns the [`Duration`] (in the provided units) since the beginning of
-    /// time (or the [`Clock`](trait.Clock.html)'s 0)
-    pub fn duration_since_epoch<Dur: Duration>(&self) -> Result<Dur, ()>
+    /// Returns the [`Duration`] (in the provided units) since the beginning of time (the [`Clock`]'s 0)
+    ///
+    /// If it is a _wrapping_ clock, the result is meaningless.
+    pub fn duration_since_epoch<Dur: Duration>(&self) -> Result<Dur, TimeError>
     where
         Dur::Rep: TryFrom<Clock::Rep>,
         Clock::Rep: TryFrom<Dur::Rep>,
     {
-        Self::duration_since::<Dur>(
+        Self::duration_since::<Dur, _>(
             &self,
             &Self {
                 ticks: Clock::Rep::from(0),
             },
         )
     }
-}
-
-impl<Clock: crate::Clock> Copy for Instant<Clock> {}
-
-impl<Clock: crate::Clock> Clone for Instant<Clock> {
-    fn clone(&self) -> Self {
-        Self { ticks: self.ticks }
-    }
-}
-
-impl<Clock: crate::Clock> PartialEq for Instant<Clock> {
-    fn eq(&self, other: &Self) -> bool {
-        self.ticks == other.ticks
-    }
-}
-
-impl<Clock: crate::Clock> Eq for Instant<Clock> {}
-
-impl<Clock: crate::Clock> PartialOrd for Instant<Clock> {
-    /// Calculates the difference between two `Instance`s resulting in a [`Duration`]
-    ///
-    /// # Examples
-    /// ```rust
-    /// # use embedded_time::{Period, units::*, Instant};
-    /// # #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
-    /// struct Clock;
-    /// impl embedded_time::Clock for Clock {
-    ///     type Rep = u32;
-    ///     const PERIOD: Period =<Period>::new(1, 1_000);
-    ///     // ...
-    /// # type ImplError = ();
-    /// # fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
-    /// }
-    ///
-    /// assert!(Instant::<Clock>::new(5) > Instant::<Clock>::new(3));
-    /// assert!(Instant::<Clock>::new(5) == Instant::<Clock>::new(5));
-    /// assert!(Instant::<Clock>::new(u32::MAX) < Instant::<Clock>::new(u32::MIN));
-    /// ```
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(&other))
-    }
-}
-
-impl<Clock: crate::Clock> Ord for Instant<Clock> {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.ticks
-            .wrapping_sub(&other.ticks)
-            .cmp(&(<Clock::Rep as num::Bounded>::max_value() / 2.into()))
-            .reverse()
-    }
-}
-
-impl<Clock: crate::Clock, Dur: Duration> ops::Add<Dur> for Instant<Clock>
-where
-    Clock::Rep: TryFrom<Dur::Rep>,
-{
-    type Output = Self;
-
-    /// Add a duration to an instant resulting in a new, later instance
-    ///
-    /// # Panics
-    /// If [`Duration::into_ticks()`] returns [`None`]. In this case, `u32::MAX` of seconds
-    /// cannot be converted to the clock precision of milliseconds with u32 storage.
-    /// ```rust,should_panic
-    /// # use embedded_time::{Period, units::*, Instant};
-    /// # #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
-    /// struct Clock;
-    /// impl embedded_time::Clock for Clock {
-    ///     type Rep = u32;
-    ///     const PERIOD: Period =<Period>::new(1, 1_000);
-    ///     // ...
-    /// # type ImplError = ();
-    /// # fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
-    /// }
-    ///
-    /// Instant::<Clock>::new(1) + Seconds(u32::MAX);
-    /// ```
-    ///
-    /// If the the [`Duration`] is greater than the signed Clock::Rep max value which would cause
-    /// the result to (logically) overflow
-    /// ```rust,should_panic
-    /// # use embedded_time::{Period, units::*, Instant};
-    /// # #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
-    /// struct Clock;
-    /// impl embedded_time::Clock for Clock {
-    ///     type Rep = u32;
-    ///     const PERIOD: Period =<Period>::new(1, 1_000);
-    ///     // ...
-    /// # type ImplError = ();
-    /// # fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
-    /// }
-    ///
-    /// let _ = Instant::<Clock>::new(0) + Milliseconds(i32::MAX as u32 + 1);
-    /// ```
-    ///
-    /// See also [`impl Sub for Duration`](duration/units/index.html#addsub)
-    ///
-    /// # Examples
-    /// ```rust
-    /// # use embedded_time::{Period, units::*, Instant};
-    /// # #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
-    /// struct Clock;
-    /// impl embedded_time::Clock for Clock {
-    ///     type Rep = u32;
-    ///     const PERIOD: Period =<Period>::new(1, 1_000);
-    ///     // ...
-    /// # type ImplError = ();
-    /// # fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
-    /// }
-    ///
-    /// assert_eq!(Instant::<Clock>::new(1) + Seconds(3_u32), Instant::<Clock>::new(3_001));
-    /// assert_eq!(Instant::<Clock>::new(1) + Milliseconds(700_u32), Instant::<Clock>::new(701));
-    /// assert_eq!(Instant::<Clock>::new(1) + Milliseconds(700_u64), Instant::<Clock>::new(701));
-    ///
-    /// // maximum duration allowed
-    /// assert_eq!(Instant::<Clock>::new(0) + Milliseconds(i32::MAX as u32),
-    /// Instant::<Clock>::new(u32::MAX/2));
-    /// ```
-    fn add(self, rhs: Dur) -> Self::Output {
-        let add_ticks: Clock::Rep = rhs.into_ticks(Clock::PERIOD).unwrap();
-        debug_assert!(add_ticks < <Clock::Rep as num::Bounded>::max_value() / 2.into() + 1.into());
-
-        Self {
-            ticks: self.ticks.wrapping_add(&add_ticks),
-        }
-    }
-}
-
-impl<Clock: crate::Clock, Dur: Duration> ops::Sub<Dur> for Instant<Clock>
-where
-    Clock::Rep: TryFrom<Dur::Rep>,
-{
-    type Output = Self;
 
     /// Subtract a duration from an instant resulting in a new, earlier instance
     ///
@@ -328,15 +198,226 @@ where
     /// assert_eq!(Instant::<Clock>::new(u32::MAX) - Milliseconds(i32::MAX as u32),
     /// Instant::<Clock>::new(u32::MAX/2 + 1));
     /// ```
-    fn sub(self, rhs: Dur) -> Self::Output {
-        let sub_ticks: Clock::Rep = rhs.into_ticks(Clock::PERIOD).unwrap();
-        debug_assert!(sub_ticks < <Clock::Rep as num::Bounded>::max_value() / 2.into() + 1.into());
-
-        Self {
-            ticks: self.ticks.wrapping_sub(&sub_ticks),
+    pub fn wrapping_sub_duration<Dur: Duration, E: crate::Error>(
+        self,
+        duration: Dur,
+    ) -> Result<Self, TimeError<E>>
+    where
+        Clock::Rep: TryFrom<Dur::Rep>,
+    {
+        let sub_ticks: Clock::Rep = duration.into_ticks(Clock::PERIOD)?;
+        if sub_ticks < (<Clock::Rep as num::Bounded>::max_value() / 2.into() + 1.into()) {
+            Ok(Self {
+                ticks: self.ticks.wrapping_sub(&sub_ticks),
+            })
+        } else {
+            Err(TimeError::WouldUnderflow)
         }
     }
 }
+
+impl<Clock: crate::Clock> Copy for Instant<Clock> {}
+
+impl<Clock: crate::Clock> Clone for Instant<Clock> {
+    fn clone(&self) -> Self {
+        Self {
+            ticks: self.ticks.clone(),
+        }
+    }
+}
+
+impl<Clock: crate::Clock> PartialEq for Instant<Clock> {
+    fn eq(&self, other: &Self) -> bool {
+        self.ticks == other.ticks
+    }
+}
+
+impl<Clock: crate::Clock> Eq for Instant<Clock> {}
+
+impl<Clock: crate::Clock> PartialOrd for Instant<Clock> {
+    /// Calculates the difference between two `Instance`s resulting in a [`Duration`]
+    ///
+    /// # Examples
+    /// ```rust
+    /// # use embedded_time::{Period, units::*, Instant};
+    /// # #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
+    /// struct Clock;
+    /// impl embedded_time::Clock for Clock {
+    ///     type Rep = u32;
+    ///     const PERIOD: Period =<Period>::new(1, 1_000);
+    ///     // ...
+    /// # type ImplError = ();
+    /// # fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
+    /// }
+    ///
+    /// assert!(Instant::<Clock>::new(5) > Instant::<Clock>::new(3));
+    /// assert!(Instant::<Clock>::new(5) == Instant::<Clock>::new(5));
+    /// assert!(Instant::<Clock>::new(u32::MAX) < Instant::<Clock>::new(u32::MIN));
+    /// ```
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(&other))
+    }
+}
+
+impl<Clock: crate::Clock> Ord for Instant<Clock> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.ticks
+            .wrapping_sub(&other.ticks)
+            .cmp(&(<Clock::Rep as num::Bounded>::max_value() / 2.into()))
+            .reverse()
+    }
+}
+
+// impl<Clock: crate::Clock, Dur: Duration> ops::Add<Dur> for Instant<Clock>
+// where
+//     Clock::Rep: TryFrom<Dur::Rep>,
+// {
+//     type Output = Self;
+//
+//     /// Add a duration to an instant resulting in a new, later instance
+//     ///
+//     /// # Panics
+//     /// If [`Duration::into_ticks()`] returns [`None`]. In this case, `u32::MAX` of seconds
+//     /// cannot be converted to the clock precision of milliseconds with u32 storage.
+//     /// ```rust,should_panic
+//     /// # use embedded_time::{Period, units::*, Instant};
+//     /// # #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
+//     /// struct Clock;
+//     /// impl embedded_time::Clock for Clock {
+//     ///     type Rep = u32;
+//     ///     const PERIOD: Period =<Period>::new(1, 1_000);
+//     ///     // ...
+//     /// # type ImplError = ();
+//     /// # fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
+//     /// }
+//     ///
+//     /// Instant::<Clock>::new(1) + Seconds(u32::MAX);
+//     /// ```
+//     ///
+//     /// If the the [`Duration`] is greater than the signed Clock::Rep max value which would cause
+//     /// the result to (logically) overflow
+//     /// ```rust,should_panic
+//     /// # use embedded_time::{Period, units::*, Instant};
+//     /// # #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
+//     /// struct Clock;
+//     /// impl embedded_time::Clock for Clock {
+//     ///     type Rep = u32;
+//     ///     const PERIOD: Period =<Period>::new(1, 1_000);
+//     ///     // ...
+//     /// # type ImplError = ();
+//     /// # fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
+//     /// }
+//     ///
+//     /// let _ = Instant::<Clock>::new(0) + Milliseconds(i32::MAX as u32 + 1);
+//     /// ```
+//     ///
+//     /// See also [`impl Sub for Duration`](duration/units/index.html#addsub)
+//     ///
+//     /// # Examples
+//     /// ```rust
+//     /// # use embedded_time::{Period, units::*, Instant};
+//     /// # #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
+//     /// struct Clock;
+//     /// impl embedded_time::Clock for Clock {
+//     ///     type Rep = u32;
+//     ///     const PERIOD: Period =<Period>::new(1, 1_000);
+//     ///     // ...
+//     /// # type ImplError = ();
+//     /// # fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
+//     /// }
+//     ///
+//     /// assert_eq!(Instant::<Clock>::new(1) + Seconds(3_u32), Instant::<Clock>::new(3_001));
+//     /// assert_eq!(Instant::<Clock>::new(1) + Milliseconds(700_u32), Instant::<Clock>::new(701));
+//     /// assert_eq!(Instant::<Clock>::new(1) + Milliseconds(700_u64), Instant::<Clock>::new(701));
+//     ///
+//     /// // maximum duration allowed
+//     /// assert_eq!(Instant::<Clock>::new(0) + Milliseconds(i32::MAX as u32),
+//     /// Instant::<Clock>::new(u32::MAX/2));
+//     /// ```
+//     fn add(self, rhs: Dur) -> Self::Output {
+//         let add_ticks: Clock::Rep = rhs.into_ticks(Clock::PERIOD).unwrap();
+//         debug_assert!(add_ticks < <Clock::Rep as num::Bounded>::max_value() / 2.into() + 1.into());
+//
+//         Self {
+//             ticks: self.ticks.wrapping_add(&add_ticks),
+//         }
+//     }
+// }
+
+// impl<Clock: crate::Clock, Dur: Duration> ops::Sub<Dur> for Instant<Clock>
+// where
+//     Clock::Rep: TryFrom<Dur::Rep>,
+// {
+//     type Output = Self;
+//
+//     /// Subtract a duration from an instant resulting in a new, earlier instance
+//     ///
+//     /// # Panics
+//     /// If [`Duration::into_ticks()`] returns [`None`]. In this case, `u32::MAX` of seconds
+//     /// cannot be converted to the clock precision of milliseconds with u32 storage.
+//     /// ```rust,should_panic
+//     /// # use embedded_time::{Period, units::*, Instant};
+//     /// # #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
+//     /// struct Clock;
+//     /// impl embedded_time::Clock for Clock {
+//     ///     type Rep = u32;
+//     ///     const PERIOD: Period =<Period>::new(1, 1_000);
+//     ///     // ...
+//     /// # type ImplError = ();
+//     /// # fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
+//     /// }
+//     ///
+//     /// Instant::<Clock>::new(1) - Seconds(u32::MAX);
+//     /// ```
+//     ///
+//     /// If the the [`Duration`] is greater than the signed Clock::Rep max value which would cause
+//     /// the result to (logically) underflow
+//     /// ```rust,should_panic
+//     /// # use embedded_time::{Period, units::*, Instant};
+//     /// # #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
+//     /// struct Clock;
+//     /// impl embedded_time::Clock for Clock {
+//     ///     type Rep = u32;
+//     ///     const PERIOD: Period = <Period>::new(1, 1_000);
+//     ///     // ...
+//     /// # type ImplError = ();
+//     /// # fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
+//     /// }
+//     ///
+//     /// let _ = Instant::<Clock>::new(u32::MAX) - Milliseconds(i32::MAX as u32 + 1);
+//     /// ```
+//     ///
+//     /// See also [`impl Sub for Duration`](duration/units/index.html#addsub)
+//     ///
+//     /// # Examples
+//     /// ```rust
+//     /// # use embedded_time::{Period, units::*, Instant};
+//     /// # #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
+//     /// struct Clock;
+//     /// impl embedded_time::Clock for Clock {
+//     ///     type Rep = u32;
+//     ///     const PERIOD: Period =<Period>::new(1, 1_000);
+//     ///     // ...
+//     /// # type ImplError = ();
+//     /// # fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
+//     /// }
+//     ///
+//     /// assert_eq!(Instant::<Clock>::new(800) - Milliseconds(700_u32), Instant::<Clock>::new(100));
+//     /// assert_eq!(Instant::<Clock>::new(5_000) - Milliseconds(700_u64), Instant::<Clock>::new(4_300));
+//     ///
+//     /// // maximum duration allowed
+//     /// assert_eq!(Instant::<Clock>::new(u32::MAX) - Milliseconds(i32::MAX as u32),
+//     /// Instant::<Clock>::new(u32::MAX/2 + 1));
+//     /// ```
+//     fn sub(self, rhs: Dur) -> Self::Output {
+//         let sub_ticks: Clock::Rep = rhs.into_ticks(Clock::PERIOD).unwrap();
+//         debug_assert!(sub_ticks < <Clock::Rep as num::Bounded>::max_value() / 2.into() + 1.into());
+//
+//         Self {
+//             ticks: self.ticks.wrapping_sub(&sub_ticks),
+//         }
+//     }
+// }
 
 #[cfg(test)]
 mod tests {

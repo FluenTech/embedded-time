@@ -115,6 +115,24 @@ pub mod units {
 
 /// General error-type trait implemented for all error types in this crate
 pub trait Error: fmt::Debug {}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum TimeError<E: Error = ()> {
+    CastWouldFail,
+    WouldOverflow,
+    WouldUnderflow,
+    WouldDivByZero,
+    DisorderedOperands,
+    Clock(clock::Error<E>),
+}
+impl<E: Error> Error for TimeError<E> {}
+
+impl<E: Error> From<clock::Error<E>> for TimeError<E> {
+    fn from(clock_error: clock::Error<E>) -> Self {
+        TimeError::<E>::Clock(clock_error)
+    }
+}
+
 impl Error for () {}
 impl Error for Infallible {}
 
