@@ -1,5 +1,6 @@
 use crate::{
-    duration::Duration, duration::TryConvertFrom, timer::param::*, traits::*, units::*, Instant,
+    duration, duration::Duration, duration::TryConvertFrom, timer::param::*, traits::*, units::*,
+    Instant, TimeError,
 };
 use core::{convert::TryFrom, marker::PhantomData, ops::Add, prelude::v1::*};
 
@@ -95,16 +96,16 @@ impl<Type, Clock: crate::Clock, Dur: Duration> Timer<'_, Type, Running, Clock, D
     /// **The duration is truncated, not rounded**.
     ///
     /// The units of the [`Duration`] are the same as that used to construct the `Timer`.
-    pub fn elapsed(&self) -> Dur
+    pub fn elapsed(&self) -> Result<Dur, TimeError<Clock::ImplError>>
     where
         Dur::Rep: TryFrom<Clock::Rep>,
         Clock::Rep: TryFrom<Dur::Rep>,
     {
-        self.clock
-            .now()
-            .unwrap()
-            .duration_since(&(self.expiration - self.duration))
-            .unwrap()
+        self.clock.now()?.duration_since(
+            &(self
+                .expiration
+                .wrapping_sub_duration::<_, Clock::ImplError>(self.duration)?)
+        )
     }
 
     /// Returns the [`Duration`] until the expiration of the timer
@@ -112,16 +113,19 @@ impl<Type, Clock: crate::Clock, Dur: Duration> Timer<'_, Type, Running, Clock, D
     /// **The duration is truncated, not rounded**.
     ///
     /// The units of the [`Duration`] are the same as that used to construct the `Timer`.
-    pub fn remaining(&self) -> Dur
+    pub fn remaining(&self) -> Result<Dur, TimeError<Clock::ImplError>>
     where
         Dur::Rep: TryFrom<Clock::Rep>,
         Clock::Rep: TryFrom<Dur::Rep>,
         Dur: TryConvertFrom<Seconds<u32>>,
     {
-        if let Ok(duration) = self.expiration.duration_since(&self.clock.now().unwrap()) {
-            duration
+        if let Ok(duration) = self
+            .expiration
+            .duration_since::<_, Clock::ImplError>(&self.clock.now()?)
+        {
+            Ok(duration)
         } else {
-            0.seconds().try_convert_into().unwrap()
+            0.seconds().try_convert_into()
         }
     }
 }
