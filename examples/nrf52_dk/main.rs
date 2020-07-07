@@ -4,7 +4,7 @@
 use core::convert::Infallible;
 use cortex_m_rt::entry;
 use embedded_time::{self as time, traits::*};
-use panic_never as _;
+use panic_rtt as _;
 
 pub mod nrf52 {
     pub use nrf52832_hal::{
