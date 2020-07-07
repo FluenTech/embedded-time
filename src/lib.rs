@@ -143,6 +143,7 @@ impl Error for () {}
 impl Error for Infallible {}
 
 /// Conversion errors
+#[non_exhaustive]
 #[derive(Debug, Eq, PartialEq)]
 pub enum ConversionError {
     /// Attempted type conversion failed
