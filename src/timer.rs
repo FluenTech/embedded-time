@@ -204,7 +204,7 @@ mod test {
         type ImplError = Infallible;
 
         fn now(&self) -> Result<Instant<Self>, crate::clock::Error<Self::ImplError>> {
-            Ok(Instant::new(TICKS.load(Ordering::Acquire)))
+            Ok(Instant::new(TICKS.load(Ordering::SeqCst)))
         }
     }
 
@@ -309,11 +309,11 @@ mod test {
     fn init_ticks() {}
 
     fn add_to_ticks<Dur: Duration>(duration: Dur) {
-        let ticks = TICKS.load(Ordering::Acquire);
+        let ticks = TICKS.load(Ordering::SeqCst);
         let ticks = ticks
             + duration
                 .into_ticks::<<Clock as crate::Clock>::Rep>(Clock::PERIOD)
                 .unwrap();
-        TICKS.store(ticks, Ordering::Release);
+        TICKS.store(ticks, Ordering::SeqCst);
     }
 }
