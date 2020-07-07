@@ -26,7 +26,7 @@ pub(crate) mod param {
 pub struct Timer<'a, Type, State, Clock: crate::Clock, Dur: Duration> {
     clock: &'a Clock,
     duration: Dur,
-    expiration: Option<Instant<Clock>>,
+    expiration: Instant<Clock>,
     _type: PhantomData<Type>,
     _state: PhantomData<State>,
 }
@@ -38,7 +38,7 @@ impl<'a, Clock: crate::Clock, Dur: Duration> Timer<'_, param::None, param::None,
         Timer::<OneShot, Armed, Clock, Dur> {
             clock,
             duration,
-            expiration: Option::None,
+            expiration: Instant::new(Clock::Rep::from(0)),
             _type: PhantomData,
             _state: PhantomData,
         }
@@ -78,7 +78,7 @@ impl<'a, Type, Clock: crate::Clock, Dur: Duration> Timer<'a, Type, Armed, Clock,
         Timer::<Type, Running, Clock, Dur> {
             clock: self.clock,
             duration: self.duration,
-            expiration: Some(self.clock.now().unwrap() + self.duration),
+            expiration: self.clock.now().unwrap() + self.duration,
             _type: PhantomData,
             _state: PhantomData,
         }
@@ -87,7 +87,7 @@ impl<'a, Type, Clock: crate::Clock, Dur: Duration> Timer<'a, Type, Armed, Clock,
 
 impl<Type, Clock: crate::Clock, Dur: Duration> Timer<'_, Type, Running, Clock, Dur> {
     fn _is_expired(&self) -> bool {
-        self.clock.now().unwrap() >= self.expiration.unwrap()
+        self.clock.now().unwrap() >= self.expiration
     }
 
     /// Returns the [`Duration`] of time elapsed since it was started
@@ -103,7 +103,7 @@ impl<Type, Clock: crate::Clock, Dur: Duration> Timer<'_, Type, Running, Clock, D
         self.clock
             .now()
             .unwrap()
-            .duration_since(&(self.expiration.unwrap() - self.duration))
+            .duration_since(&(self.expiration - self.duration))
             .unwrap()
     }
 
@@ -118,11 +118,7 @@ impl<Type, Clock: crate::Clock, Dur: Duration> Timer<'_, Type, Running, Clock, D
         Clock::Rep: TryFrom<Dur::Rep>,
         Dur: TryConvertFrom<Seconds<u32>>,
     {
-        if let Ok(duration) = self
-            .expiration
-            .unwrap()
-            .duration_since(&self.clock.now().unwrap())
-        {
+        if let Ok(duration) = self.expiration.duration_since(&self.clock.now().unwrap()) {
             duration
         } else {
             0.seconds().try_convert_into().unwrap()
@@ -161,7 +157,7 @@ impl<Clock: crate::Clock, Dur: Duration> Timer<'_, Periodic, Running, Clock, Dur
         Self {
             clock: self.clock,
             duration: self.duration,
-            expiration: self.expiration.map(|expiration| expiration + self.duration),
+            expiration: self.expiration + self.duration,
             _type: PhantomData,
             _state: PhantomData,
         }
@@ -176,7 +172,7 @@ impl<Clock: crate::Clock, Dur: Duration> Timer<'_, Periodic, Running, Clock, Dur
     {
         // since the timer is running, _is_expired() will return a value
         if self._is_expired() {
-            self.expiration = Some(self.expiration.unwrap() + self.duration);
+            self.expiration = self.expiration + self.duration;
 
             true
         } else {
