@@ -151,12 +151,20 @@ where
         led2.set_high()?;
         led3.set_high()?;
         led4.set_low()?;
-        clock.new_timer(250_u32.milliseconds()).start().wait();
+        clock
+            .new_timer(250_u32.milliseconds())
+            .start()
+            .unwrap()
+            .wait();
 
         led1.set_high()?;
         led2.set_low()?;
         led3.set_low()?;
         led4.set_high()?;
-        clock.new_timer(250_u32.milliseconds()).start().wait();
+        clock
+            .new_timer(250_u32.milliseconds())
+            .start()
+            .unwrap()
+            .wait();
     }
 }
