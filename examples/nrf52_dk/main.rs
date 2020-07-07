@@ -155,7 +155,8 @@ where
             .new_timer(250_u32.milliseconds())
             .start()
             .unwrap()
-            .wait();
+            .wait()
+            .unwrap();
 
         led1.set_high()?;
         led2.set_low()?;
@@ -165,6 +166,7 @@ where
             .new_timer(250_u32.milliseconds())
             .start()
             .unwrap()
-            .wait();
+            .wait()
+            .unwrap();
     }
 }

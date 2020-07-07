@@ -90,8 +90,8 @@ impl<'a, Type, Clock: crate::Clock, Dur: Duration> Timer<'a, Type, Armed, Clock,
 }
 
 impl<Type, Clock: crate::Clock, Dur: Duration> Timer<'_, Type, Running, Clock, Dur> {
-    fn _is_expired(&self) -> bool {
-        self.clock.now().unwrap() >= self.expiration
+    fn _is_expired(&self) -> Result<bool, TimeError<Clock::ImplError>> {
+        Ok(self.clock.now()? >= self.expiration)
     }
 
     /// Returns the [`Duration`] of time elapsed since it was started
@@ -131,17 +131,22 @@ impl<Type, Clock: crate::Clock, Dur: Duration> Timer<'_, Type, Running, Clock, D
 
 impl<'a, Clock: crate::Clock, Dur: Duration> Timer<'a, OneShot, Running, Clock, Dur> {
     /// Block until the timer has expired
-    pub fn wait(self) -> Timer<'a, OneShot, Armed, Clock, Dur> {
+    pub fn wait(
+        self,
+    ) -> Result<Timer<'a, OneShot, Armed, Clock, Dur>, TimeError<Clock::ImplError>> {
         // since the timer is running, _is_expired() will return a value
-        while !self._is_expired() {}
+        while !self._is_expired()? {}
 
-        Timer::<param::None, param::None, Clock, Dur>::new(self.clock, self.duration)
+        Ok(Timer::<param::None, param::None, Clock, Dur>::new(
+            self.clock,
+            self.duration,
+        ))
     }
 
     /// Check whether the timer has expired
     ///
     /// The timer is not restarted
-    pub fn is_expired(&self) -> bool {
+    pub fn is_expired(&self) -> Result<bool, TimeError<Clock::ImplError>> {
         self._is_expired()
     }
 }
@@ -150,14 +155,14 @@ impl<Clock: crate::Clock, Dur: Duration> Timer<'_, Periodic, Running, Clock, Dur
     /// Block until the timer has expired
     ///
     /// The timer is restarted
-    pub fn wait(self) -> Self
+    pub fn wait(self) -> Result<Self, TimeError<Clock::ImplError>>
     where
         Instant<Clock>: Add<Dur, Output = Instant<Clock>>,
     {
         // since the timer is running, _is_expired() will return a value
-        while !self._is_expired() {}
+        while !self._is_expired()? {}
 
-        Self {
+        Ok(Self {
             clock: self.clock,
             duration: self.duration,
             // The `+` will never panic since this duration has already applied to the same
@@ -165,25 +170,25 @@ impl<Clock: crate::Clock, Dur: Duration> Timer<'_, Periodic, Running, Clock, Dur
             expiration: self.expiration + self.duration,
             _type: PhantomData,
             _state: PhantomData,
-        }
+        })
     }
 
     /// Check whether a _periodic_ timer has elapsed
     ///
     /// The timer is restarted if it has elapsed.
-    pub fn period_complete(&mut self) -> bool
+    pub fn period_complete(&mut self) -> Result<bool, TimeError<Clock::ImplError>>
     where
         Instant<Clock>: Add<Dur, Output = Instant<Clock>>,
     {
         // since the timer is running, _is_expired() will return a value
-        if self._is_expired() {
+        if self._is_expired()? {
             // The `+` will never panic since this duration has already applied to the same
             // `Instant` type without a problem
             self.expiration = self.expiration + self.duration;
 
-            true
+            Ok(true)
         } else {
-            false
+            Ok(false)
         }
     }
 }
@@ -229,8 +234,8 @@ mod test {
 
             add_to_ticks(1_u32.seconds());
 
-            let timer = result.unwrap().start().unwrap();
-            assert!(!timer.is_expired());
+            let timer = result.unwrap().unwrap().start().unwrap();
+            assert!(!timer.is_expired().unwrap());
 
             let timer_handle = s.spawn(|_| timer.wait());
             add_to_ticks(1_u32.seconds());
@@ -263,7 +268,7 @@ mod test {
             let timer = result.unwrap();
 
             // WHEN blocking on a timer
-            let timer_handle = s.spawn(|_| timer.wait());
+            let timer_handle = s.spawn(|_| timer.unwrap().wait());
 
             add_to_ticks(1_u32.seconds());
 
@@ -285,8 +290,8 @@ mod test {
 
         add_to_ticks(2_u32.seconds());
 
-        assert!(timer.period_complete());
-        assert!(timer.period_complete());
+        assert!(timer.period_complete().unwrap());
+        assert!(timer.period_complete().unwrap());
     }
 
     #[test]
