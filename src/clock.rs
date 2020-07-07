@@ -12,6 +12,7 @@ pub enum Error<E: crate::Error> {
     /// implementation-specific error
     Other(E),
 }
+impl<E: crate::Error> crate::Error for Error<E> {}
 
 /// The `Clock` trait provides an abstraction of hardware-specific timer peripherals, external timer
 /// devices, RTCs, etc.

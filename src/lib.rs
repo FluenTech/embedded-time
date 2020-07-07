@@ -48,7 +48,7 @@
 //!     type Rep = u64;
 //!     const PERIOD: Period = <Period>::new(1, 16_000_000);
 //!     type ImplError = ();
-//!     
+//!
 //!     fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {
 //!         // ...
 //! #         unimplemented!()
@@ -62,7 +62,7 @@
 //! assert!(instant1 < instant2);    // instant1 is *before* instant2
 //!
 //! // duration is the difference between the instances
-//! let duration: Result<Microseconds<u64>, _> = instant2.duration_since(&instant1);    
+//! let duration: Result<Microseconds<u64>, _> = instant2.duration_since(&instant1);
 //!
 //! assert!(duration.is_ok());
 //! assert_eq!(instant1 + duration.unwrap(), instant2);
@@ -114,13 +114,63 @@ pub mod units {
 }
 
 /// General error-type trait implemented for all error types in this crate
-pub trait Error: fmt::Debug {}
+pub trait Error: fmt::Debug + Eq {}
+
+/// Crate errors
+#[non_exhaustive]
+#[derive(Debug, Eq, PartialEq)]
+pub enum TimeError<E: Error = ()> {
+    /// Attempted type conversion failed
+    ConversionFailure,
+    /// Result is outside of those valid for this type
+    Overflow,
+    /// Attempted to divide by zero
+    DivByZero,
+    /// Resulting [`Duration`](duration/trait.Duration.html) is negative (not allowed)
+    NegDuration,
+    /// [`Clock`]-implementation-specific error
+    Clock(clock::Error<E>),
+}
+impl<E: Error> Error for TimeError<E> {}
+
+impl<E: Error> From<clock::Error<E>> for TimeError<E> {
+    fn from(clock_error: clock::Error<E>) -> Self {
+        TimeError::<E>::Clock(clock_error)
+    }
+}
+
 impl Error for () {}
 impl Error for Infallible {}
+
+/// Conversion errors
+#[non_exhaustive]
+#[derive(Debug, Eq, PartialEq)]
+pub enum ConversionError {
+    /// Attempted type conversion failed
+    ConversionFailure,
+    /// Result is outside of those valid for this type
+    Overflow,
+    /// Attempted to divide by zero
+    DivByZero,
+    /// Resulting [`Duration`](duration/trait.Duration.html) is negative (not allowed)
+    NegDuration,
+}
+
+impl<E: Error> From<ConversionError> for TimeError<E> {
+    fn from(error: ConversionError) -> Self {
+        match error {
+            ConversionError::ConversionFailure => TimeError::ConversionFailure,
+            ConversionError::Overflow => TimeError::Overflow,
+            ConversionError::DivByZero => TimeError::DivByZero,
+            ConversionError::NegDuration => TimeError::NegDuration,
+        }
+    }
+}
 
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
+    use crate::duration::TryConvertFrom;
     use crate::{self as time, clock, traits::*, units::*};
     use core::{
         convert::{Infallible, TryFrom, TryInto},
@@ -177,8 +227,8 @@ mod tests {
         Clock::Rep: TryFrom<u32>,
     {
         assert_eq!(
-            clock.now().unwrap().duration_since_epoch(),
-            Ok(Seconds(2_u32))
+            Ok(Seconds(2_u32)),
+            clock.now().unwrap().duration_since_epoch::<Seconds<u32>>()
         );
     }
 
@@ -229,13 +279,13 @@ mod tests {
                 .duration_since_epoch::<Milliseconds<u64>>()
                 .map_err(|_| fmt::Error {})?;
 
-            let hours = Hours::<u32>::try_convert_from(duration).ok_or(fmt::Error {})?;
-            let minutes =
-                Minutes::<u32>::try_convert_from(duration).ok_or(fmt::Error {})? % Hours(1_u32);
-            let seconds =
-                Seconds::<u32>::try_convert_from(duration).ok_or(fmt::Error {})? % Minutes(1_u32);
+            let hours = Hours::<u32>::try_convert_from(duration).map_err(|_| fmt::Error {})?;
+            let minutes = Minutes::<u32>::try_convert_from(duration).map_err(|_| fmt::Error {})?
+                % Hours(1_u32);
+            let seconds = Seconds::<u32>::try_convert_from(duration).map_err(|_| fmt::Error {})?
+                % Minutes(1_u32);
             let milliseconds = Milliseconds::<u32>::try_convert_from(duration)
-                .ok_or(fmt::Error {})?
+                .map_err(|_| fmt::Error {})?
                 % Seconds(1_u32);
 
             f.write_fmt(format_args!(

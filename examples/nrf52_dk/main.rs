@@ -1,11 +1,10 @@
 #![cfg_attr(not(test), no_std)]
 #![cfg_attr(not(test), no_main)]
 
-extern crate panic_rtt;
-
 use core::convert::Infallible;
 use cortex_m_rt::entry;
 use embedded_time::{self as time, traits::*};
+use panic_rtt as _;
 
 pub mod nrf52 {
     pub use nrf52832_hal::{
@@ -152,12 +151,22 @@ where
         led2.set_high()?;
         led3.set_high()?;
         led4.set_low()?;
-        clock.new_timer(250_u32.milliseconds()).start().wait();
+        clock
+            .new_timer(250_u32.milliseconds())
+            .start()
+            .unwrap()
+            .wait()
+            .unwrap();
 
         led1.set_high()?;
         led2.set_low()?;
         led3.set_low()?;
         led4.set_high()?;
-        clock.new_timer(250_u32.milliseconds()).start().wait();
+        clock
+            .new_timer(250_u32.milliseconds())
+            .start()
+            .unwrap()
+            .wait()
+            .unwrap();
     }
 }

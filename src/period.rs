@@ -1,12 +1,13 @@
-use crate::frequency::units::Hertz;
-use crate::TimeInt;
-use core::{cmp, ops};
+use crate::{frequency::units::Hertz, ConversionError, TimeInt};
+use core::{cmp, convert, ops};
 use num::{rational::Ratio, CheckedDiv, CheckedMul};
 
 /// A fractional time period
 ///
 /// Used primarily to define the period of one count of a [`Duration`], [`Instant`] and [`Clock`]
-/// impl types but also convertable to/from [`Hertz`].
+/// impl types but also convertible to/from [`Hertz`].
+///
+/// The default inner type is [`u32`].
 ///
 /// [`Duration`]: duration/trait.Duration.html
 /// [`Clock`]: clock/trait.Clock.html
@@ -17,7 +18,7 @@ pub struct Period<T = u32>(Ratio<T>);
 impl<T> Period<T> {
     /// Construct a new fractional `Period`.
     ///
-    /// A reduction is **not** performed.
+    /// A reduction is **not** performed. If reduction is needed, use [`Period::new_reduce()`]
     pub const fn new(numerator: T, denominator: T) -> Self {
         Self(Ratio::new_raw(numerator, denominator))
     }
@@ -37,18 +38,16 @@ impl<T: TimeInt> Period<T> {
     /// Construct a new fractional `Period`.
     ///
     /// A reduction **is** performed.
-    pub fn new_reduce(numerator: T, denominator: T) -> Self {
-        Self(Ratio::new(numerator, denominator))
-    }
-
-    /// Returns a frequency in [`Hertz`] from the `Period`
-    pub fn to_frequency(&self) -> Hertz<T> {
-        Hertz(self.0.recip().to_integer())
-    }
-
-    /// Constructs a `Period` from a frequency in [`Hertz`]
-    pub fn from_frequency(freq: Hertz<T>) -> Self {
-        Self(Ratio::from_integer(freq.0).recip())
+    ///
+    /// # Errors
+    ///
+    /// [`ConversionError::DivByZero`] : A `0` denominator was detected
+    pub fn new_reduce(numerator: T, denominator: T) -> Result<Self, ConversionError> {
+        if !denominator.is_zero() {
+            Ok(Self(Ratio::new(numerator, denominator)))
+        } else {
+            Err(ConversionError::DivByZero)
+        }
     }
 
     /// Returns the value truncated to an integer
@@ -63,36 +62,106 @@ impl<T: TimeInt> Period<T> {
         Self(Ratio::from_integer(value))
     }
 
-    /// ```rust
-    /// # use embedded_time::Period;
-    /// assert_eq!(<Period>::new(1000, 1).checked_mul_integer(5_u32),
-    ///     Some(<Period>::new(5_000, 1)));
-    ///
-    /// assert_eq!(<Period>::new(u32::MAX, 1).checked_mul_integer(2_u32),
-    ///     None);
-    /// ```
-    pub fn checked_mul_integer(&self, multiplier: T) -> Option<Self> {
-        Some(Self(Ratio::checked_mul(
-            &self.0,
-            &Ratio::from_integer(multiplier),
-        )?))
+    /// Returns the reciprocal of the fraction
+    pub fn recip(self) -> Self {
+        Self(self.0.recip())
     }
 
+    /// Checked `Period` * `Period` = `Period`
+    ///
+    /// # Examples
+    ///
     /// ```rust
-    /// # use embedded_time::Period;
+    /// # use embedded_time::{Period, ConversionError};
+    /// #
+    /// assert_eq!(<Period>::new(1000, 1).checked_mul(&<Period>::new(5,5)),
+    ///     Ok(<Period>::new(5_000, 5)));
+    ///
+    /// assert_eq!(<Period>::new(u32::MAX, 1).checked_mul(&<Period>::new(2,1)),
+    ///     Err(ConversionError::Overflow));
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// [`ConversionError::Overflow`]
+    pub fn checked_mul(&self, v: &Self) -> Result<Self, ConversionError> {
+        Ok(Self(
+            self.0.checked_mul(&v.0).ok_or(ConversionError::Overflow)?,
+        ))
+    }
+
+    /// Checked `Period` / `Period` = `Period`
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use embedded_time::{Period, ConversionError};
+    /// #
+    /// assert_eq!(<Period>::new(1000, 1).checked_div(&<Period>::new(10, 1000)),
+    ///     Ok(<Period>::new(1_000_000, 10)));
+    ///
+    /// assert_eq!(<Period>::new(1, u32::MAX).checked_div(&<Period>::new(2,1)),
+    ///     Err(ConversionError::Overflow));
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// [`ConversionError::Overflow`]
+    pub fn checked_div(&self, v: &Self) -> Result<Self, ConversionError> {
+        Ok(Self(
+            self.0.checked_div(&v.0).ok_or(ConversionError::Overflow)?,
+        ))
+    }
+
+    /// Checked `Period` * integer = `Period`
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use embedded_time::{Period, ConversionError};
+    /// #
+    /// assert_eq!(<Period>::new(1000, 1).checked_mul_integer(5_u32),
+    ///     Ok(<Period>::new(5_000, 1)));
+    ///
+    /// assert_eq!(<Period>::new(u32::MAX, 1).checked_mul_integer(2_u32),
+    ///     Err(ConversionError::Overflow));
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// [`ConversionError::Overflow`]
+    pub fn checked_mul_integer(&self, multiplier: T) -> Result<Self, ConversionError> {
+        Ok(Self(
+            Ratio::checked_mul(&self.0, &Ratio::from_integer(multiplier))
+                .ok_or(ConversionError::Overflow)?,
+        ))
+    }
+
+    /// Checked `Period` / integer = `Period`
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use embedded_time::{Period, ConversionError};
+    /// #
     /// assert_eq!(<Period>::new(1000, 1).checked_div_integer(5_u32),
-    ///     Some(<Period>::new(200, 1)));
+    ///     Ok(<Period>::new(200, 1)));
+    ///
     /// assert_eq!(<Period>::new(1, 1000).checked_div_integer(5_u32),
-    ///     Some(<Period>::new(1, 5000)));
+    ///     Ok(<Period>::new(1, 5000)));
     ///
     /// assert_eq!(<Period>::new(1, u32::MAX).checked_div_integer(2_u32),
-    ///     None);
+    ///     Err(ConversionError::Overflow));
     /// ```
-    pub fn checked_div_integer(&self, divisor: T) -> Option<Self> {
-        Some(Self(Ratio::checked_div(
-            &self.0,
-            &Ratio::from_integer(divisor),
-        )?))
+    ///
+    /// # Errors
+    ///
+    /// [`ConversionError::Overflow`]
+    pub fn checked_div_integer(&self, divisor: T) -> Result<Self, ConversionError> {
+        Ok(Self(
+            Ratio::checked_div(&self.0, &Ratio::from_integer(divisor))
+                .ok_or(ConversionError::Overflow)?,
+        ))
     }
 }
 
@@ -108,24 +177,7 @@ where
     ///     <Period>::new(5_000, 5));
     /// ```
     fn mul(self, rhs: Self) -> Self::Output {
-        Self(self.0 * rhs.0)
-    }
-}
-
-impl<T> num::CheckedMul for Period<T>
-where
-    T: TimeInt,
-{
-    /// ```rust
-    /// # use embedded_time::Period;
-    /// assert_eq!(<Period as num::CheckedMul>::checked_mul(&<Period>::new(1000, 1),
-    ///     &<Period>::new(5,5)), Some(<Period>::new(5_000, 5)));
-    ///
-    /// assert_eq!(<Period as num::CheckedMul>::checked_mul(&<Period>::new(u32::MAX, 1),
-    ///     &<Period>::new(2,1)), None);
-    /// ```
-    fn checked_mul(&self, v: &Self) -> Option<Self> {
-        Some(Self(self.0.checked_mul(&v.0)?))
+        self.checked_mul(&rhs).unwrap()
     }
 }
 
@@ -141,24 +193,40 @@ where
     ///     <Period>::new(1_000_000, 10));
     /// ```
     fn div(self, rhs: Self) -> Self::Output {
-        Self(self.0 / rhs.0)
+        self.checked_div(&rhs).unwrap()
     }
 }
 
-impl<T> num::CheckedDiv for Period<T>
-where
-    T: TimeInt,
-{
-    /// ```rust
-    /// # use embedded_time::Period;
-    /// assert_eq!(<Period as num::CheckedDiv>::checked_div(&<Period>::new(1000, 1),
-    ///     &<Period>::new(10, 1000)), Some(<Period>::new(1_000_000, 10)));
+impl<T: TimeInt> convert::TryFrom<Hertz<T>> for Period<T> {
+    type Error = ConversionError;
+
+    /// Constructs a `Period` in seconds from a frequency in [`Hertz`]
     ///
-    /// assert_eq!(<Period as num::CheckedDiv>::checked_div(&<Period>::new(1, u32::MAX),
-    ///     &<Period>::new(2,1)), None);
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use embedded_time::{Period, units::*, ConversionError};
+    /// # use core::convert::{TryFrom, TryInto};
+    /// #
+    /// assert_eq!(Period::try_from(Hertz(1_000_u32)),
+    ///     Ok(<Period>::new(1, 1_000)));
+    ///
+    /// assert_eq!(Period::try_from(Hertz(0_u32)),
+    ///     Err(ConversionError::DivByZero));
+    ///
+    /// assert_eq!(Hertz(1_000_u32).try_into(),
+    ///     Ok(<Period>::new(1, 1_000)));
     /// ```
-    fn checked_div(&self, v: &Self) -> Option<Self> {
-        Some(Self(self.0.checked_div(&v.0)?))
+    ///
+    /// # Errors
+    ///
+    /// [`ConversionError::DivByZero`]
+    fn try_from(freq: Hertz<T>) -> Result<Self, Self::Error> {
+        if !freq.0.is_zero() {
+            Ok(Self(Ratio::from_integer(freq.0).recip()))
+        } else {
+            Err(ConversionError::DivByZero)
+        }
     }
 }
 

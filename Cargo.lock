@@ -105,13 +105,14 @@ dependencies = [
 
 [[package]]
 name = "embedded-time"
-version = "0.6.0"
+version = "0.7.0-alpha"
 dependencies = [
  "cortex-m",
  "cortex-m-rt",
  "crossbeam-utils",
  "nrf52832-hal",
  "num",
+ "panic-never",
  "panic_rtt",
 ]
 
@@ -266,6 +267,12 @@ checksum = "ac267bcc07f48ee5f8935ab0d24f316fb722d7a1292e2913f0cc196b29ffd611"
 dependencies = [
  "autocfg",
 ]
+
+[[package]]
+name = "panic-never"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b0dc75d1f6543e7468fe83fe67257da512d7f1d2d5b66adfbbcf86b22df8d370"
 
 [[package]]
 name = "panic_rtt"
