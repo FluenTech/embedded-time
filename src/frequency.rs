@@ -1,7 +1,7 @@
 //! Representations of frequency-based values
 
 pub(crate) mod units {
-    use crate::{Period, TimeInt};
+    use crate::{ConversionError, Period, TimeInt};
     use core::{convert, ops};
 
     /// A frequency unit type
@@ -11,19 +11,35 @@ pub(crate) mod units {
     pub struct Hertz<T: TimeInt = u32>(pub T);
 
     impl<T: TimeInt> Hertz<T> {
+        /// Convert the frequency into a fractional [`Period`] in seconds
+        ///
+        /// # Examples
+        ///
         /// ```rust
         /// # use embedded_time::{Period, units::*};
-        /// assert_eq!(Hertz(1_000_u32).into_period(), <Period>::new(1, 1_000));
+        /// assert_eq!(Hertz(1_000_u32).into_period(), Ok(<Period>::new(1, 1_000)));
         /// ```
-        pub fn into_period(self) -> Period<T> {
+        ///
+        /// # Errors
+        ///
+        /// [`ConversionError::DivByZero`]
+        pub fn into_period(self) -> Result<Period<T>, ConversionError> {
             Period::from_frequency(self)
         }
 
+        /// Create a new `Frequency` from a fractional [`Period`] in seconds
+        ///
+        /// # Examples
+        ///
         /// ```rust
         /// # use embedded_time::{Period, units::*};
-        /// assert_eq!(Hertz::from_period(<Period>::new(1, 1_000)), Hertz(1_000_u32));
+        /// assert_eq!(Hertz::from_period(<Period>::new(1, 1_000)), Ok(Hertz(1_000_u32)));
         /// ```
-        pub fn from_period(period: Period<T>) -> Self {
+        ///
+        /// # Errors
+        ///
+        /// [`ConversionError::DivByZero`]
+        pub fn from_period(period: Period<T>) -> Result<Self, ConversionError> {
             period.to_frequency()
         }
     }
