@@ -1,5 +1,5 @@
 use crate::frequency::units::Hertz;
-use crate::TimeInt;
+use crate::{ConversionError, TimeInt};
 use core::{cmp, ops};
 use num::{rational::Ratio, CheckedDiv, CheckedMul};
 
@@ -39,18 +39,38 @@ impl<T: TimeInt> Period<T> {
     /// Construct a new fractional `Period`.
     ///
     /// A reduction **is** performed.
-    pub fn new_reduce(numerator: T, denominator: T) -> Self {
-        Self(Ratio::new(numerator, denominator))
+    ///
+    /// # Errors
+    ///
+    /// [`ConversionError::DivByZero`] : A `0` denominator was detected
+    pub fn new_reduce(numerator: T, denominator: T) -> Result<Self, ConversionError> {
+        if !denominator.is_zero() {
+            Ok(Self(Ratio::new(numerator, denominator)))
+        } else {
+            Err(ConversionError::DivByZero)
+        }
     }
 
     /// Returns a frequency in [`Hertz`] from the `Period`
-    pub fn to_frequency(&self) -> Hertz<T> {
-        Hertz(self.0.recip().to_integer())
+    ///
+    /// # Errors
+    ///
+    /// [`ConversionError::DivByZero`] : `Period` cannot be `0`.
+    pub fn to_frequency(&self) -> Result<Hertz<T>, ConversionError> {
+        if !self.0.numer().is_zero() {
+            Ok(Hertz(self.0.recip().to_integer()))
+        } else {
+            Err(ConversionError::DivByZero)
+        }
     }
 
     /// Constructs a `Period` from a frequency in [`Hertz`]
-    pub fn from_frequency(freq: Hertz<T>) -> Self {
-        Self(Ratio::from_integer(freq.0).recip())
+    pub fn from_frequency(freq: Hertz<T>) -> Result<Self, ConversionError> {
+        if !freq.0.is_zero() {
+            Ok(Self(Ratio::from_integer(freq.0).recip()))
+        } else {
+            Err(ConversionError::DivByZero)
+        }
     }
 
     /// Returns the value truncated to an integer
