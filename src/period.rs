@@ -136,35 +136,50 @@ impl<T: TimeInt> Period<T> {
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::Period;
+    /// # use embedded_time::{Period, ConversionError};
+    /// #
     /// assert_eq!(<Period>::new(1000, 1).checked_mul_integer(5_u32),
-    ///     Some(<Period>::new(5_000, 1)));
+    ///     Ok(<Period>::new(5_000, 1)));
     ///
     /// assert_eq!(<Period>::new(u32::MAX, 1).checked_mul_integer(2_u32),
-    ///     None);
+    ///     Err(ConversionError::Overflow));
     /// ```
-    pub fn checked_mul_integer(&self, multiplier: T) -> Option<Self> {
-        Some(Self(Ratio::checked_mul(
-            &self.0,
-            &Ratio::from_integer(multiplier),
-        )?))
+    ///
+    /// # Errors
+    ///
+    /// [`ConversionError::Overflow`]
+    pub fn checked_mul_integer(&self, multiplier: T) -> Result<Self, ConversionError> {
+        Ok(Self(
+            Ratio::checked_mul(&self.0, &Ratio::from_integer(multiplier))
+                .ok_or(ConversionError::Overflow)?,
+        ))
     }
 
+    /// Checked `Period` / integer = `Period`
+    ///
+    /// # Examples
+    ///
     /// ```rust
-    /// # use embedded_time::Period;
+    /// # use embedded_time::{Period, ConversionError};
+    /// #
     /// assert_eq!(<Period>::new(1000, 1).checked_div_integer(5_u32),
-    ///     Some(<Period>::new(200, 1)));
+    ///     Ok(<Period>::new(200, 1)));
+    ///
     /// assert_eq!(<Period>::new(1, 1000).checked_div_integer(5_u32),
-    ///     Some(<Period>::new(1, 5000)));
+    ///     Ok(<Period>::new(1, 5000)));
     ///
     /// assert_eq!(<Period>::new(1, u32::MAX).checked_div_integer(2_u32),
-    ///     None);
+    ///     Err(ConversionError::Overflow));
     /// ```
-    pub fn checked_div_integer(&self, divisor: T) -> Option<Self> {
-        Some(Self(Ratio::checked_div(
-            &self.0,
-            &Ratio::from_integer(divisor),
-        )?))
+    ///
+    /// # Errors
+    ///
+    /// [`ConversionError::Overflow`]
+    pub fn checked_div_integer(&self, divisor: T) -> Result<Self, ConversionError> {
+        Ok(Self(
+            Ratio::checked_div(&self.0, &Ratio::from_integer(divisor))
+                .ok_or(ConversionError::Overflow)?,
+        ))
     }
 }
 
