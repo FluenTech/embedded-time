@@ -163,7 +163,7 @@ mod tests {
 
     impl time::Clock for BadClock {
         type Rep = u32;
-        const PERIOD: time::Period = time::Period::new(1, 16_000_000);
+        const PERIOD: time::Period = <time::Period>::new(1, 16_000_000);
         type ImplError = ClockImplError;
 
         fn now(&self) -> Result<time::Instant<Self>, time::clock::Error<Self::ImplError>> {

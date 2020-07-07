@@ -21,7 +21,7 @@ pub(crate) mod units {
 
         /// ```rust
         /// # use embedded_time::{Period, units::*};
-        /// assert_eq!(Hertz::from_period(Period::new(1, 1_000)), Hertz(1_000_u32));
+        /// assert_eq!(Hertz::from_period(<Period>::new(1, 1_000)), Hertz(1_000_u32));
         /// ```
         pub fn from_period(period: Period<T>) -> Self {
             period.to_frequency()
