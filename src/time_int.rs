@@ -22,7 +22,7 @@ pub trait TimeInt:
     + fmt::Display
     + fmt::Debug
 {
-    /// A checked multiplication with a [`Period`]
+    /// Checked integer * [`Period`] = integer
     ///
     /// Returns truncated integer
     ///
@@ -44,7 +44,7 @@ pub trait TimeInt:
         .ok_or(ConversionError::DivByZero)
     }
 
-    /// A checked division with a [`Period`]
+    /// Checked integer / [`Period`] = integer
     ///
     /// Returns truncated integer
     ///
