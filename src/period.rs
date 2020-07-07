@@ -65,6 +65,56 @@ impl<T: TimeInt> Period<T> {
         Self(Ratio::from_integer(value))
     }
 
+    /// Checked `Period` * `Period` = `Period`
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use embedded_time::{Period, ConversionError};
+    /// #
+    /// assert_eq!(<Period>::new(1000, 1).checked_mul(&<Period>::new(5,5)),
+    ///     Ok(<Period>::new(5_000, 5)));
+    ///
+    /// assert_eq!(<Period>::new(u32::MAX, 1).checked_mul(&<Period>::new(2,1)),
+    ///     Err(ConversionError::Overflow));
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// [`ConversionError::Overflow`]
+    pub fn checked_mul(&self, v: &Self) -> Result<Self, ConversionError> {
+        Ok(Self(
+            self.0.checked_mul(&v.0).ok_or(ConversionError::Overflow)?,
+        ))
+    }
+
+    /// Checked `Period` / `Period` = `Period`
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use embedded_time::{Period, ConversionError};
+    /// #
+    /// assert_eq!(<Period>::new(1000, 1).checked_div(&<Period>::new(10, 1000)),
+    ///     Ok(<Period>::new(1_000_000, 10)));
+    ///
+    /// assert_eq!(<Period>::new(1, u32::MAX).checked_div(&<Period>::new(2,1)),
+    ///     Err(ConversionError::Overflow));
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// [`ConversionError::Overflow`]
+    pub fn checked_div(&self, v: &Self) -> Result<Self, ConversionError> {
+        Ok(Self(
+            self.0.checked_div(&v.0).ok_or(ConversionError::Overflow)?,
+        ))
+    }
+
+    /// Checked `Period` * integer = `Period`
+    ///
+    /// # Examples
+    ///
     /// ```rust
     /// # use embedded_time::Period;
     /// assert_eq!(<Period>::new(1000, 1).checked_mul_integer(5_u32),
@@ -110,24 +160,7 @@ where
     ///     <Period>::new(5_000, 5));
     /// ```
     fn mul(self, rhs: Self) -> Self::Output {
-        Self(self.0 * rhs.0)
-    }
-}
-
-impl<T> num::CheckedMul for Period<T>
-where
-    T: TimeInt,
-{
-    /// ```rust
-    /// # use embedded_time::Period;
-    /// assert_eq!(<Period as num::CheckedMul>::checked_mul(&<Period>::new(1000, 1),
-    ///     &<Period>::new(5,5)), Some(<Period>::new(5_000, 5)));
-    ///
-    /// assert_eq!(<Period as num::CheckedMul>::checked_mul(&<Period>::new(u32::MAX, 1),
-    ///     &<Period>::new(2,1)), None);
-    /// ```
-    fn checked_mul(&self, v: &Self) -> Option<Self> {
-        Some(Self(self.0.checked_mul(&v.0)?))
+        self.checked_mul(&rhs).unwrap()
     }
 }
 
@@ -143,24 +176,7 @@ where
     ///     <Period>::new(1_000_000, 10));
     /// ```
     fn div(self, rhs: Self) -> Self::Output {
-        Self(self.0 / rhs.0)
-    }
-}
-
-impl<T> num::CheckedDiv for Period<T>
-where
-    T: TimeInt,
-{
-    /// ```rust
-    /// # use embedded_time::Period;
-    /// assert_eq!(<Period as num::CheckedDiv>::checked_div(&<Period>::new(1000, 1),
-    ///     &<Period>::new(10, 1000)), Some(<Period>::new(1_000_000, 10)));
-    ///
-    /// assert_eq!(<Period as num::CheckedDiv>::checked_div(&<Period>::new(1, u32::MAX),
-    ///     &<Period>::new(2,1)), None);
-    /// ```
-    fn checked_div(&self, v: &Self) -> Option<Self> {
-        Some(Self(self.0.checked_div(&v.0)?))
+        self.checked_div(&rhs).unwrap()
     }
 }
 

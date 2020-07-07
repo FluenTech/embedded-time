@@ -257,8 +257,7 @@ pub trait Duration: Sized + Copy + fmt::Display {
             } else {
                 Ok(Self::new(TimeInt::checked_mul_period(
                     &converted_ticks,
-                    &<Period as num::CheckedDiv>::checked_div(&period, &Self::PERIOD)
-                        .ok_or(ConversionError::DivByZero)?,
+                    &period.checked_div(&Self::PERIOD)?,
                 )?))
             }
         } else {
@@ -273,11 +272,7 @@ pub trait Duration: Sized + Copy + fmt::Display {
                     &period,
                 )?
             } else {
-                TimeInt::checked_mul_period(
-                    &ticks,
-                    &<Period as num::CheckedDiv>::checked_div(&period, &Self::PERIOD)
-                        .ok_or(ConversionError::DivByZero)?,
-                )?
+                TimeInt::checked_mul_period(&ticks, &period.checked_div(&Self::PERIOD)?)?
             };
 
             let converted_ticks =
@@ -339,11 +334,7 @@ pub trait Duration: Sized + Copy + fmt::Display {
                     &period,
                 )
             } else {
-                TimeInt::checked_mul_period(
-                    &ticks,
-                    &<Period as num::CheckedDiv>::checked_div(&Self::PERIOD, &period)
-                        .ok_or(ConversionError::DivByZero)?,
-                )
+                TimeInt::checked_mul_period(&ticks, &Self::PERIOD.checked_div(&period)?)
             }
         } else {
             let ticks = if Self::PERIOD > <Period>::new(1, 1) {
@@ -352,11 +343,7 @@ pub trait Duration: Sized + Copy + fmt::Display {
                     &period,
                 )?
             } else {
-                TimeInt::checked_mul_period(
-                    &self.count(),
-                    &<Period as num::CheckedDiv>::checked_div(&Self::PERIOD, &period)
-                        .ok_or(ConversionError::DivByZero)?,
-                )?
+                TimeInt::checked_mul_period(&self.count(), &Self::PERIOD.checked_div(&period)?)?
             };
 
             Rep::try_from(ticks).map_err(|_| ConversionError::ConversionFailure)
