@@ -104,12 +104,15 @@ impl<Type, Clock: crate::Clock, Dur: Duration> Timer<'_, Type, Running, Clock, D
         Dur::Rep: TryFrom<Clock::Rep>,
         Clock::Rep: TryFrom<Dur::Rep>,
     {
-        self.clock.now()?.duration_since(
-            &(self
-                .expiration
-                .unwrap()
-                .checked_sub_duration(self.duration)?),
-        )
+        self.clock
+            .now()?
+            .duration_since(
+                &(self
+                    .expiration
+                    .unwrap()
+                    .checked_sub_duration(self.duration)?),
+            )
+            .map_err(|e| e.into())
     }
 
     /// Returns the [`Duration`] until the expiration of the timer
@@ -126,7 +129,7 @@ impl<Type, Clock: crate::Clock, Dur: Duration> Timer<'_, Type, Running, Clock, D
         if let Ok(duration) = self.expiration.unwrap().duration_since(&self.clock.now()?) {
             Ok(duration)
         } else {
-            0.seconds().try_convert_into()
+            0.seconds().try_convert_into().map_err(|e| e.into())
         }
     }
 }
@@ -321,7 +324,7 @@ mod test {
         let ticks = TICKS.load(Ordering::Acquire);
         let ticks = ticks
             + duration
-                .into_ticks::<<Clock as crate::Clock>::Rep, ()>(Clock::PERIOD)
+                .into_ticks::<<Clock as crate::Clock>::Rep>(Clock::PERIOD)
                 .unwrap();
         TICKS.store(ticks, Ordering::Release);
     }

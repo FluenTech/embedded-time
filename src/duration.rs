@@ -1,6 +1,6 @@
 //! Duration types/units creation and conversion.
 
-use crate::{period::Period, time_int::TimeInt, Error, TimeError};
+use crate::{period::Period, time_int::TimeInt, ConversionError};
 use core::{convert::TryFrom, fmt, mem::size_of, prelude::v1::*};
 use num::Bounded;
 
@@ -38,10 +38,10 @@ use num::Bounded;
 /// # use embedded_time::{traits::*, units::*};
 /// #
 /// let duration = 38_238_479_u32.microseconds();
-/// let hours = Hours::<u32>::try_convert_from::<()>(duration).unwrap();
-/// let minutes = Minutes::<u32>::try_convert_from::<()>(duration).unwrap() % Hours(1_u32);
-/// let seconds = Seconds::<u32>::try_convert_from::<()>(duration).unwrap() % Minutes(1_u32);
-/// let milliseconds = Milliseconds::<u32>::try_convert_from::<()>(duration).unwrap() % Seconds(1_u32);
+/// let hours = Hours::<u32>::try_convert_from(duration).unwrap();
+/// let minutes = Minutes::<u32>::try_convert_from(duration).unwrap() % Hours(1_u32);
+/// let seconds = Seconds::<u32>::try_convert_from(duration).unwrap() % Minutes(1_u32);
+/// let milliseconds = Milliseconds::<u32>::try_convert_from(duration).unwrap() % Seconds(1_u32);
 /// // ...
 /// ```
 ///
@@ -88,16 +88,16 @@ use num::Bounded;
 /// ## Errors
 /// The duration doesn't fit in the type specified
 /// ```rust
-/// # use embedded_time::{traits::*, units::*, TimeError};
+/// # use embedded_time::{traits::*, units::*, ConversionError};
 /// # use core::convert::{TryFrom, TryInto};
 /// #
 /// assert_eq!(
 ///     Milliseconds::<u32>::try_from(
-///     core::time::Duration::from_millis((u32::MAX as u64) + 1)), Err(TimeError::ConversionFailure));
+///     core::time::Duration::from_millis((u32::MAX as u64) + 1)), Err(ConversionError::ConversionFailure));
 ///
 /// let duration: Result<Milliseconds<u32>, _> =
 ///     core::time::Duration::from_millis((u32::MAX as u64) + 1).try_into();
-/// assert_eq!(duration, Err(TimeError::ConversionFailure));
+/// assert_eq!(duration, Err(ConversionError::ConversionFailure));
 /// ```
 ///
 /// # Add/Sub
@@ -203,11 +203,11 @@ pub trait Duration: Sized + Copy + fmt::Display {
     /// # Examples
     /// ```rust
     /// # use embedded_time::{traits::*, units::*, Period};
-    /// assert_eq!(Microseconds::<u32>::from_ticks::<_,()>(5_u64, <Period>::new(1, 1_000)),
+    /// assert_eq!(Microseconds::<u32>::from_ticks(5_u64, <Period>::new(1, 1_000)),
     ///     Ok(Microseconds(5_000_u32)));
     ///
     /// // the conversion arithmetic will not cause overflow
-    /// assert_eq!(Milliseconds::<u32>::from_ticks::<_,()>((u32::MAX as u64) + 1, <Period>::new(1, 1_000_000)),
+    /// assert_eq!(Milliseconds::<u32>::from_ticks((u32::MAX as u64) + 1, <Period>::new(1, 1_000_000)),
     ///     Ok(Milliseconds((((u32::MAX as u64) + 1) / 1_000) as u32)));
     /// ```
     ///
@@ -216,24 +216,24 @@ pub trait Duration: Sized + Copy + fmt::Display {
     ///
     /// the conversion of periods causes an overflow:
     /// ```rust
-    /// # use embedded_time::{traits::*, units::*, Period, TimeError};
-    /// assert_eq!(Milliseconds::<u32>::from_ticks::<_,()>(u32::MAX, <Period>::new(1, 1)),
-    ///     Err(TimeError::Overflow));
+    /// # use embedded_time::{traits::*, units::*, Period, ConversionError};
+    /// assert_eq!(Milliseconds::<u32>::from_ticks(u32::MAX, <Period>::new(1, 1)),
+    ///     Err(ConversionError::Overflow));
     /// ```
     ///
     /// the Self integer cast to that of the provided type fails
     /// ```rust
-    /// # use embedded_time::{traits::*, units::*, Period, TimeError};
-    /// assert_eq!(Seconds::<u32>::from_ticks::<_,()>(u32::MAX as u64 + 1, <Period>::new(1, 1)),
-    ///     Err(TimeError::ConversionFailure));
+    /// # use embedded_time::{traits::*, units::*, Period, ConversionError};
+    /// assert_eq!(Seconds::<u32>::from_ticks(u32::MAX as u64 + 1, <Period>::new(1, 1)),
+    ///     Err(ConversionError::ConversionFailure));
     /// ```
-    fn from_ticks<Rep: TimeInt, E: Error>(ticks: Rep, period: Period) -> Result<Self, TimeError<E>>
+    fn from_ticks<Rep: TimeInt>(ticks: Rep, period: Period) -> Result<Self, ConversionError>
     where
         Self::Rep: TryFrom<Rep>,
     {
         if size_of::<Self::Rep>() > size_of::<Rep>() {
             let converted_ticks =
-                Self::Rep::try_from(ticks).map_err(|_| TimeError::ConversionFailure)?;
+                Self::Rep::try_from(ticks).map_err(|_| ConversionError::ConversionFailure)?;
 
             if period > <Period>::new(1, 1) {
                 Ok(Self::new(TimeInt::checked_div_period(
@@ -244,7 +244,7 @@ pub trait Duration: Sized + Copy + fmt::Display {
                 Ok(Self::new(TimeInt::checked_mul_period(
                     &converted_ticks,
                     &<Period as num::CheckedDiv>::checked_div(&period, &Self::PERIOD)
-                        .ok_or(TimeError::DivByZero)?,
+                        .ok_or(ConversionError::DivByZero)?,
                 )?))
             }
         } else {
@@ -262,12 +262,12 @@ pub trait Duration: Sized + Copy + fmt::Display {
                 TimeInt::checked_mul_period(
                     &ticks,
                     &<Period as num::CheckedDiv>::checked_div(&period, &Self::PERIOD)
-                        .ok_or(TimeError::DivByZero)?,
+                        .ok_or(ConversionError::DivByZero)?,
                 )?
             };
 
             let converted_ticks =
-                Self::Rep::try_from(ticks).map_err(|_| TimeError::ConversionFailure)?;
+                Self::Rep::try_from(ticks).map_err(|_| ConversionError::ConversionFailure)?;
             Ok(Self::new(converted_ticks))
         }
     }
@@ -276,16 +276,16 @@ pub trait Duration: Sized + Copy + fmt::Display {
     ///
     /// # Examples
     /// ```rust
-    /// # use embedded_time::{traits::*, units::*, Period, TimeError};
-    /// assert_eq!(Microseconds(5_000_u32).into_ticks::<u32,()>(Period::new(1, 1_000)),
+    /// # use embedded_time::{traits::*, units::*, Period, ConversionError};
+    /// assert_eq!(Microseconds(5_000_u32).into_ticks::<u32>(Period::new(1, 1_000)),
     ///     Ok(5_u32));
     ///
     /// // the _into_ period can be any value
-    /// assert_eq!(Microseconds(5_000_u32).into_ticks::<u32,()>(Period::new(1, 200)),
+    /// assert_eq!(Microseconds(5_000_u32).into_ticks::<u32>(Period::new(1, 200)),
     ///     Ok(1_u32));
     ///
     /// // as long as the result fits in the provided integer, it will succeed
-    /// assert_eq!(Microseconds::<u32>(u32::MAX).into_ticks::<u64,()>(Period::new(1, 2_000_000)),
+    /// assert_eq!(Microseconds::<u32>(u32::MAX).into_ticks::<u64>(Period::new(1, 2_000_000)),
     ///     Ok((u32::MAX as u64) * 2));
     /// ```
     ///
@@ -294,24 +294,25 @@ pub trait Duration: Sized + Copy + fmt::Display {
     ///
     /// The conversion of periods causes an overflow:
     /// ```rust
-    /// # use embedded_time::{traits::*, units::*, Period, TimeError};
-    /// assert_eq!(Err(TimeError::Overflow),
-    ///     Seconds(u32::MAX).into_ticks::<u32,()>(Period::new(1, 1_000)));
+    /// # use embedded_time::{traits::*, units::*, Period, ConversionError};
+    /// assert_eq!(Err(ConversionError::Overflow),
+    ///     Seconds(u32::MAX).into_ticks::<u32>(Period::new(1, 1_000)));
     /// ```
     ///
     /// the Self integer cast to that of the provided type fails
     /// ```rust
-    /// # use embedded_time::{traits::*, units::*, Period, TimeError};
-    /// assert_eq!(Err(TimeError::ConversionFailure),
-    ///     Seconds(u32::MAX as u64 + 1).into_ticks::<u32,()>(Period::new(1, 1)));
+    /// # use embedded_time::{traits::*, units::*, Period, ConversionError};
+    /// assert_eq!(Err(ConversionError::ConversionFailure),
+    ///     Seconds(u32::MAX as u64 + 1).into_ticks::<u32>(Period::new(1, 1)));
     /// ```
-    fn into_ticks<Rep: TimeInt, E: Error>(self, period: Period) -> Result<Rep, TimeError<E>>
+    fn into_ticks<Rep: TimeInt>(self, period: Period) -> Result<Rep, ConversionError>
     where
         Self::Rep: TimeInt,
         Rep: TryFrom<Self::Rep>,
     {
         if size_of::<Rep>() > size_of::<Self::Rep>() {
-            let ticks = Rep::try_from(self.count()).map_err(|_| TimeError::ConversionFailure)?;
+            let ticks =
+                Rep::try_from(self.count()).map_err(|_| ConversionError::ConversionFailure)?;
 
             if period > <Period>::new(1, 1) {
                 TimeInt::checked_div_period(
@@ -322,7 +323,7 @@ pub trait Duration: Sized + Copy + fmt::Display {
                 TimeInt::checked_mul_period(
                     &ticks,
                     &<Period as num::CheckedDiv>::checked_div(&Self::PERIOD, &period)
-                        .ok_or(TimeError::DivByZero)?,
+                        .ok_or(ConversionError::DivByZero)?,
                 )
             }
         } else {
@@ -335,11 +336,11 @@ pub trait Duration: Sized + Copy + fmt::Display {
                 TimeInt::checked_mul_period(
                     &self.count(),
                     &<Period as num::CheckedDiv>::checked_div(&Self::PERIOD, &period)
-                        .ok_or(TimeError::DivByZero)?,
+                        .ok_or(ConversionError::DivByZero)?,
                 )?
             };
 
-            Rep::try_from(ticks).map_err(|_| TimeError::ConversionFailure)
+            Rep::try_from(ticks).map_err(|_| ConversionError::ConversionFailure)
         }
     }
 
@@ -367,7 +368,7 @@ pub trait Duration: Sized + Copy + fmt::Display {
 /// This is basically a specialization of the [`TryFrom`](core::convert::TryFrom) trait.
 pub trait TryConvertFrom<Source>: Sized {
     /// Perform the conversion
-    fn try_convert_from<E: Error>(other: Source) -> Result<Self, TimeError<E>>;
+    fn try_convert_from(other: Source) -> Result<Self, ConversionError>;
 }
 
 /// Attempt to convert from one duration type to another
@@ -375,7 +376,7 @@ pub trait TryConvertFrom<Source>: Sized {
 /// This is basically a specialization of the [`TryInto`](core::convert::TryInto) trait.
 pub trait TryConvertInto<Dest> {
     /// Perform the conversion
-    fn try_convert_into<E: Error>(self) -> Result<Dest, TimeError<E>>;
+    fn try_convert_into(self) -> Result<Dest, ConversionError>;
 }
 
 impl<Source: Duration, Dest: Duration> TryConvertFrom<Source> for Dest
@@ -389,11 +390,11 @@ where
     /// # Examples
     /// ```rust
     /// # use embedded_time::{traits::*, units::*};
-    /// assert_eq!(Seconds::<u32>::try_convert_from::<()>(Milliseconds(23_000_u64)),
+    /// assert_eq!(Seconds::<u32>::try_convert_from(Milliseconds(23_000_u64)),
     ///     Ok(Seconds(23_u32)));
-    /// assert_eq!(Seconds::<u64>::try_convert_from::<()>(Milliseconds(23_000_u32)),
+    /// assert_eq!(Seconds::<u64>::try_convert_from(Milliseconds(23_000_u32)),
     ///     Ok(Seconds(23_u64)));
-    /// assert_eq!(Seconds::<u32>::try_convert_from::<()>(Milliseconds(230_u32)),
+    /// assert_eq!(Seconds::<u32>::try_convert_from(Milliseconds(230_u32)),
     ///     Ok(Seconds(0)));
     /// ```
     ///
@@ -402,33 +403,33 @@ where
     ///
     /// the conversion of periods causes an overflow:
     /// ```rust
-    /// # use embedded_time::{traits::*, units::*, TimeError};
-    /// assert_eq!(Milliseconds::<u32>::try_convert_from::<()>(Seconds(u32::MAX)),
-    ///     Err(TimeError::Overflow));
+    /// # use embedded_time::{traits::*, units::*, ConversionError};
+    /// assert_eq!(Milliseconds::<u32>::try_convert_from(Seconds(u32::MAX)),
+    ///     Err(ConversionError::Overflow));
     /// ```
     ///
     /// the Self integer cast to that of the provided type fails
     /// ```rust
-    /// # use embedded_time::{traits::*, units::*, TimeError};
-    /// assert_eq!(Seconds::<u32>::try_convert_from::<()>(Seconds(u32::MAX as u64 + 1)),
-    ///     Err(TimeError::ConversionFailure));
+    /// # use embedded_time::{traits::*, units::*, ConversionError};
+    /// assert_eq!(Seconds::<u32>::try_convert_from(Seconds(u32::MAX as u64 + 1)),
+    ///     Err(ConversionError::ConversionFailure));
     /// ```
     ///
     /// However, these work because the sequence of cast/conversion adapts
     /// ```rust
     /// # use embedded_time::{traits::*, units::*};
     /// // period conversion applied first
-    /// assert_eq!(Hours::<u32>::try_convert_from::<()>(Microseconds(3_600_000_000_u64)),
+    /// assert_eq!(Hours::<u32>::try_convert_from(Microseconds(3_600_000_000_u64)),
     ///     Ok(Hours(1_u32)));
     ///
     /// // cast applied first
-    /// assert_eq!(Microseconds::<u64>::try_convert_from::<()>(Hours(1_u32)),
+    /// assert_eq!(Microseconds::<u64>::try_convert_from(Hours(1_u32)),
     ///     Ok(Microseconds(3_600_000_000_u64)));
     /// ```
     ///
     /// # Returns
     /// [`None`] if the result of the conversion does not fit in the requested integer size
-    fn try_convert_from<E: Error>(source: Source) -> Result<Self, TimeError<E>> {
+    fn try_convert_from(source: Source) -> Result<Self, ConversionError> {
         Self::from_ticks(source.count(), Source::PERIOD)
     }
 }
@@ -443,45 +444,45 @@ where
     /// # Examples
     /// ```rust
     /// # use embedded_time::{traits::*, units::*};
-    /// assert_eq!(Seconds(23_u64).try_convert_into::<()>(),
+    /// assert_eq!(Seconds(23_u64).try_convert_into(),
     ///     Ok(Seconds(23_u32)));
-    /// assert_eq!(Seconds(23_u32).try_convert_into::<()>(),
+    /// assert_eq!(Seconds(23_u32).try_convert_into(),
     ///     Ok(Seconds(23_u64)));
-    /// assert_eq!(Milliseconds(23_000_u64).try_convert_into::<()>(),
+    /// assert_eq!(Milliseconds(23_000_u64).try_convert_into(),
     ///     Ok(Seconds(23_u32)));
     /// ```
     ///
     /// # Errors
     /// Failure will only occur if the value does not fit in the selected destination type.
     ///
-    /// TimeError::WouldOverflow - The conversion of periods causes an overflow:
+    /// ConversionError::WouldOverflow - The conversion of periods causes an overflow:
     /// ```rust
-    /// # use embedded_time::{traits::*, units::*, TimeError};
+    /// # use embedded_time::{traits::*, units::*, ConversionError};
     /// use embedded_time::duration::TryConvertInto;
-    /// assert_eq!(<Seconds<u32> as TryConvertInto<Milliseconds<u32>>>::try_convert_into::<()>(Seconds(u32::MAX)),
-    ///     Err(TimeError::Overflow));
+    /// assert_eq!(<Seconds<u32> as TryConvertInto<Milliseconds<u32>>>::try_convert_into(Seconds(u32::MAX)),
+    ///     Err(ConversionError::Overflow));
     /// ```
     ///
-    /// TimeError::CastWouldFail - The Self integer cast to that of the destination type fails:
+    /// ConversionError::CastWouldFail - The Self integer cast to that of the destination type fails:
     /// ```rust
-    /// # use embedded_time::{traits::*, units::*, TimeError};
+    /// # use embedded_time::{traits::*, units::*, ConversionError};
     /// use embedded_time::duration::TryConvertInto;
-    /// assert_eq!(<Seconds<u64> as TryConvertInto<Seconds<u32>>>::try_convert_into::<()>(Seconds(u32::MAX as u64 + 1)),
-    ///     Err(TimeError::ConversionFailure));
+    /// assert_eq!(<Seconds<u64> as TryConvertInto<Seconds<u32>>>::try_convert_into(Seconds(u32::MAX as u64 + 1)),
+    ///     Err(ConversionError::ConversionFailure));
     /// ```
     ///
     /// However, these work because the sequence of cast/conversion adapts
     /// ```rust
     /// # use embedded_time::{traits::*, units::*};
     /// // period conversion applied first
-    /// assert_eq!(Microseconds(3_600_000_000_u64).try_convert_into::<()>(),
+    /// assert_eq!(Microseconds(3_600_000_000_u64).try_convert_into(),
     ///     Ok(Hours(1_u32)));
     ///
     /// // cast applied first
-    /// assert_eq!(Hours(1_u32).try_convert_into::<()>(),
+    /// assert_eq!(Hours(1_u32).try_convert_into(),
     ///     Ok(Microseconds(3_600_000_000_u64)));
     /// ```
-    fn try_convert_into<E: Error>(self) -> Result<Dest, TimeError<E>> {
+    fn try_convert_into(self) -> Result<Dest, ConversionError> {
         Dest::try_convert_from(self)
     }
 }
@@ -492,7 +493,7 @@ pub mod units {
         duration::{Duration, TryConvertFrom},
         period::Period,
         time_int::TimeInt,
-        TimeError,
+        ConversionError,
     };
     use core::{
         cmp,
@@ -538,7 +539,7 @@ pub mod units {
                 /// See module-level documentation for details about this type
                 #[inline]
                 fn add(self, rhs: RhsDur) -> Self::Output {
-                    Self(self.count() + Self::try_convert_from::<()>(rhs).unwrap().count())
+                    Self(self.count() + Self::try_convert_from(rhs).unwrap().count())
                 }
             }
 
@@ -552,7 +553,7 @@ pub mod units {
                 /// See module-level documentation for details about this type
                 #[inline]
                 fn sub(self, rhs: RhsDur) -> Self::Output {
-                    Self(self.count() - Self::try_convert_from::<()>(rhs).unwrap().count())
+                    Self(self.count() - Self::try_convert_from(rhs).unwrap().count())
                 }
             }
 
@@ -564,7 +565,7 @@ pub mod units {
                 type Output = Self;
 
                 fn rem(self, rhs: Dur) -> Self::Output {
-                    let rhs = <Self as TryConvertFrom<Dur>>::try_convert_from::<()>(rhs)
+                    let rhs = <Self as TryConvertFrom<Dur>>::try_convert_from(rhs)
                         .unwrap()
                         .count();
 
@@ -585,9 +586,9 @@ pub mod units {
                 /// See module-level documentation for details about this type
                 fn eq(&self, other: &OtherDur) -> bool {
                     if Self::PERIOD < OtherDur::PERIOD {
-                        self.count() == Self::try_convert_from::<()>(*other).unwrap().count()
+                        self.count() == Self::try_convert_from(*other).unwrap().count()
                     } else {
-                        OtherDur::try_convert_from::<()>(*self).unwrap().count() == other.count()
+                        OtherDur::try_convert_from(*self).unwrap().count() == other.count()
                     }
                 }
             }
@@ -603,11 +604,11 @@ pub mod units {
                     if Self::PERIOD < OtherDur::PERIOD {
                         Some(
                             self.count()
-                                .cmp(&Self::try_convert_from::<()>(*other).unwrap().count()),
+                                .cmp(&Self::try_convert_from(*other).unwrap().count()),
                         )
                     } else {
                         Some(
-                            OtherDur::try_convert_from::<()>(*self)
+                            OtherDur::try_convert_from(*self)
                                 .unwrap()
                                 .count()
                                 .cmp(&other.count()),
@@ -621,7 +622,7 @@ pub mod units {
             impl_duration![$name, ($numer, $denom)];
 
             impl<Rep: TimeInt> convert::TryFrom<$name<Rep>> for core::time::Duration {
-                type Error = TimeError;
+                type Error = ConversionError;
 
                 /// Convert an embedded_time::[`Duration`] into a [`core::time::Duration`]
                 fn try_from(duration: $name<Rep>) -> Result<Self, Self::Error> {
@@ -631,7 +632,7 @@ pub mod units {
             }
 
             impl<Rep: TimeInt> convert::TryFrom<core::time::Duration> for $name<Rep> {
-                type Error = TimeError;
+                type Error = ConversionError;
 
                 /// Convert a [`core::time::Duration`] into an embedded_time::[`Duration`]
                 fn try_from(core_duration: core::time::Duration) -> Result<Self, Self::Error> {
@@ -644,7 +645,7 @@ pub mod units {
             impl_duration![$name, ($numer, $denom)];
 
             impl<Rep: TimeInt> convert::TryFrom<$name<Rep>> for core::time::Duration {
-                type Error = TimeError;
+                type Error = ConversionError;
 
                 /// Convert an embedded_time::[`Duration`] into a [`core::time::Duration`]
                 fn try_from(duration: $name<Rep>) -> Result<Self, Self::Error> {
@@ -653,7 +654,7 @@ pub mod units {
             }
 
             impl<Rep: TimeInt> convert::TryFrom<core::time::Duration> for $name<Rep> {
-                type Error = TimeError;
+                type Error = ConversionError;
 
                 /// Convert a [`core::time::Duration`] into an embedded_time::[`Duration`]
                 fn try_from(core_duration: core::time::Duration) -> Result<Self, Self::Error> {
@@ -661,7 +662,7 @@ pub mod units {
                         core_duration
                             .$as_core_dur()
                             .try_into()
-                            .map_err(|_| TimeError::ConversionFailure)?,
+                            .map_err(|_| ConversionError::ConversionFailure)?,
                     ))
                 }
             }
