@@ -1,5 +1,8 @@
 use crate::{
-    duration, duration::Duration, duration::TryConvertFrom, timer::param::*, traits::*, units::*,
+    duration::{Duration, TryConvertFrom},
+    timer::param::*,
+    traits::*,
+    units::*,
     Instant, TimeError,
 };
 use core::{convert::TryFrom, marker::PhantomData, ops::Add, prelude::v1::*};
@@ -72,17 +75,17 @@ impl<'a, Type, State, Clock: crate::Clock, Dur: Duration> Timer<'a, Type, State,
 
 impl<'a, Type, Clock: crate::Clock, Dur: Duration> Timer<'a, Type, Armed, Clock, Dur> {
     /// Start the timer from this instant
-    pub fn start(self) -> Timer<'a, Type, Running, Clock, Dur>
+    pub fn start(self) -> Result<Timer<'a, Type, Running, Clock, Dur>, TimeError<Clock::ImplError>>
     where
-        Instant<Clock>: Add<Dur, Output = Instant<Clock>>,
+        Clock::Rep: TryFrom<Dur::Rep>,
     {
-        Timer::<Type, Running, Clock, Dur> {
+        Ok(Timer::<Type, Running, Clock, Dur> {
             clock: self.clock,
             duration: self.duration,
-            expiration: Some(self.clock.now().unwrap() + self.duration),
+            expiration: Some(self.clock.now()?.checked_add_duration(self.duration)?),
             _type: PhantomData,
             _state: PhantomData,
-        }
+        })
     }
 }
 
@@ -105,7 +108,7 @@ impl<Type, Clock: crate::Clock, Dur: Duration> Timer<'_, Type, Running, Clock, D
             &(self
                 .expiration
                 .unwrap()
-                .wrapping_sub_duration::<_, Clock::ImplError>(self.duration)?),
+                .checked_sub_duration(self.duration)?),
         )
     }
 
@@ -120,11 +123,7 @@ impl<Type, Clock: crate::Clock, Dur: Duration> Timer<'_, Type, Running, Clock, D
         Clock::Rep: TryFrom<Dur::Rep>,
         Dur: TryConvertFrom<Seconds<u32>>,
     {
-        if let Ok(duration) = self
-            .expiration
-            .unwrap()
-            .duration_since::<_, Clock::ImplError>(&self.clock.now()?)
-        {
+        if let Ok(duration) = self.expiration.unwrap().duration_since(&self.clock.now()?) {
             Ok(duration)
         } else {
             0.seconds().try_convert_into()
@@ -215,7 +214,7 @@ mod test {
         init_ticks();
         let clock = Clock;
 
-        let timer = clock.new_timer(1_u32.seconds()).start();
+        let timer = clock.new_timer(1_u32.seconds()).start().unwrap();
 
         thread::scope(|s| {
             let timer_handle = s.spawn(|_| timer.wait());
@@ -228,7 +227,7 @@ mod test {
 
             add_to_ticks(1_u32.seconds());
 
-            let timer = result.unwrap().start();
+            let timer = result.unwrap().start().unwrap();
             assert!(!timer.is_expired());
 
             let timer_handle = s.spawn(|_| timer.wait());
@@ -244,7 +243,11 @@ mod test {
         init_ticks();
         let clock = Clock;
 
-        let timer = clock.new_timer(1_u32.seconds()).into_periodic().start();
+        let timer = clock
+            .new_timer(1_u32.seconds())
+            .into_periodic()
+            .start()
+            .unwrap();
 
         thread::scope(|s| {
             let timer_handle = s.spawn(|_| timer.wait());
@@ -272,7 +275,11 @@ mod test {
         init_ticks();
         let clock = Clock;
 
-        let mut timer = clock.new_timer(1_u32.seconds()).into_periodic().start();
+        let mut timer = clock
+            .new_timer(1_u32.seconds())
+            .into_periodic()
+            .start()
+            .unwrap();
 
         add_to_ticks(2_u32.seconds());
 
@@ -285,27 +292,27 @@ mod test {
         init_ticks();
         let clock = Clock;
 
-        let timer = clock.new_timer(2_u32.seconds()).start();
+        let timer = clock.new_timer(2_u32.seconds()).start().unwrap();
 
         add_to_ticks(1_u32.milliseconds());
 
-        assert_eq!(timer.elapsed(), 0_u32.seconds());
-        assert_eq!(timer.remaining(), 1_u32.seconds());
+        assert_eq!(timer.elapsed(), Ok(0_u32.seconds()));
+        assert_eq!(timer.remaining(), Ok(1_u32.seconds()));
 
         add_to_ticks(1_u32.seconds());
 
-        assert_eq!(timer.elapsed(), 1_u32.seconds());
-        assert_eq!(timer.remaining(), 0_u32.seconds());
+        assert_eq!(timer.elapsed(), Ok(1_u32.seconds()));
+        assert_eq!(timer.remaining(), Ok(0_u32.seconds()));
 
         add_to_ticks(1_u32.seconds());
 
-        assert_eq!(timer.elapsed(), 2_u32.seconds());
-        assert_eq!(timer.remaining(), 0_u32.seconds());
+        assert_eq!(timer.elapsed(), Ok(2_u32.seconds()));
+        assert_eq!(timer.remaining(), Ok(0_u32.seconds()));
 
         add_to_ticks(1_u32.seconds());
 
-        assert_eq!(timer.elapsed(), 3_u32.seconds());
-        assert_eq!(timer.remaining(), 0_u32.seconds());
+        assert_eq!(timer.elapsed(), Ok(3_u32.seconds()));
+        assert_eq!(timer.remaining(), Ok(0_u32.seconds()));
     }
 
     fn init_ticks() {}
@@ -314,7 +321,7 @@ mod test {
         let ticks = TICKS.load(Ordering::Acquire);
         let ticks = ticks
             + duration
-                .into_ticks::<<Clock as crate::Clock>::Rep>(Clock::PERIOD)
+                .into_ticks::<<Clock as crate::Clock>::Rep, ()>(Clock::PERIOD)
                 .unwrap();
         TICKS.store(ticks, Ordering::Release);
     }

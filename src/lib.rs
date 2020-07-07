@@ -114,15 +114,21 @@ pub mod units {
 }
 
 /// General error-type trait implemented for all error types in this crate
-pub trait Error: fmt::Debug {}
+pub trait Error: fmt::Debug + Eq {}
 
+/// Crate errors
+#[non_exhaustive]
 #[derive(Debug, Eq, PartialEq)]
 pub enum TimeError<E: Error = ()> {
-    CastWouldFail,
-    WouldOverflow,
-    WouldUnderflow,
-    WouldDivByZero,
-    DisorderedOperands,
+    /// Attempted type conversion failed
+    ConversionFailure,
+    /// Result is outside of those valid for this type
+    Overflow,
+    /// Attempted to divide by zero
+    DivByZero,
+    /// Resulting [`Duration`](duration/trait.Duration.html) is negative (not allowed)
+    NegDuration,
+    /// [`Clock`]-implementation-specific error
     Clock(clock::Error<E>),
 }
 impl<E: Error> Error for TimeError<E> {}
@@ -139,6 +145,7 @@ impl Error for Infallible {}
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
+    use crate::duration::TryConvertFrom;
     use crate::{self as time, clock, traits::*, units::*};
     use core::{
         convert::{Infallible, TryFrom, TryInto},
@@ -195,8 +202,8 @@ mod tests {
         Clock::Rep: TryFrom<u32>,
     {
         assert_eq!(
-            clock.now().unwrap().duration_since_epoch(),
-            Ok(Seconds(2_u32))
+            Ok(Seconds(2_u32)),
+            clock.now().unwrap().duration_since_epoch::<Seconds<u32>>()
         );
     }
 
@@ -247,13 +254,16 @@ mod tests {
                 .duration_since_epoch::<Milliseconds<u64>>()
                 .map_err(|_| fmt::Error {})?;
 
-            let hours = Hours::<u32>::try_convert_from(duration).ok_or(fmt::Error {})?;
-            let minutes =
-                Minutes::<u32>::try_convert_from(duration).ok_or(fmt::Error {})? % Hours(1_u32);
-            let seconds =
-                Seconds::<u32>::try_convert_from(duration).ok_or(fmt::Error {})? % Minutes(1_u32);
-            let milliseconds = Milliseconds::<u32>::try_convert_from(duration)
-                .ok_or(fmt::Error {})?
+            let hours =
+                Hours::<u32>::try_convert_from::<()>(duration).map_err(|_| fmt::Error {})?;
+            let minutes = Minutes::<u32>::try_convert_from::<()>(duration)
+                .map_err(|_| fmt::Error {})?
+                % Hours(1_u32);
+            let seconds = Seconds::<u32>::try_convert_from::<()>(duration)
+                .map_err(|_| fmt::Error {})?
+                % Minutes(1_u32);
+            let milliseconds = Milliseconds::<u32>::try_convert_from::<()>(duration)
+                .map_err(|_| fmt::Error {})?
                 % Seconds(1_u32);
 
             f.write_fmt(format_args!(
