@@ -1,6 +1,6 @@
 //! An instant of time
 
-use crate::{duration::Duration, TimeError};
+use crate::{duration::Duration, ConversionError};
 use core::{cmp::Ordering, convert::TryFrom, ops};
 use num::traits::{WrappingAdd, WrappingSub};
 
@@ -51,7 +51,7 @@ impl<Clock: crate::Clock> Instant<Clock> {
     ///
     /// # Examples
     /// ```rust
-    /// # use embedded_time::{Period, units::*, Instant, TimeError};
+    /// # use embedded_time::{Period, units::*, Instant, ConversionError};
     /// # #[derive(Debug)]
     /// #
     /// struct Clock;
@@ -66,26 +66,23 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// assert_eq!(Ok(Microseconds(2_000_u64)),
     ///     Instant::<Clock>::new(5).duration_since::<Microseconds<u64>>(&Instant::<Clock>::new(3)));
     ///
-    /// assert_eq!(Err(TimeError::NegDuration),
+    /// assert_eq!(Err(ConversionError::NegDuration),
     ///     Instant::<Clock>::new(3).duration_since::<Microseconds<u64>>(&Instant::<Clock>::new(5)));
     /// ```
     ///
     /// # Errors
     ///
-    /// - [`TimeError::NegDuration`] : `Instant` is in the future
-    /// - [`TimeError::Overflow`] : problem coverting to the desired [`Duration`]
-    /// - [`TimeError::ConversionFailure`] : problem coverting to the desired [`Duration`]
-    pub fn duration_since<Dur: Duration>(
-        &self,
-        other: &Self,
-    ) -> Result<Dur, TimeError<Clock::ImplError>>
+    /// - [`ConversionError::NegDuration`] : `Instant` is in the future
+    /// - [`ConversionError::Overflow`] : problem coverting to the desired [`Duration`]
+    /// - [`ConversionError::ConversionFailure`] : problem coverting to the desired [`Duration`]
+    pub fn duration_since<Dur: Duration>(&self, other: &Self) -> Result<Dur, ConversionError>
     where
         Dur::Rep: TryFrom<Clock::Rep>,
     {
         if self >= other {
             Dur::from_ticks(self.ticks.wrapping_sub(&other.ticks), Clock::PERIOD)
         } else {
-            Err(TimeError::NegDuration)
+            Err(ConversionError::NegDuration)
         }
     }
 
@@ -94,7 +91,7 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{Period, units::*, Instant, TimeError};
+    /// # use embedded_time::{Period, units::*, Instant, ConversionError};
     /// # #[derive(Debug)]
     /// #
     /// struct Clock;
@@ -110,25 +107,22 @@ impl<Clock: crate::Clock> Instant<Clock> {
     ///     Ok(Microseconds(2_000_u64)));
     ///
     /// assert_eq!(Instant::<Clock>::new(7).duration_until::<Microseconds<u64>>(&Instant::<Clock>::new(5)),
-    ///     Err(TimeError::NegDuration));
+    ///     Err(ConversionError::NegDuration));
     /// ```
     ///
     /// # Errors
     ///
-    /// - [`TimeError::NegDuration`] : `Instant` is in the past
-    /// - [`TimeError::Overflow`] : problem coverting to the desired [`Duration`]
-    /// - [`TimeError::ConversionFailure`] : problem coverting to the desired [`Duration`]
-    pub fn duration_until<Dur: Duration>(
-        &self,
-        other: &Self,
-    ) -> Result<Dur, TimeError<Clock::ImplError>>
+    /// - [`ConversionError::NegDuration`] : `Instant` is in the past
+    /// - [`ConversionError::Overflow`] : problem coverting to the desired [`Duration`]
+    /// - [`ConversionError::ConversionFailure`] : problem coverting to the desired [`Duration`]
+    pub fn duration_until<Dur: Duration>(&self, other: &Self) -> Result<Dur, ConversionError>
     where
         Dur::Rep: TryFrom<Clock::Rep>,
     {
         if self <= other {
             Dur::from_ticks(other.ticks.wrapping_sub(&self.ticks), Clock::PERIOD)
         } else {
-            Err(TimeError::NegDuration)
+            Err(ConversionError::NegDuration)
         }
     }
 
@@ -136,7 +130,7 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// [`Clock`](clock/trait.Clock.html)'s 0)
     ///
     /// If it is a _wrapping_ clock, the result is meaningless.
-    pub fn duration_since_epoch<Dur: Duration>(&self) -> Result<Dur, TimeError<Clock::ImplError>>
+    pub fn duration_since_epoch<Dur: Duration>(&self) -> Result<Dur, ConversionError>
     where
         Dur::Rep: TryFrom<Clock::Rep>,
         Clock::Rep: TryFrom<Dur::Rep>,
@@ -172,10 +166,10 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// Instant::<Clock>::new(u32::MAX/2 + 1));
     /// ```
     /// # Errors
-    /// [`TimeError::Overflow`] : The duration is more than half the wrap-around period of the clock
+    /// [`ConversionError::Overflow`] : The duration is more than half the wrap-around period of the clock
     ///
     /// ```rust
-    /// # use embedded_time::{Period, units::*, Instant, TimeError};
+    /// # use embedded_time::{Period, units::*, Instant, ConversionError};
     /// # #[derive(Debug)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
@@ -187,12 +181,9 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// }
     ///
     /// assert_eq!(Instant::<Clock>::new(0).checked_add_duration(Milliseconds(u32::MAX/2 + 1)),
-    ///     Err(TimeError::Overflow));
+    ///     Err(ConversionError::Overflow));
     /// ```
-    pub fn checked_add_duration<Dur: Duration>(
-        self,
-        duration: Dur,
-    ) -> Result<Self, TimeError<Clock::ImplError>>
+    pub fn checked_add_duration<Dur: Duration>(self, duration: Dur) -> Result<Self, ConversionError>
     where
         Clock::Rep: TryFrom<Dur::Rep>,
     {
@@ -202,7 +193,7 @@ impl<Clock: crate::Clock> Instant<Clock> {
                 ticks: self.ticks.wrapping_add(&add_ticks),
             })
         } else {
-            Err(TimeError::Overflow)
+            Err(ConversionError::Overflow)
         }
     }
 
@@ -229,10 +220,10 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// Instant::<Clock>::new(u32::MAX/2 + 1));
     /// ```
     /// # Errors
-    /// [`TimeError::Overflow`] : The duration is more than half the wrap-around period of the clock
+    /// [`ConversionError::Overflow`] : The duration is more than half the wrap-around period of the clock
     ///
     /// ```rust
-    /// # use embedded_time::{Period, units::*, Instant, TimeError};
+    /// # use embedded_time::{Period, units::*, Instant, ConversionError};
     /// # #[derive(Debug)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
@@ -244,12 +235,9 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// }
     ///
     /// assert_eq!(Instant::<Clock>::new(u32::MAX).checked_sub_duration(Milliseconds(u32::MAX/2 + 1)),
-    ///     Err(TimeError::Overflow));
+    ///     Err(ConversionError::Overflow));
     /// ```
-    pub fn checked_sub_duration<Dur: Duration>(
-        self,
-        duration: Dur,
-    ) -> Result<Self, TimeError<Clock::ImplError>>
+    pub fn checked_sub_duration<Dur: Duration>(self, duration: Dur) -> Result<Self, ConversionError>
     where
         Clock::Rep: TryFrom<Dur::Rep>,
     {
@@ -259,7 +247,7 @@ impl<Clock: crate::Clock> Instant<Clock> {
                 ticks: self.ticks.wrapping_sub(&sub_ticks),
             })
         } else {
-            Err(TimeError::Overflow)
+            Err(ConversionError::Overflow)
         }
     }
 }
@@ -321,7 +309,7 @@ where
 {
     type Output = Self;
 
-    /// Add a [`Duration`] to an `Instant` resulting in a new, later `Instant`    
+    /// Add a [`Duration`] to an `Instant` resulting in a new, later `Instant`
     ///
     /// # Examples
     /// ```rust
@@ -434,7 +422,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{self as time, units::*, Instant, Period, TimeError};
+    use crate::{self as time, units::*, ConversionError, Instant, Period};
 
     #[derive(Debug)]
     struct Clock;
@@ -465,6 +453,6 @@ mod tests {
 
         let diff: Result<Microseconds<u64>, _> =
             Instant::<Clock>::new(5).duration_since(&Instant::<Clock>::new(6));
-        assert_eq!(diff, Err(TimeError::NegDuration));
+        assert_eq!(diff, Err(ConversionError::NegDuration));
     }
 }

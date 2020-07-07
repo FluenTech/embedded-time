@@ -48,7 +48,7 @@
 //!     type Rep = u64;
 //!     const PERIOD: Period = <Period>::new(1, 16_000_000);
 //!     type ImplError = ();
-//!     
+//!
 //!     fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {
 //!         // ...
 //! #         unimplemented!()
@@ -62,7 +62,7 @@
 //! assert!(instant1 < instant2);    // instant1 is *before* instant2
 //!
 //! // duration is the difference between the instances
-//! let duration: Result<Microseconds<u64>, _> = instant2.duration_since(&instant1);    
+//! let duration: Result<Microseconds<u64>, _> = instant2.duration_since(&instant1);
 //!
 //! assert!(duration.is_ok());
 //! assert_eq!(instant1 + duration.unwrap(), instant2);
@@ -141,6 +141,30 @@ impl<E: Error> From<clock::Error<E>> for TimeError<E> {
 
 impl Error for () {}
 impl Error for Infallible {}
+
+/// Conversion errors
+#[derive(Debug, Eq, PartialEq)]
+pub enum ConversionError {
+    /// Attempted type conversion failed
+    ConversionFailure,
+    /// Result is outside of those valid for this type
+    Overflow,
+    /// Attempted to divide by zero
+    DivByZero,
+    /// Resulting [`Duration`](duration/trait.Duration.html) is negative (not allowed)
+    NegDuration,
+}
+
+impl<E: Error> From<ConversionError> for TimeError<E> {
+    fn from(error: ConversionError) -> Self {
+        match error {
+            ConversionError::ConversionFailure => TimeError::ConversionFailure,
+            ConversionError::Overflow => TimeError::Overflow,
+            ConversionError::DivByZero => TimeError::DivByZero,
+            ConversionError::NegDuration => TimeError::NegDuration,
+        }
+    }
+}
 
 #[cfg(test)]
 #[allow(unused_imports)]
@@ -254,15 +278,12 @@ mod tests {
                 .duration_since_epoch::<Milliseconds<u64>>()
                 .map_err(|_| fmt::Error {})?;
 
-            let hours =
-                Hours::<u32>::try_convert_from::<()>(duration).map_err(|_| fmt::Error {})?;
-            let minutes = Minutes::<u32>::try_convert_from::<()>(duration)
-                .map_err(|_| fmt::Error {})?
+            let hours = Hours::<u32>::try_convert_from(duration).map_err(|_| fmt::Error {})?;
+            let minutes = Minutes::<u32>::try_convert_from(duration).map_err(|_| fmt::Error {})?
                 % Hours(1_u32);
-            let seconds = Seconds::<u32>::try_convert_from::<()>(duration)
-                .map_err(|_| fmt::Error {})?
+            let seconds = Seconds::<u32>::try_convert_from(duration).map_err(|_| fmt::Error {})?
                 % Minutes(1_u32);
-            let milliseconds = Milliseconds::<u32>::try_convert_from::<()>(duration)
+            let milliseconds = Milliseconds::<u32>::try_convert_from(duration)
                 .map_err(|_| fmt::Error {})?
                 % Seconds(1_u32);
 
