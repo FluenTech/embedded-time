@@ -6,7 +6,9 @@ use num::{rational::Ratio, CheckedDiv, CheckedMul};
 /// A fractional time period
 ///
 /// Used primarily to define the period of one count of a [`Duration`], [`Instant`] and [`Clock`]
-/// impl types but also convertable to/from [`Hertz`].
+/// impl types but also convertible to/from [`Hertz`].
+///
+/// The default inner type is [`u32`].
 ///
 /// [`Duration`]: duration/trait.Duration.html
 /// [`Clock`]: clock/trait.Clock.html
@@ -17,7 +19,7 @@ pub struct Period<T = u32>(Ratio<T>);
 impl<T> Period<T> {
     /// Construct a new fractional `Period`.
     ///
-    /// A reduction is **not** performed.
+    /// A reduction is **not** performed. If reduction is needed, use [`Period::new_reduce()`]
     pub const fn new(numerator: T, denominator: T) -> Self {
         Self(Ratio::new_raw(numerator, denominator))
     }

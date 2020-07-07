@@ -160,6 +160,8 @@ impl<Clock: crate::Clock, Dur: Duration> Timer<'_, Periodic, Running, Clock, Dur
         Self {
             clock: self.clock,
             duration: self.duration,
+            // The `+` will never panic since this duration has already applied to the same
+            // `Instant` type without a problem
             expiration: self.expiration + self.duration,
             _type: PhantomData,
             _state: PhantomData,
@@ -175,6 +177,8 @@ impl<Clock: crate::Clock, Dur: Duration> Timer<'_, Periodic, Running, Clock, Dur
     {
         // since the timer is running, _is_expired() will return a value
         if self._is_expired() {
+            // The `+` will never panic since this duration has already applied to the same
+            // `Instant` type without a problem
             self.expiration = self.expiration + self.duration;
 
             true

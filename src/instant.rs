@@ -166,7 +166,8 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// Instant::<Clock>::new(u32::MAX/2 + 1));
     /// ```
     /// # Errors
-    /// [`ConversionError::Overflow`] : The duration is more than half the wrap-around period of the clock
+    /// [`ConversionError::Overflow`] : The duration is more than half the wrap-around period of the
+    /// clock
     ///
     /// ```rust
     /// # use embedded_time::{Period, units::*, Instant, ConversionError};
@@ -220,7 +221,8 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// Instant::<Clock>::new(u32::MAX/2 + 1));
     /// ```
     /// # Errors
-    /// [`ConversionError::Overflow`] : The duration is more than half the wrap-around period of the clock
+    /// [`ConversionError::Overflow`] : The duration is more than half the wrap-around period of the
+    /// clock
     ///
     /// ```rust
     /// # use embedded_time::{Period, units::*, Instant, ConversionError};
@@ -272,6 +274,7 @@ impl<Clock: crate::Clock> PartialOrd for Instant<Clock> {
     /// Calculates the difference between two `Instance`s resulting in a [`Duration`]
     ///
     /// # Examples
+    ///
     /// ```rust
     /// # use embedded_time::{Period, units::*, Instant};
     /// # #[derive(Debug)]
