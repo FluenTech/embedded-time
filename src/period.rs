@@ -1,6 +1,5 @@
-use crate::frequency::units::Hertz;
-use crate::{ConversionError, TimeInt};
-use core::{cmp, ops};
+use crate::{frequency::units::Hertz, ConversionError, TimeInt};
+use core::{cmp, convert, ops};
 use num::{rational::Ratio, CheckedDiv, CheckedMul};
 
 /// A fractional time period
@@ -51,28 +50,6 @@ impl<T: TimeInt> Period<T> {
         }
     }
 
-    /// Returns a frequency in [`Hertz`] from the `Period`
-    ///
-    /// # Errors
-    ///
-    /// [`ConversionError::DivByZero`] : `Period` cannot be `0`.
-    pub fn to_frequency(&self) -> Result<Hertz<T>, ConversionError> {
-        if !self.0.numer().is_zero() {
-            Ok(Hertz(self.0.recip().to_integer()))
-        } else {
-            Err(ConversionError::DivByZero)
-        }
-    }
-
-    /// Constructs a `Period` from a frequency in [`Hertz`]
-    pub fn from_frequency(freq: Hertz<T>) -> Result<Self, ConversionError> {
-        if !freq.0.is_zero() {
-            Ok(Self(Ratio::from_integer(freq.0).recip()))
-        } else {
-            Err(ConversionError::DivByZero)
-        }
-    }
-
     /// Returns the value truncated to an integer
     pub fn to_integer(&self) -> T {
         self.0.to_integer()
@@ -83,6 +60,11 @@ impl<T: TimeInt> Period<T> {
     /// Equivalent to `Period::new(value,1)`.
     pub fn from_integer(value: T) -> Self {
         Self(Ratio::from_integer(value))
+    }
+
+    /// Returns the reciprocal of the fraction
+    pub fn recip(self) -> Self {
+        Self(self.0.recip())
     }
 
     /// Checked `Period` * `Period` = `Period`
@@ -212,6 +194,39 @@ where
     /// ```
     fn div(self, rhs: Self) -> Self::Output {
         self.checked_div(&rhs).unwrap()
+    }
+}
+
+impl<T: TimeInt> convert::TryFrom<Hertz<T>> for Period<T> {
+    type Error = ConversionError;
+
+    /// Constructs a `Period` in seconds from a frequency in [`Hertz`]
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use embedded_time::{Period, units::*, ConversionError};
+    /// # use core::convert::{TryFrom, TryInto};
+    /// #
+    /// assert_eq!(Period::try_from(Hertz(1_000_u32)),
+    ///     Ok(<Period>::new(1, 1_000)));
+    ///
+    /// assert_eq!(Period::try_from(Hertz(0_u32)),
+    ///     Err(ConversionError::DivByZero));
+    ///
+    /// assert_eq!(Hertz(1_000_u32).try_into(),
+    ///     Ok(<Period>::new(1, 1_000)));
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// [`ConversionError::DivByZero`]
+    fn try_from(freq: Hertz<T>) -> Result<Self, Self::Error> {
+        if !freq.0.is_zero() {
+            Ok(Self(Ratio::from_integer(freq.0).recip()))
+        } else {
+            Err(ConversionError::DivByZero)
+        }
     }
 }
 
