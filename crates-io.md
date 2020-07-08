@@ -1,5 +1,6 @@
 # embedded-time
 
+
 `embedded-time` provides a comprehensive library for implementing abstractions over
 hardware and work with _clocks_, _timers_, _instants_, _durations_, _periods_, and _frequencies_ in a more intuitive way.
 
@@ -24,9 +25,30 @@ hardware and work with _clocks_, _timers_, _instants_, _durations_, _periods_, a
 - Minutes
 - Hours
 
+### Benchmark Comparisons to `core` duration type
+
+#### Construct and Read Milliseconds
+
+```rust
+let duration = Milliseconds::<u64>(ms); // 8 bytes
+let count = duration.count();
+```
+
+_(the size of `embedded-time` duration types is only the size of the inner type)_
+
+```rust
+let core_duration = Duration::from_millis(ms); // 12 bytes
+let count = core_duration.as_millis();
+```
+
+_(the size of `core` duration type is 12 B)_
+
+![](resources/duration_violin_v0.7.0.svg)
+
 ## Frequency Type
 
 - Hertz
+  - Conversion to/from `Period`
 
 ## `core` Compatibility
 

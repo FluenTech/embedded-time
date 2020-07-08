@@ -1,6 +1,6 @@
 [package]
 name = "embedded-time"
-version = "0.7.0-alpha"
+version = "0.7.0-alpha1"
 authors = ["Peter Taylor <PTaylor@FluenTech.info>"]
 edition = "2018"
 description = "A library for abstracting clocks and handling time(ing) in embedded systems"
@@ -21,6 +21,11 @@ cortex-m = "0.6.2"
 cortex-m-rt = "0.6.12"
 panic_rtt = "0.3.0"
 nrf52832-hal = { version = "0.10.0", default-features = false, features = ["rt", "xxAA-package"] }
+criterion = "0.3.3"
 
 [target.'cfg(not(target_arch = "arm"))'.dev-dependencies]
 crossbeam-utils = "0.7.2"
+
+[[bench]]
+name = "duration"
+harness = false

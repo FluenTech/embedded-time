@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Added
+
+- Error propagation to all fallible paths including conversion errors as well as `Clock` implementation-specific errors
+- Construct-and-read benchmark comparison to `core::time::duration` showing it to be approximately 2.5 times slower than `embedded-time`
+
+### Fixed
+
+- Intermittant `Timer` test failures
 
 [unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.6.0...HEAD
 
