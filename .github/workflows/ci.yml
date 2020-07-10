@@ -3,8 +3,64 @@ name: CI
 on: [push, pull_request]
 
 jobs:
-  ci:
-    name: CI
+  lib:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        rust: [stable, nightly]
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Cache target
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ matrix.os }}-cargo--${{ matrix.rust }}-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          components: clippy
+          toolchain: ${{ matrix.rust }}
+          override: true
+
+      - name: Build lib
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --lib
+
+      - name: Test Library
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --lib -- --test-threads=1
+
+      - name: Test Documentation
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --doc
+
+      - name: Clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+
+      - name: Doc Generation
+        uses: actions-rs/cargo@v1
+        with:
+          command: doc
+
+
+  examples:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -34,37 +90,16 @@ jobs:
           target: ${{ matrix.target }}
           override: true
 
-      - name: Build lib
-        uses: actions-rs/cargo@v1
+      - name: Build
+        uses: marcopolo/cargo@master
         with:
           command: build
-          args: --lib
-
-      - name: Build examples
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --examples --target ${{ matrix.target }}
-
-      - name: Test Library
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --lib -- --test-threads=1
-
-      - name: Test Documentation
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --doc
+          working-directory: examples
+          args: --target ${{ matrix.target }} --release
 
       - name: Clippy
-        uses: actions-rs/cargo@v1
+        uses: marcopolo/cargo@master
         with:
           command: clippy
-          args: --lib --examples --target ${{ matrix.target }}
-
-      - name: Doc Generation
-        uses: actions-rs/cargo@v1
-        with:
-          command: doc
+          working-directory: examples
+          args: --target ${{ matrix.target }}

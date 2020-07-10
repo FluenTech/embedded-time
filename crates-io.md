@@ -43,7 +43,7 @@ let count = core_duration.as_millis();
 
 _(the size of `core` duration type is 12 B)_
 
-![](resources/duration_violin_v0.7.0.svg)
+![](https://raw.githubusercontent.com/FluenTech/embedded-time/v0.7/resources/duration_violin_v0.7.0.svg)
 
 ## Frequency Type
 

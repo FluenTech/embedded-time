@@ -1,6 +1,6 @@
 [package]
 name = "embedded-time"
-version = "0.7.0-alpha1"
+version = "0.7.0-alpha.3"
 authors = ["Peter Taylor <PTaylor@FluenTech.info>"]
 edition = "2018"
 description = "A library for abstracting clocks and handling time(ing) in embedded systems"
@@ -9,22 +9,21 @@ categories = ["date-and-time", "embedded", "no-std"]
 readme = "crates-io.md"
 repository = "https://github.com/FluenTech/embedded-time/"
 license = "MIT OR Apache-2.0"
+exclude = ["/.github/"]
+autoexamples = false
+# The examples must be their own package due to conflicts with the criterion crate.
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[workspace]
+members = ["examples"]
 
 [dependencies]
 num = { version = "0.3.0", default-features = false }
 
 [dev-dependencies]
-panic-never = "0.1.0"
-cortex-m = "0.6.2"
-cortex-m-rt = "0.6.12"
-panic_rtt = "0.3.0"
-nrf52832-hal = { version = "0.10.0", default-features = false, features = ["rt", "xxAA-package"] }
-criterion = "0.3.3"
-
-[target.'cfg(not(target_arch = "arm"))'.dev-dependencies]
 crossbeam-utils = "0.7.2"
+criterion = "0.3.3"
 
 [[bench]]
 name = "duration"

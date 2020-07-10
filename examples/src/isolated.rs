@@ -3,7 +3,7 @@
 
 use core::convert::Infallible;
 use cortex_m_rt::entry;
-use embedded_time::{self as time, traits::*};
+use embedded_time::{self as time};
 use nrf52832_hal as _;
 use panic_never as _;
 
@@ -20,8 +20,8 @@ impl time::Clock for SysClock {
 
 #[entry]
 fn main() -> ! {
-    let clock = SysClock;
+    let _clock = SysClock;
 
-    let _timer = clock.new_timer(23_u32.milliseconds()).start();
+    // let _timer = clock.new_timer(23_u32.milliseconds()).start();
     loop {}
 }
