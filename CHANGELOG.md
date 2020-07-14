@@ -2,8 +2,21 @@
 
 ## [Unreleased]
 
+[unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.7.0...HEAD
 
-[unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.6.0...HEAD
+## [0.7.0] - 2020-07-13
+
+### Added
+
+- Error propagation for all fallible paths including conversion errors as well as `Clock` implementation-specific errors
+- Construct-and-read benchmark comparison to `core::time::duration` showing `embedded-time` to be approximately 2.5 times faster
+
+### Fixed
+
+- Intermittent `Timer` test failures
+- Derive `Copy` for `Hertz`
+
+[0.7.0]: https://github.com/FluenTech/embedded-time/compare/v0.6.0...v0.7.0
 
 ## [0.6.0] - 2020-07-03
 

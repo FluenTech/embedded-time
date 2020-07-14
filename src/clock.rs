@@ -12,6 +12,7 @@ pub enum Error<E: crate::Error> {
     /// implementation-specific error
     Other(E),
 }
+impl<E: crate::Error> crate::Error for Error<E> {}
 
 /// The `Clock` trait provides an abstraction of hardware-specific timer peripherals, external timer
 /// devices, RTCs, etc.
@@ -27,13 +28,13 @@ pub trait Clock: Sized {
     /// The type to hold the tick count
     type Rep: TimeInt;
 
-    /// The duration of one clock tick in seconds, AKA the clock precision.
-    const PERIOD: Period;
-
     /// Implementation-specific error type
     ///
     /// This type can be returned using the [`Error::Other(E)`](enum.Error.html#variant.Other)
     type ImplError: crate::Error;
+
+    /// The duration of one clock tick in seconds, AKA the clock precision.
+    const PERIOD: Period;
 
     /// Get the current Instant
     ///
