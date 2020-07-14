@@ -3,12 +3,13 @@ name: CI
 on: [push, pull_request]
 
 jobs:
-  lib:
+  AllChecks:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         rust: [stable, nightly]
         os: [ubuntu-latest, windows-latest]
+        target: [thumbv7em-none-eabihf]
 
     steps:
       - name: Checkout sources
@@ -29,6 +30,7 @@ jobs:
           profile: minimal
           components: clippy
           toolchain: ${{ matrix.rust }}
+          target: ${{ matrix.target }}
           override: true
 
       - name: Build lib
@@ -59,45 +61,14 @@ jobs:
         with:
           command: doc
 
-
-  examples:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        rust: [stable, nightly]
-        os: [ubuntu-latest, windows-latest]
-        target: [thumbv7em-none-eabihf]
-
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v2
-
-      - name: Cache target
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ matrix.os }}-cargo--${{ matrix.rust }}-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Install toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          components: clippy
-          toolchain: ${{ matrix.rust }}
-          target: ${{ matrix.target }}
-          override: true
-
-      - name: Build
+      - name: Build examples
         uses: marcopolo/cargo@master
         with:
           command: build
           working-directory: examples
           args: --target ${{ matrix.target }} --release
 
-      - name: Clippy
+      - name: Clippy examples
         uses: marcopolo/cargo@master
         with:
           command: clippy
