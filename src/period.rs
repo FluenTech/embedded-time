@@ -1,4 +1,4 @@
-use crate::{frequency::units::Hertz, ConversionError, TimeInt};
+use crate::{rate::units::Hertz, ConversionError, TimeInt};
 use core::{cmp, convert, ops};
 use num::{rational::Ratio, CheckedDiv, CheckedMul};
 
