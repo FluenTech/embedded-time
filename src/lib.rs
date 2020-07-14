@@ -1,6 +1,8 @@
 //! `embedded-time` provides a comprehensive library for implementing [`Clock`] abstractions over
 //! hardware to generate [`Instant`]s and using [`Duration`]s ([`Seconds`], [`Milliseconds`], etc)
-//! in embedded systems. The approach is similar to the C++ `chrono` library. A [`Duration`]
+//! in embedded systems.
+//!
+//! The approach is similar to the C++ `chrono` library. A [`Duration`]
 //! consists of an integer (whose type is chosen by the user to be either [`u32`] or [`u64`]) as
 //! well as a `const` fraction ([`Period`]) where the integer value multiplied by the fraction is
 //! the [`Duration`] in seconds. Put another way, the ratio is the precision of the LSbit of the

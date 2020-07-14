@@ -28,9 +28,10 @@ pub trait Clock: Sized {
     /// The type to hold the tick count
     type Rep: TimeInt;
 
-    /// Implementation-specific error type
+    /// Implementation-defined error type
     ///
-    /// This type can be returned using the [`Error::Other(E)`](enum.Error.html#variant.Other)
+    /// This type can be returned using the
+    /// [`clock::Error::Other(E)`](enum.Error.html#variant.Other)
     type ImplError: crate::Error;
 
     /// The duration of one clock tick in seconds, AKA the clock precision.

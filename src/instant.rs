@@ -144,7 +144,7 @@ impl<Clock: crate::Clock> Instant<Clock> {
         )
     }
 
-    /// Subtract a [`Duration`] from an `Instant` resulting in a new, earlier `Instant`
+    /// Add a [`Duration`] to an `Instant` resulting in a new, later `Instant`
     ///
     /// # Examples
     /// ```rust
@@ -159,12 +159,12 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// # fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
     /// }
     ///
-    /// assert_eq!(Instant::<Clock>::new(800) - Milliseconds(700_u32), Instant::<Clock>::new(100));
-    /// assert_eq!(Instant::<Clock>::new(5_000) - Milliseconds(700_u64), Instant::<Clock>::new(4_300));
+    /// assert_eq!(Instant::<Clock>::new(800) + Milliseconds(700_u32), Instant::<Clock>::new(1_500_u32));
+    /// assert_eq!(Instant::<Clock>::new(5_000) + Milliseconds(700_u64), Instant::<Clock>::new(5_700_u32));
     ///
     /// // maximum duration allowed
-    /// assert_eq!(Instant::<Clock>::new(u32::MAX) - Milliseconds(i32::MAX as u32),
-    /// Instant::<Clock>::new(u32::MAX/2 + 1));
+    /// assert_eq!(Instant::<Clock>::new(0) + Milliseconds(u32::MAX / 2),
+    /// Instant::<Clock>::new(u32::MAX/2));
     /// ```
     /// # Errors
     /// [`ConversionError::Overflow`] : The duration is more than half the wrap-around period of the
@@ -199,7 +199,7 @@ impl<Clock: crate::Clock> Instant<Clock> {
         }
     }
 
-    /// Adds a [`Duration`] to an `Instant` resulting in a new, later `Instant`
+    /// Subtracts a [`Duration`] from an `Instant` resulting in a new, earlier `Instant`
     ///
     /// # Examples
     /// ```rust
