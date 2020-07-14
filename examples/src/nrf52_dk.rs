@@ -99,8 +99,8 @@ fn main() -> ! {
 
     // This moves these peripherals to prevent conflicting usage, however not the entire EGU0 is
     // used. A ref to EGU0 could be sent instead, although that provides no protection for the
-    // fields that are being used by Clock64.
-    let mut clock = SysClock::take(device.TIMER0, device.TIMER1, device.EGU0);
+    // fields that are being used by the clock.
+    let clock = SysClock::take(device.TIMER0, device.TIMER1, device.EGU0);
 
     let port0 = nrf52::gpio::p0::Parts::new(device.P0);
 
@@ -129,7 +129,7 @@ fn main() -> ! {
         &mut led2.degrade(),
         &mut led3.degrade(),
         &mut led4.degrade(),
-        &mut clock,
+        &clock,
     )
     .unwrap();
 
@@ -141,7 +141,7 @@ fn run<Led>(
     led2: &mut Led,
     led3: &mut Led,
     led4: &mut Led,
-    clock: &mut SysClock,
+    clock: &SysClock,
 ) -> Result<(), <Led as nrf52::OutputPin>::Error>
 where
     Led: nrf52::OutputPin,
