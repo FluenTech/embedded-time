@@ -77,10 +77,10 @@
 
 pub mod clock;
 pub mod duration;
-mod frequency;
 mod instant;
 mod numeric_constructor;
 mod period;
+mod rate;
 mod time_int;
 mod timer;
 
@@ -111,7 +111,7 @@ pub mod units {
     #[doc(inline)]
     pub use crate::duration::units::*;
     #[doc(inline)]
-    pub use crate::frequency::units::*;
+    pub use crate::rate::units::*;
 }
 
 /// Crate errors

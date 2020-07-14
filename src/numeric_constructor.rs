@@ -1,6 +1,6 @@
 //! Construction of time-based types from integers
 
-use crate::{duration::units::*, frequency::units::*, time_int::TimeInt};
+use crate::{duration::units::*, rate::units::*, time_int::TimeInt};
 
 /// Create time-based values from primitive and core numeric types.
 ///
