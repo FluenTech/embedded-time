@@ -10,6 +10,7 @@
 ### Fixed
 
 - Intermittent `Timer` test failures
+- Derive `Copy` for `Hertz`
 
 [unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.6.0...HEAD
 

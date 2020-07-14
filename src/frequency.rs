@@ -7,7 +7,7 @@ pub(crate) mod units {
     /// A frequency unit type
     ///
     /// Convertible to/from [`Period`].
-    #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
+    #[derive(Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq)]
     pub struct Hertz<T: TimeInt = u32>(pub T);
 
     impl<T: TimeInt, Rhs: TimeInt> ops::Mul<Rhs> for Hertz<T>
