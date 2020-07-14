@@ -208,8 +208,8 @@ mod test {
     struct Clock;
     impl crate::Clock for Clock {
         type Rep = u64;
-        const PERIOD: Period = <Period>::new(1, 1_000);
         type ImplError = Infallible;
+        const PERIOD: Period = <Period>::new(1, 1_000);
 
         fn now(&self) -> Result<Instant<Self>, crate::clock::Error<Self::ImplError>> {
             Ok(Instant::new(TICKS.load(Ordering::SeqCst)))

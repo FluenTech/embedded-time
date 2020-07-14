@@ -28,13 +28,13 @@ pub trait Clock: Sized {
     /// The type to hold the tick count
     type Rep: TimeInt;
 
-    /// The duration of one clock tick in seconds, AKA the clock precision.
-    const PERIOD: Period;
-
     /// Implementation-specific error type
     ///
     /// This type can be returned using the [`Error::Other(E)`](enum.Error.html#variant.Other)
     type ImplError: crate::Error;
+
+    /// The duration of one clock tick in seconds, AKA the clock precision.
+    const PERIOD: Period;
 
     /// Get the current Instant
     ///

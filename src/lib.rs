@@ -46,8 +46,8 @@
 //! struct SomeClock;
 //! impl embedded_time::Clock for SomeClock {
 //!     type Rep = u64;
-//!     const PERIOD: Period = <Period>::new(1, 16_000_000);
 //!     type ImplError = ();
+//!     const PERIOD: Period = <Period>::new(1, 16_000_000);
 //!
 //!     fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {
 //!         // ...
@@ -180,8 +180,8 @@ mod tests {
     struct MockClock64;
     impl time::Clock for MockClock64 {
         type Rep = u64;
-        const PERIOD: time::Period = <time::Period>::new(1, 64_000_000);
         type ImplError = Infallible;
+        const PERIOD: time::Period = <time::Period>::new(1, 64_000_000);
 
         fn now(&self) -> Result<time::Instant<Self>, time::clock::Error<Self::ImplError>> {
             Ok(time::Instant::new(128_000_000))
@@ -193,8 +193,8 @@ mod tests {
 
     impl time::Clock for MockClock32 {
         type Rep = u32;
-        const PERIOD: time::Period = <time::Period>::new(1, 16_000_000);
         type ImplError = Infallible;
+        const PERIOD: time::Period = <time::Period>::new(1, 16_000_000);
 
         fn now(&self) -> Result<time::Instant<Self>, time::clock::Error<Self::ImplError>> {
             Ok(time::Instant::new(32_000_000))
@@ -213,8 +213,8 @@ mod tests {
 
     impl time::Clock for BadClock {
         type Rep = u32;
-        const PERIOD: time::Period = <time::Period>::new(1, 16_000_000);
         type ImplError = ClockImplError;
+        const PERIOD: time::Period = <time::Period>::new(1, 16_000_000);
 
         fn now(&self) -> Result<time::Instant<Self>, time::clock::Error<Self::ImplError>> {
             Err(time::clock::Error::Other(ClockImplError::NotStarted))

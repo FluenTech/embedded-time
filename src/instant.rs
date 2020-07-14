@@ -14,8 +14,8 @@ use num::traits::{WrappingAdd, WrappingSub};
 /// # struct SomeClock;
 /// # impl embedded_time::Clock for SomeClock {
 /// #     type Rep = u32;
-/// #     const PERIOD: Period = <Period>::new(1, 1_000);
 /// #     type ImplError = ();
+/// #     const PERIOD: Period = <Period>::new(1, 1_000);
 /// #     fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {Ok(Instant::<Self>::new(23))}
 /// # }
 /// let some_clock = SomeClock;
@@ -30,8 +30,8 @@ use num::traits::{WrappingAdd, WrappingSub};
 /// # struct SomeClock;
 /// # impl embedded_time::Clock for SomeClock {
 /// #     type Rep = u32;
-/// #     const PERIOD: Period = <Period>::new(1, 1_000);
 /// #     type ImplError = ();
+/// #     const PERIOD: Period = <Period>::new(1, 1_000);
 /// #     fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
 /// # }
 /// Instant::<SomeClock>::new(23);
@@ -57,9 +57,10 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type Rep = u32;
+    /// #   type ImplError = ();
     ///     const PERIOD: Period = <Period>::new(1, 1_000);
     ///     // ...
-    /// # type ImplError = ();
+    ///
     /// # fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
     /// }
     ///
@@ -97,9 +98,9 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type Rep = u32;
-    ///     const PERIOD: Period =<Period>::new(1, 1_000);
-    ///     // ...
     /// # type ImplError = ();
+    ///     const PERIOD: Period = <Period>::new(1, 1_000);
+    ///     // ...
     /// # fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
     /// }
     ///
@@ -152,9 +153,9 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type Rep = u32;
-    ///     const PERIOD: Period =<Period>::new(1, 1_000);
-    ///     // ...
     /// # type ImplError = ();
+    ///     const PERIOD: Period = <Period>::new(1, 1_000);
+    ///     // ...
     /// # fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
     /// }
     ///
@@ -175,9 +176,9 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type Rep = u32;
-    ///     const PERIOD: Period =<Period>::new(1, 1_000);
-    ///     // ...
     /// # type ImplError = ();
+    ///     const PERIOD: Period = <Period>::new(1, 1_000);
+    ///     // ...
     /// # fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
     /// }
     ///
@@ -207,9 +208,9 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type Rep = u32;
-    ///     const PERIOD: Period =<Period>::new(1, 1_000);
-    ///     // ...
     /// # type ImplError = ();
+    ///     const PERIOD: Period = <Period>::new(1, 1_000);
+    ///     // ...
     /// # fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
     /// }
     ///
@@ -230,9 +231,9 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type Rep = u32;
-    ///     const PERIOD: Period =<Period>::new(1, 1_000);
-    ///     // ...
     /// # type ImplError = ();
+    ///     const PERIOD: Period = <Period>::new(1, 1_000);
+    ///     // ...
     /// # fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
     /// }
     ///
@@ -281,9 +282,9 @@ impl<Clock: crate::Clock> PartialOrd for Instant<Clock> {
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type Rep = u32;
-    ///     const PERIOD: Period =<Period>::new(1, 1_000);
-    ///     // ...
     /// # type ImplError = ();
+    ///     const PERIOD: Period = <Period>::new(1, 1_000);
+    ///     // ...
     /// # fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
     /// }
     ///
@@ -321,9 +322,9 @@ where
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type Rep = u32;
-    ///     const PERIOD: Period =<Period>::new(1, 1_000);
-    ///     // ...
     /// # type ImplError = ();
+    ///     const PERIOD: Period = <Period>::new(1, 1_000);
+    ///     // ...
     /// # fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
     /// }
     ///
@@ -350,9 +351,9 @@ where
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type Rep = u32;
-    ///     const PERIOD: Period =<Period>::new(1, 1_000);
-    ///     // ...
     /// # type ImplError = ();
+    ///     const PERIOD: Period = <Period>::new(1, 1_000);
+    ///     // ...
     /// # fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
     /// }
     ///
@@ -380,9 +381,9 @@ where
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type Rep = u32;
-    ///     const PERIOD: Period =<Period>::new(1, 1_000);
-    ///     // ...
     /// # type ImplError = ();
+    ///     const PERIOD: Period = <Period>::new(1, 1_000);
+    ///     // ...
     /// # fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
     /// }
     ///
@@ -410,9 +411,9 @@ where
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type Rep = u32;
-    ///     const PERIOD: Period =<Period>::new(1, 1_000);
-    ///     // ...
     /// # type ImplError = ();
+    ///     const PERIOD: Period = <Period>::new(1, 1_000);
+    ///     // ...
     /// # fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
     /// }
     ///
@@ -432,8 +433,8 @@ mod tests {
 
     impl time::Clock for Clock {
         type Rep = u32;
-        const PERIOD: Period = <Period>::new(1, 1_000);
         type ImplError = ();
+        const PERIOD: Period = <Period>::new(1, 1_000);
 
         fn now(&self) -> Result<Instant<Self>, time::clock::Error<Self::ImplError>> {
             unimplemented!()
