@@ -258,7 +258,7 @@ dependencies = [
 
 [[package]]
 name = "embedded-time"
-version = "0.7.0-alpha.3"
+version = "0.7.0"
 dependencies = [
  "criterion",
  "crossbeam-utils",

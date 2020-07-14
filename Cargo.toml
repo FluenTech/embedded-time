@@ -1,6 +1,6 @@
 [package]
 name = "embedded-time"
-version = "0.7.0-alpha.3"
+version = "0.7.0"
 authors = ["Peter Taylor <PTaylor@FluenTech.info>"]
 edition = "2018"
 description = "A library for abstracting clocks and handling time(ing) in embedded systems"
