@@ -273,7 +273,9 @@ dependencies = [
  "cortex-m-rt",
  "embedded-time",
  "nrf52832-hal",
+ "panic-halt",
  "panic-never",
+ "panic-reset",
  "panic_rtt",
 ]
 
@@ -530,10 +532,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a170cebd8021a008ea92e4db85a72f80b35df514ec664b296fdcbb654eac0b2c"
 
 [[package]]
+name = "panic-halt"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "de96540e0ebde571dc55c73d60ef407c653844e6f9a1e2fdbd40c07b9252d812"
+
+[[package]]
 name = "panic-never"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b0dc75d1f6543e7468fe83fe67257da512d7f1d2d5b66adfbbcf86b22df8d370"
+
+[[package]]
+name = "panic-reset"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "acee8535a38487c5c70d61ee87284710452cb3b265304463f20a0c5327a4a8a5"
+dependencies = [
+ "cortex-m",
+]
 
 [[package]]
 name = "panic_rtt"
