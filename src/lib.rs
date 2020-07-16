@@ -49,7 +49,7 @@
 //! impl embedded_time::Clock for SomeClock {
 //!     type Rep = u64;
 //!     type ImplError = ();
-//!     const SCALING_FACTOR: Fraction = <Fraction>::new(1, 16_000_000);
+//!     const SCALING_FACTOR: Fraction = Fraction::new(1, 16_000_000);
 //!
 //!     fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {
 //!         // ...
