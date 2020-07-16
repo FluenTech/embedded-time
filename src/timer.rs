@@ -209,7 +209,7 @@ mod test {
     impl crate::Clock for Clock {
         type Rep = u64;
         type ImplError = Infallible;
-        const SCALING_FACTOR: Fraction = <Fraction>::new(1, 1_000);
+        const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
 
         fn now(&self) -> Result<Instant<Self>, crate::clock::Error<Self::ImplError>> {
             Ok(Instant::new(TICKS.load(Ordering::SeqCst)))
