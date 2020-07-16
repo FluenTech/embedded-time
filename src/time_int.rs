@@ -31,10 +31,10 @@ pub trait TimeInt:
     /// ```rust
     /// # use embedded_time::{Fraction, traits::*};
     /// #
-    /// assert_eq!(8_u32.checked_mul_fraction(&<Fraction>::new(1,2)), Ok(4_u32));
+    /// assert_eq!(8_u32.checked_mul_fraction(&Fraction::new(1,2)), Ok(4_u32));
     ///
     /// // the result is not rounded, but truncated
-    /// assert_eq!(8_u32.checked_mul_fraction(&<Fraction>::new(1,3)), Ok(2_u32));
+    /// assert_eq!(8_u32.checked_mul_fraction(&Fraction::new(1,3)), Ok(2_u32));
     /// ```
     fn checked_mul_fraction(&self, fraction: &Fraction) -> Result<Self, ConversionError> {
         <Self as num::CheckedDiv>::checked_div(
@@ -54,8 +54,8 @@ pub trait TimeInt:
     /// ```rust
     /// # use embedded_time::{Fraction, traits::*};
     /// #
-    /// assert_eq!(8_u32.checked_div_fraction(&<Fraction>::new(1,2)), Ok(16_u32));
-    /// assert_eq!(8_u32.checked_div_fraction(&<Fraction>::new(3,2)), Ok(5_u32));
+    /// assert_eq!(8_u32.checked_div_fraction(&Fraction::new(1,2)), Ok(16_u32));
+    /// assert_eq!(8_u32.checked_div_fraction(&Fraction::new(3,2)), Ok(5_u32));
     /// ```
     fn checked_div_fraction(&self, fraction: &Fraction) -> Result<Self, ConversionError> {
         <Self as num::CheckedDiv>::checked_div(
