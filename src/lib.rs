@@ -85,7 +85,6 @@ mod time_int;
 mod timer;
 
 pub use clock::Clock;
-use core::{convert::Infallible, fmt};
 pub use instant::Instant;
 pub use period::Period;
 pub(crate) use time_int::TimeInt;
@@ -115,13 +114,10 @@ pub mod units {
     pub use crate::frequency::units::*;
 }
 
-/// General error-type trait implemented for all error types in this crate
-pub trait Error: fmt::Debug + Eq {}
-
 /// Crate errors
 #[non_exhaustive]
 #[derive(Debug, Eq, PartialEq)]
-pub enum TimeError<E: Error = ()> {
+pub enum TimeError<E> {
     /// Attempted type conversion failed
     ConversionFailure,
     /// Result is outside of those valid for this type
@@ -133,16 +129,12 @@ pub enum TimeError<E: Error = ()> {
     /// [`Clock`]-implementation-specific error
     Clock(clock::Error<E>),
 }
-impl<E: Error> Error for TimeError<E> {}
 
-impl<E: Error> From<clock::Error<E>> for TimeError<E> {
+impl<E> From<clock::Error<E>> for TimeError<E> {
     fn from(clock_error: clock::Error<E>) -> Self {
         TimeError::<E>::Clock(clock_error)
     }
 }
-
-impl Error for () {}
-impl Error for Infallible {}
 
 /// Conversion errors
 #[non_exhaustive]
@@ -158,7 +150,7 @@ pub enum ConversionError {
     NegDuration,
 }
 
-impl<E: Error> From<ConversionError> for TimeError<E> {
+impl<E> From<ConversionError> for TimeError<E> {
     fn from(error: ConversionError) -> Self {
         match error {
             ConversionError::ConversionFailure => TimeError::ConversionFailure,
@@ -208,7 +200,6 @@ mod tests {
     pub enum ClockImplError {
         NotStarted,
     }
-    impl crate::Error for ClockImplError {}
 
     #[derive(Debug)]
     struct BadClock;
@@ -230,7 +221,11 @@ mod tests {
     {
         assert_eq!(
             Ok(Seconds(2_u32)),
-            clock.now().unwrap().duration_since_epoch::<Seconds<u32>>()
+            clock
+                .now()
+                .ok()
+                .unwrap()
+                .duration_since_epoch::<Seconds<u32>>()
         );
     }
 
