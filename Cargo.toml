@@ -28,3 +28,7 @@ criterion = "0.3.3"
 [[bench]]
 name = "duration"
 harness = false
+
+[[bench]]
+name = "duration_vs_rate"
+harness = false
