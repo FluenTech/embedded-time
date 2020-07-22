@@ -161,7 +161,10 @@ use core::{convert::TryFrom, prelude::v1::*};
 /// #
 /// assert_eq!(
 ///     Milliseconds::<u32>::try_from(
-///     core::time::Duration::from_millis((u32::MAX as u64) + 1)), Err(ConversionError::ConversionFailure));
+///         core::time::Duration::from_millis((u32::MAX as u64) + 1)
+///     ),
+///     Err(ConversionError::ConversionFailure)
+/// );
 ///
 /// let duration: Result<Milliseconds<u32>, _> =
 ///     core::time::Duration::from_millis((u32::MAX as u64) + 1).try_into();
@@ -218,7 +221,7 @@ use core::{convert::TryFrom, prelude::v1::*};
 /// #
 /// assert!(Seconds(2_u32) < Seconds(3_u32));
 /// assert!(Seconds(2_u32) < Milliseconds(2_001_u32));
-/// assert!(Seconds(2_u32) == Milliseconds(2_000_u32));
+/// assert_eq!(Seconds(2_u32), Milliseconds(2_000_u32));
 /// assert!(Seconds(2_u32) > Milliseconds(1_999_u32));
 /// assert!(Seconds(2_u32) < Milliseconds(2_001_u64));
 /// assert!(Seconds(2_u64) < Milliseconds(2_001_u32));
