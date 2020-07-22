@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use embedded_time::{traits::*, units::*};
+use embedded_time::{duration::units::*, traits::*};
 use std::mem::size_of;
 
 fn duration_read_write(c: &mut Criterion) {
