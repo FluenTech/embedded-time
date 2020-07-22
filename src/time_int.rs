@@ -13,10 +13,8 @@ pub trait TimeInt:
     + num::CheckedMul
     + num::CheckedDiv
     + From<u32>
-    + TryFrom<u32>
     + TryInto<u32>
     + TryFrom<u64>
-    + TryInto<u64>
     + Into<u64>
     + TryFrom<u128>
     + fmt::Display

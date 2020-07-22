@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+### Added
+
+- A full range of rate types implemented at the same level as the duration types (as a fixed-point value)
+- Conversion between duration and rate types
+- `Generic` duration/rate types returned by `Instant` methods that return a duration/rate and convertible to/from _named_ durations/rates
+- A `FixedPoint` trait for common duration and rate behaviors
+
+### Changed
+
+- Rename `frequency` module to `rate`
+- Updated crate description
+- The `const PERIOD`s in duration and clock traits is now `const SCALING_FACTOR`
+- The `Period` type is renamed to `Fraction` and is no longer generic (now u32)
+
 [unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.7.0...HEAD
 
 ## [0.7.0] - 2020-07-13
