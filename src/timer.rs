@@ -1,4 +1,10 @@
-use crate::{duration::Duration, timer::param::*, traits::*, Instant, TimeError};
+use crate::fixed_point::FixedPoint;
+use crate::{
+    duration::{self, Duration},
+    timer::param::*,
+    traits::*,
+    ConversionError, Instant, TimeError,
+};
 use core::{convert::TryFrom, marker::PhantomData, ops::Add, prelude::v1::*};
 
 pub(crate) mod param {
@@ -72,6 +78,7 @@ impl<'a, Type, Clock: crate::Clock, Dur: Duration> Timer<'a, Type, Armed, Clock,
     pub fn start(self) -> Result<Timer<'a, Type, Running, Clock, Dur>, TimeError<Clock::ImplError>>
     where
         Clock::Rep: TryFrom<Dur::Rep>,
+        Dur: FixedPoint,
     {
         Ok(Timer::<Type, Running, Clock, Dur> {
             clock: self.clock,
@@ -95,13 +102,13 @@ impl<Type, Clock: crate::Clock, Dur: Duration> Timer<'_, Type, Running, Clock, D
     /// The units of the [`Duration`] are the same as that used to construct the `Timer`.
     pub fn elapsed(&self) -> Result<Dur, TimeError<Clock::ImplError>>
     where
+        Dur: FixedPoint + TryFrom<duration::Generic<Clock::Rep>, Error = ConversionError>,
         Dur::Rep: TryFrom<Clock::Rep>,
         Clock::Rep: TryFrom<Dur::Rep>,
     {
-        self.clock
-            .now()?
-            .duration_since(&(self.expiration.checked_sub_duration(self.duration)?))
-            .map_err(|e| e.into())
+        Ok(Dur::try_from(self.clock.now()?.duration_since(
+            &(self.expiration.checked_sub_duration(self.duration)?),
+        )?)?)
     }
 
     /// Returns the [`Duration`] until the expiration of the timer
@@ -111,13 +118,16 @@ impl<Type, Clock: crate::Clock, Dur: Duration> Timer<'_, Type, Running, Clock, D
     /// The units of the [`Duration`] are the same as that used to construct the `Timer`.
     pub fn remaining(&self) -> Result<Dur, TimeError<Clock::ImplError>>
     where
-        Dur::Rep: TryFrom<Clock::Rep> + From<u32>,
+        Dur: FixedPoint + TryFrom<duration::Generic<Clock::Rep>, Error = ConversionError>,
+        Dur::Rep: TryFrom<u32> + TryFrom<Clock::Rep>,
         Clock::Rep: TryFrom<Dur::Rep>,
     {
-        if let Ok(duration) = self.expiration.duration_since(&self.clock.now()?) {
-            Ok(duration)
-        } else {
-            0_u32.seconds().try_convert_into().map_err(|e| e.into())
+        match self.expiration.duration_since(&self.clock.now()?) {
+            Ok(duration) => Ok(Dur::try_from(duration)?),
+            Err(error) if error == ConversionError::NegDuration => {
+                Ok(0.seconds().try_convert_into().unwrap())
+            }
+            Err(error) => Err(error.into()),
         }
     }
 }
@@ -190,6 +200,7 @@ impl<Clock: crate::Clock, Dur: Duration> Timer<'_, Periodic, Running, Clock, Dur
 #[allow(unused_imports)]
 #[allow(unsafe_code)]
 mod test {
+    use crate::fixed_point::FixedPoint;
     use crate::{duration::Duration, traits::*, units::*, Fraction, Instant};
     use core::convert::{Infallible, TryFrom};
     use crossbeam_utils::thread;
@@ -317,7 +328,10 @@ mod test {
 
     fn init_ticks() {}
 
-    fn add_to_ticks<Dur: Duration>(duration: Dur) {
+    fn add_to_ticks<Dur: Duration>(duration: Dur)
+    where
+        Dur: FixedPoint,
+    {
         let ticks = TICKS.load(Ordering::SeqCst);
         let ticks = ticks
             + duration

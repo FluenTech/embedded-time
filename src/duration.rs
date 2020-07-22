@@ -1,20 +1,77 @@
-//! Duration types/units.
+//! Duration types/units
 
-use crate::fixed_point::FixedPoint;
+use crate::{
+    fixed_point::{self, FixedPoint},
+    rate,
+    time_int::TimeInt,
+    ConversionError, Fraction,
+};
+use core::{convert::TryFrom, prelude::v1::*};
 
-/// An unsigned duration of time
+/// An unsigned, fixed-point duration of time type
 ///
-/// Each implementation defines a constant `Fraction` which represents the
-/// period of the count's LSbit
-///
+/// Each implementation defines an integer type and a [`Fraction`] scaling factor.
 ///
 /// # Constructing a duration
 ///
 /// ```rust
 /// # use embedded_time::{traits::*, units::*};
 /// #
-/// assert_eq!(Milliseconds::<u32>::new(23), Milliseconds(23_u32));
 /// assert_eq!(23_u32.milliseconds(), Milliseconds(23_u32));
+/// ```
+///
+/// ## From a [`Generic`] `Duration`
+///
+/// ### Examples
+///
+/// ```rust
+/// # use embedded_time::{Fraction, units::*, duration::Generic};
+/// # use core::convert::{TryFrom, TryInto};
+/// #
+/// assert_eq!(
+///     Seconds::<u64>::try_from(Generic::new(2_000_u32, Fraction::new(1,1_000))),
+///     Ok(Seconds(2_u64))
+/// );
+///
+/// // TryInto also works
+/// assert_eq!(
+///     Generic::new(2_000_u64, Fraction::new(1,1_000)).try_into(),
+///     Ok(Seconds(2_u64))
+/// );
+/// ```
+///
+/// ### Errors
+///
+/// Failure will only occur if the provided integer does not fit in the
+/// selected destination type.
+///
+/// [`ConversionError::Overflow`] : The conversion of the _scaling factor_ causes an overflow.
+///
+/// #### Examples
+///
+/// ```rust
+/// # use embedded_time::{Fraction, units::*, duration::Generic, ConversionError};
+/// # use core::convert::TryFrom;
+/// #
+/// assert_eq!(
+///     Seconds::<u32>::try_from(Generic::new(u32::MAX, Fraction::new(10,1))),
+///     Err(ConversionError::Overflow)
+/// );
+/// ```
+///
+/// [`ConversionError::ConversionFailure`] : The integer cast to that of the destination
+/// type fails.
+///
+/// #### Examples
+///
+/// ```rust
+/// # use embedded_time::{Fraction, units::*, duration::Generic, ConversionError};
+/// # use core::convert::TryFrom;
+/// #
+/// assert_eq!(
+///     Seconds::<u32>::try_from(Generic::new(u32::MAX as u64 + 1, Fraction::new(1,1))),
+///     Err(ConversionError::ConversionFailure)
+/// );
 /// ```
 ///
 /// # Get the integer count
@@ -96,7 +153,7 @@ use crate::fixed_point::FixedPoint;
 ///
 /// ## Errors
 ///
-/// `ConversionError::ConversionFailure` : The duration doesn't fit in the type specified
+/// [`ConversionError::ConversionFailure`] : The duration doesn't fit in the type specified
 ///
 /// ```rust
 /// # use embedded_time::{traits::*, units::*, ConversionError};
@@ -129,8 +186,7 @@ use crate::fixed_point::FixedPoint;
 ///
 /// ## Panics
 ///
-/// The same reason the integer operation would panic. Namely, if the
-/// result overflows the type.
+/// The same reason the integer operation would panic. Namely, if the result overflows the type.
 ///
 /// ### Examples
 ///
@@ -175,17 +231,153 @@ use crate::fixed_point::FixedPoint;
 /// #
 /// assert_eq!(Minutes(62_u32) % Hours(1_u32), Minutes(2_u32));
 /// ```
-pub trait Duration: FixedPoint {}
+pub trait Duration: Copy {
+    /// Construct a `Generic` `Duration` from an _named_ `Duration`
+    ///
+    /// # Errors
+    ///
+    /// Failure will only occur if the provided integer does not fit in the selected destination
+    /// type.
+    ///
+    /// [`ConversionError::Overflow`] : The conversion of the _scaling factor_ causes an overflow.
+    ///
+    /// ## Examples
+    ///
+    /// ```rust
+    /// # use embedded_time::{Fraction, units::*, duration::{Duration, Generic}, ConversionError};
+    /// # use core::convert::TryFrom;
+    /// #
+    /// assert_eq!(Seconds(u32::MAX).try_into_generic::<u32>(Fraction::new(1, 2)),
+    ///     Err(ConversionError::Overflow));
+    /// ```
+    ///
+    /// [`ConversionError::ConversionFailure`] : The integer cast to that of the destination
+    /// type fails.
+    ///
+    /// ## Examples
+    ///
+    /// ```rust
+    /// # use embedded_time::{Fraction, units::*, duration::{Duration, Generic}, ConversionError};
+    /// # use core::convert::TryFrom;
+    /// #
+    /// assert_eq!(Seconds(u32::MAX as u64 + 1).try_into_generic::<u32>(Fraction::new(1, 1)),
+    ///     Err(ConversionError::ConversionFailure));
+    /// ```
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use embedded_time::{Fraction, units::*, duration::{Generic, Duration}};
+    /// # use core::convert::{TryFrom, TryInto};
+    /// #
+    /// assert_eq!(Seconds(2_u64).try_into_generic(Fraction::new(1,2_000)),
+    ///     Ok(Generic::new(4_000_u32, Fraction::new(1,2_000))));
+    /// ```
+    fn try_into_generic<DestInt: TimeInt>(
+        self,
+        scaling_factor: Fraction,
+    ) -> Result<Generic<DestInt>, ConversionError>
+    where
+        Self: FixedPoint,
+        DestInt: TryFrom<Self::Rep>,
+    {
+        Ok(Generic::<DestInt>::new(
+            self.into_ticks(scaling_factor)?,
+            scaling_factor,
+        ))
+    }
+
+    /// Attempt to construct the given _duration_ type from the given _rate_ type
+    ///
+    /// (the duration is equal to the reciprocal of the rate)
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use embedded_time::{duration::{Duration, units::*}, rate::units::*};
+    /// #
+    /// assert_eq!(
+    ///     Microseconds::<u32>::try_from_rate(Kilohertz(2_u32)),
+    ///     Ok(Microseconds(500_u32))
+    /// );
+    /// ```
+    fn try_from_rate<Rate: rate::Rate>(rate: Rate) -> Result<Self, ConversionError>
+    where
+        Rate: FixedPoint,
+        u32: TryFrom<Rate::Rep>,
+        Self: FixedPoint,
+        Self::Rep: TryFrom<Rate::Rep>,
+    {
+        let rate = rate.try_into_generic(Rate::SCALING_FACTOR)?;
+        fixed_point::from_ticks(
+            rate.scaling_factor()
+                .checked_mul(&Self::SCALING_FACTOR)?
+                .recip()
+                .checked_div_integer(
+                    u32::try_from(*rate.integer())
+                        .map_err(|_| ConversionError::ConversionFailure)?,
+                )?
+                .to_integer(),
+            Self::SCALING_FACTOR,
+        )
+    }
+
+    // TODO: add try_into_rate
+}
+
+/// The `Generic` `Duration` type allows arbitrary scaling factors to be used without having to impl
+/// FixedPoint.
+///
+/// The purpose of this type is to allow a simple `Duration` that can be defined at run-time. It
+/// does this by replacing the `const` _scaling factor_ with a struct field.
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub struct Generic<T> {
+    integer: T,
+    scaling_factor: Fraction,
+}
+
+impl<T> Generic<T> {
+    /// Constructs a new (ram) fixed-point `Generic` `Duration` value
+    pub const fn new(integer: T, scaling_factor: Fraction) -> Self {
+        Self {
+            integer,
+            scaling_factor,
+        }
+    }
+
+    /// Returns the _integer_ value
+    pub const fn integer(&self) -> &T {
+        &self.integer
+    }
+
+    /// Returns the _scaling factor_ [`Fraction`] value
+    pub const fn scaling_factor(&self) -> &Fraction {
+        &self.scaling_factor
+    }
+}
+
+impl<T: TimeInt> Generic<T> {
+    /// Returns the integer of the fixed-point value
+    pub fn count(&self) -> T {
+        self.integer
+    }
+}
+
+impl<T: TimeInt> Duration for Generic<T> {}
 
 #[doc(hidden)]
 pub mod units {
+    use super::*;
     use crate::{
-        duration::Duration, fixed_point::FixedPoint, fraction::Fraction, time_int::TimeInt,
+        fixed_point::{self, FixedPoint},
+        fraction::Fraction,
+        rate,
+        time_int::TimeInt,
         ConversionError,
     };
     use core::{
         cmp,
-        convert::{self, TryInto as _},
+        convert::{TryFrom, TryInto},
         fmt::{self, Formatter},
         ops,
     };
@@ -218,90 +410,104 @@ pub mod units {
                 }
             }
 
-            impl<Rep, RhsDur> ops::Add<RhsDur> for $name<Rep>
+            impl<Rep: TimeInt, Rhs: Duration> ops::Add<Rhs> for $name<Rep>
             where
-                RhsDur: Duration,
-                RhsDur::Rep: TimeInt,
-                Rep: TimeInt + convert::TryFrom<RhsDur::Rep>,
+                Rhs: FixedPoint,
+                Rep: TryFrom<Rhs::Rep>,
             {
                 type Output = Self;
 
                 /// See module-level documentation for details about this type
-                #[inline]
-                fn add(self, rhs: RhsDur) -> Self::Output {
-                    Self(self.count() + Self::try_convert_from(rhs).unwrap().count())
+                fn add(self, rhs: Rhs) -> Self::Output {
+                    <Self as FixedPoint>::add(self, rhs)
                 }
             }
 
-            impl<Rep, RhsDur> ops::Sub<RhsDur> for $name<Rep>
+            impl<Rep: TimeInt, Rhs: Duration> ops::Sub<Rhs> for $name<Rep>
             where
-                Rep: TimeInt + convert::TryFrom<RhsDur::Rep>,
-                RhsDur: Duration,
+                Rep: TryFrom<Rhs::Rep>,
+                Rhs: FixedPoint,
             {
                 type Output = Self;
 
                 /// See module-level documentation for details about this type
-                #[inline]
-                fn sub(self, rhs: RhsDur) -> Self::Output {
-                    Self(self.count() - Self::try_convert_from(rhs).unwrap().count())
+                fn sub(self, rhs: Rhs) -> Self::Output {
+                    <Self as FixedPoint>::sub(self, rhs)
                 }
             }
 
-            impl<Rep, Dur> ops::Rem<Dur> for $name<Rep>
+            impl<Rep: TimeInt, Rhs: Duration> ops::Rem<Rhs> for $name<Rep>
             where
-                Rep: TimeInt + convert::TryFrom<Dur::Rep>,
-                Dur: Duration,
+                Rep: TryFrom<Rhs::Rep>,
+                Rhs: FixedPoint,
             {
                 type Output = Self;
 
-                fn rem(self, rhs: Dur) -> Self::Output {
-                    let rhs = Self::try_convert_from(rhs).unwrap().count();
-
-                    if rhs > Rep::from(0) {
-                        Self(self.count() % rhs)
-                    } else {
-                        Self(Rep::from(0))
-                    }
+                fn rem(self, rhs: Rhs) -> Self::Output {
+                    <Self as FixedPoint>::rem(self, rhs)
                 }
             }
 
-            impl<Rep, OtherDur> cmp::PartialEq<OtherDur> for $name<Rep>
+            impl<Rep: TimeInt, Rhs: Duration> cmp::PartialEq<Rhs> for $name<Rep>
             where
-                Rep: TimeInt + convert::TryFrom<OtherDur::Rep>,
-                OtherDur: Duration,
-                OtherDur::Rep: convert::TryFrom<Rep>,
+                Rep: TryFrom<Rhs::Rep>,
+                Rhs: FixedPoint,
+                Rhs::Rep: TryFrom<Rep>,
             {
                 /// See module-level documentation for details about this type
-                fn eq(&self, other: &OtherDur) -> bool {
-                    if Self::SCALING_FACTOR < OtherDur::SCALING_FACTOR {
-                        self.count() == Self::try_convert_from(*other).unwrap().count()
-                    } else {
-                        OtherDur::try_convert_from(*self).unwrap().count() == other.count()
-                    }
+                fn eq(&self, rhs: &Rhs) -> bool {
+                    <Self as FixedPoint>::eq(self, rhs)
                 }
             }
 
-            impl<Rep, OtherDur> PartialOrd<OtherDur> for $name<Rep>
+            impl<Rep: TimeInt, Rhs: Duration> PartialOrd<Rhs> for $name<Rep>
             where
-                Rep: TimeInt + convert::TryFrom<OtherDur::Rep>,
-                OtherDur: Duration,
-                OtherDur::Rep: convert::TryFrom<Rep>,
+                Rep: TryFrom<Rhs::Rep>,
+                Rhs: FixedPoint,
+                Rhs::Rep: TryFrom<Rep>,
             {
                 /// See module-level documentation for details about this type
-                fn partial_cmp(&self, other: &OtherDur) -> Option<core::cmp::Ordering> {
-                    if Self::SCALING_FACTOR < OtherDur::SCALING_FACTOR {
-                        Some(
-                            self.count()
-                                .cmp(&Self::try_convert_from(*other).unwrap().count()),
-                        )
-                    } else {
-                        Some(
-                            OtherDur::try_convert_from(*self)
-                                .unwrap()
-                                .count()
-                                .cmp(&other.count()),
-                        )
-                    }
+                fn partial_cmp(&self, rhs: &Rhs) -> Option<core::cmp::Ordering> {
+                    <Self as FixedPoint>::partial_cmp(self, rhs)
+                }
+            }
+
+            impl<SourceInt: TimeInt, DestInt: TimeInt> TryFrom<Generic<SourceInt>>
+                for $name<DestInt>
+            where
+                DestInt: TryFrom<SourceInt>,
+            {
+                type Error = ConversionError;
+
+                fn try_from(generic_duration: Generic<SourceInt>) -> Result<Self, Self::Error> {
+                    fixed_point::from_ticks(
+                        generic_duration.integer,
+                        generic_duration.scaling_factor,
+                    )
+                }
+            }
+
+            impl<RateInt: TimeInt, DestInt: TimeInt> TryFrom<rate::Generic<RateInt>>
+                for $name<DestInt>
+            where
+                DestInt: TryFrom<RateInt>,
+                u32: TryFrom<RateInt>,
+            {
+                type Error = ConversionError;
+
+                fn try_from(rate: rate::Generic<RateInt>) -> Result<Self, Self::Error> {
+                    // let scaling_factor = rate.scaling_factor().recip();
+                    fixed_point::from_ticks(
+                        rate.scaling_factor()
+                            .checked_mul(&Self::SCALING_FACTOR)?
+                            .recip()
+                            .checked_div_integer(
+                                u32::try_from(*rate.integer())
+                                    .map_err(|_| ConversionError::ConversionFailure)?,
+                            )?
+                            .to_integer(),
+                        Self::SCALING_FACTOR,
+                    )
                 }
             }
         };
@@ -309,7 +515,7 @@ pub mod units {
         ( $name:ident, ($numer:expr, $denom:expr), ge_secs ) => {
             impl_duration![$name, ($numer, $denom)];
 
-            impl<Rep: TimeInt> convert::TryFrom<$name<Rep>> for core::time::Duration {
+            impl<Rep: TimeInt> TryFrom<$name<Rep>> for core::time::Duration {
                 type Error = ConversionError;
 
                 /// Convert an embedded_time::[`Duration`] into a [`core::time::Duration`]
@@ -319,7 +525,7 @@ pub mod units {
                 }
             }
 
-            impl<Rep: TimeInt> convert::TryFrom<core::time::Duration> for $name<Rep> {
+            impl<Rep: TimeInt> TryFrom<core::time::Duration> for $name<Rep> {
                 type Error = ConversionError;
 
                 /// Convert a [`core::time::Duration`] into an embedded_time::[`Duration`]
@@ -332,7 +538,7 @@ pub mod units {
         ( $name:ident, ($numer:expr, $denom:expr), $from_core_dur:ident, $as_core_dur:ident ) => {
             impl_duration![$name, ($numer, $denom)];
 
-            impl<Rep: TimeInt> convert::TryFrom<$name<Rep>> for core::time::Duration {
+            impl<Rep: TimeInt> TryFrom<$name<Rep>> for core::time::Duration {
                 type Error = ConversionError;
 
                 /// Convert an embedded_time::[`Duration`] into a [`core::time::Duration`]
@@ -341,7 +547,7 @@ pub mod units {
                 }
             }
 
-            impl<Rep: TimeInt> convert::TryFrom<core::time::Duration> for $name<Rep> {
+            impl<Rep: TimeInt> TryFrom<core::time::Duration> for $name<Rep> {
                 type Error = ConversionError;
 
                 /// Convert a [`core::time::Duration`] into an embedded_time::[`Duration`]
@@ -367,8 +573,39 @@ pub mod units {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::rate::units::*;
     use core::convert::TryInto;
     use units::*;
+
+    #[test]
+    fn try_from_generic_ok() {
+        assert_eq!(
+            Seconds::try_from(Generic::new(246_u32, Fraction::new(1, 2))),
+            Ok(Seconds(123_u32))
+        );
+    }
+
+    #[test]
+    fn try_into_generic_ok() {
+        assert_eq!(
+            Seconds(123_u32).try_into_generic(Fraction::new(1, 2)),
+            Ok(Generic::new(246_u32, Fraction::new(1, 2)))
+        );
+    }
+
+    #[test]
+    fn try_into_generic_err() {
+        assert_eq!(
+            Seconds(u32::MAX).try_into_generic::<u32>(Fraction::new(1, 2)),
+            Err(ConversionError::Overflow)
+        );
+    }
+
+    #[test]
+    fn get_generic_count() {
+        let generic = Generic::new(246_u32, Fraction::new(1, 2));
+        assert_eq!(generic.count(), 246_u32);
+    }
 
     #[test]
     fn check_for_overflows() {
@@ -390,6 +627,19 @@ mod tests {
         assert_eq!(Minutes(62_u32) % Hours(1_u32), Minutes(2_u32));
         assert_eq!(Minutes(62_u32) % Milliseconds(1_u32), Minutes(0_u32));
         assert_eq!(Minutes(62_u32) % Minutes(60_u32), Minutes(2_u32));
+    }
+
+    #[test]
+    fn convert_from_rate() {
+        assert_eq!(
+            Milliseconds::<u32>::try_from_rate(Hertz(2_u32)),
+            Ok(Milliseconds(500_u32))
+        );
+
+        assert_eq!(
+            Microseconds::<u32>::try_from_rate(Kilohertz(2_u32)),
+            Ok(Microseconds(500_u32))
+        );
     }
 
     #[test]
