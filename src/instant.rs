@@ -1,6 +1,6 @@
 //! An instant of time
 
-use crate::{duration::Duration, ConversionError};
+use crate::{duration::Duration, fixed_point, ConversionError};
 use core::{cmp::Ordering, convert::TryFrom, ops};
 use num::traits::{WrappingAdd, WrappingSub};
 
@@ -81,7 +81,10 @@ impl<Clock: crate::Clock> Instant<Clock> {
         Dur::Rep: TryFrom<Clock::Rep>,
     {
         if self >= other {
-            Dur::from_ticks(self.ticks.wrapping_sub(&other.ticks), Clock::SCALING_FACTOR)
+            fixed_point::from_ticks::<_, Dur>(
+                self.ticks.wrapping_sub(&other.ticks),
+                Clock::SCALING_FACTOR,
+            )
         } else {
             Err(ConversionError::NegDuration)
         }
@@ -121,7 +124,10 @@ impl<Clock: crate::Clock> Instant<Clock> {
         Dur::Rep: TryFrom<Clock::Rep>,
     {
         if self <= other {
-            Dur::from_ticks(other.ticks.wrapping_sub(&self.ticks), Clock::SCALING_FACTOR)
+            fixed_point::from_ticks::<_, Dur>(
+                other.ticks.wrapping_sub(&self.ticks),
+                Clock::SCALING_FACTOR,
+            )
         } else {
             Err(ConversionError::NegDuration)
         }

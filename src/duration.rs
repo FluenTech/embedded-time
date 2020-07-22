@@ -1,12 +1,10 @@
-//! Duration types/units creation and conversion.
+//! Duration types/units.
 
-use crate::{fraction::Fraction, time_int::TimeInt, ConversionError};
-use core::{convert::TryFrom, fmt, mem::size_of, prelude::v1::*};
-use num::Bounded;
+use crate::fixed_point::FixedPoint;
 
 /// An unsigned duration of time
 ///
-/// Each implementation defines a constant [`Fraction`] which represents the
+/// Each implementation defines a constant `Fraction` which represents the
 /// period of the count's LSbit
 ///
 ///
@@ -98,7 +96,7 @@ use num::Bounded;
 ///
 /// ## Errors
 ///
-/// [`ConversionError::ConversionFailure`] : The duration doesn't fit in the type specified
+/// `ConversionError::ConversionFailure` : The duration doesn't fit in the type specified
 ///
 /// ```rust
 /// # use embedded_time::{traits::*, units::*, ConversionError};
@@ -177,350 +175,12 @@ use num::Bounded;
 /// #
 /// assert_eq!(Minutes(62_u32) % Hours(1_u32), Minutes(2_u32));
 /// ```
-pub trait Duration: Sized + Copy + fmt::Display {
-    /// The inner type of the `Duration` representing the count of the implementation unit
-    type Rep: TimeInt;
-
-    /// A fraction/ratio representing the period of the count's LSbit. The precision of the
-    /// `Duration`.
-    const SCALING_FACTOR: Fraction;
-
-    /// Not generally useful or needed as the duration can be constructed like this:
-    ///
-    /// ```no_run
-    /// # use embedded_time::{traits::*, units::*};
-    /// Seconds(123_u32);
-    /// 123_u32.seconds();
-    /// ```
-    ///
-    /// It only exists to allow Duration methods with default definitions to create a
-    /// new duration
-    fn new(value: Self::Rep) -> Self;
-
-    /// Returns the integer value of the `Duration`
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// # use embedded_time::{traits::*, units::*};
-    /// assert_eq!(Seconds(123_u32).count(), 123_u32);
-    /// ```
-    fn count(self) -> Self::Rep;
-
-    /// Constructs a `Duration` from a value of ticks and a _scaling factor_
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// # use embedded_time::{traits::*, units::*, Fraction};
-    /// assert_eq!(Microseconds::<u32>::from_ticks(5_u64, <Fraction>::new(1, 1_000)),
-    ///     Ok(Microseconds(5_000_u32)));
-    ///
-    /// // the conversion arithmetic will not cause overflow
-    /// assert_eq!(Milliseconds::<u32>::from_ticks((u32::MAX as u64) + 1, <Fraction>::new(1, 1_000_000)),
-    ///     Ok(Milliseconds((((u32::MAX as u64) + 1) / 1_000) as u32)));
-    /// ```
-    ///
-    /// # Errors
-    ///
-    /// Failure will only occur if the value does not fit in the selected destination type.
-    ///
-    /// [`ConversionError::Overflow`] : The conversion of periods causes an overflow:
-    ///
-    /// ```rust
-    /// # use embedded_time::{traits::*, units::*, Fraction, ConversionError};
-    /// assert_eq!(Milliseconds::<u32>::from_ticks(u32::MAX, <Fraction>::new(1, 1)),
-    ///     Err(ConversionError::Overflow));
-    /// ```
-    ///
-    /// [`ConversionError::ConversionFailure`] : The Self integer cast to that of the destination
-    /// type fails:
-    ///
-    /// ```rust
-    /// # use embedded_time::{traits::*, units::*, Fraction, ConversionError};
-    /// assert_eq!(Seconds::<u32>::from_ticks(u32::MAX as u64 + 1, <Fraction>::new(1, 1)),
-    ///     Err(ConversionError::ConversionFailure));
-    /// ```
-    fn from_ticks<Rep: TimeInt>(
-        ticks: Rep,
-        scaling_factor: Fraction,
-    ) -> Result<Self, ConversionError>
-    where
-        Self::Rep: TryFrom<Rep>,
-    {
-        if size_of::<Self::Rep>() > size_of::<Rep>() {
-            let converted_ticks =
-                Self::Rep::try_from(ticks).map_err(|_| ConversionError::ConversionFailure)?;
-
-            if scaling_factor > <Fraction>::new(1, 1) {
-                Ok(Self::new(TimeInt::checked_div_period(
-                    &TimeInt::checked_mul_period(&converted_ticks, &scaling_factor)?,
-                    &Self::SCALING_FACTOR,
-                )?))
-            } else {
-                Ok(Self::new(TimeInt::checked_mul_period(
-                    &converted_ticks,
-                    &scaling_factor.checked_div(&Self::SCALING_FACTOR)?,
-                )?))
-            }
-        } else {
-            let ticks = if scaling_factor > <Fraction>::new(1, 1) {
-                TimeInt::checked_div_period(
-                    &TimeInt::checked_mul_period(&ticks, &scaling_factor)?,
-                    &Self::SCALING_FACTOR,
-                )?
-            } else if Self::SCALING_FACTOR > <Fraction>::new(1, 1) {
-                TimeInt::checked_mul_period(
-                    &TimeInt::checked_div_period(&ticks, &Self::SCALING_FACTOR)?,
-                    &scaling_factor,
-                )?
-            } else {
-                TimeInt::checked_mul_period(
-                    &ticks,
-                    &scaling_factor.checked_div(&Self::SCALING_FACTOR)?,
-                )?
-            };
-
-            let converted_ticks =
-                Self::Rep::try_from(ticks).map_err(|_| ConversionError::ConversionFailure)?;
-            Ok(Self::new(converted_ticks))
-        }
-    }
-
-    /// Create an integer representation with LSbit period of that provided
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// # use embedded_time::{traits::*, units::*, Fraction, ConversionError};
-    /// assert_eq!(Microseconds(5_000_u32).into_ticks::<u32>(<Fraction>::new(1, 1_000)),
-    ///     Ok(5_u32));
-    ///
-    /// // the _into_ _scaling factor_ can be any value
-    /// assert_eq!(Microseconds(5_000_u32).into_ticks::<u32>(<Fraction>::new(1, 200)),
-    ///     Ok(1_u32));
-    ///
-    /// // as long as the result fits in the provided integer, it will succeed
-    /// assert_eq!(Microseconds::<u32>(u32::MAX).into_ticks::<u64>(<Fraction>::new(1, 2_000_000)),
-    ///     Ok((u32::MAX as u64) * 2));
-    /// ```
-    ///
-    /// # Errors
-    ///
-    /// Failure will only occur if the value does not fit in the selected destination type.
-    ///
-    /// [`ConversionError::Overflow`] : The conversion of periods causes an overflow:
-    ///
-    /// ```rust
-    /// # use embedded_time::{traits::*, units::*, Fraction, ConversionError};
-    /// assert_eq!(Seconds(u32::MAX).into_ticks::<u32>(<Fraction>::new(1, 1_000)),
-    ///     Err(ConversionError::Overflow));
-    /// ```
-    ///
-    /// [`ConversionError::ConversionFailure`] : The Self integer cast to that of the destination
-    /// type fails:
-    ///
-    /// ```rust
-    /// # use embedded_time::{traits::*, units::*, Fraction, ConversionError};
-    /// assert_eq!(Seconds(u32::MAX as u64 + 1).into_ticks::<u32>(<Fraction>::new(1, 1)),
-    ///     Err(ConversionError::ConversionFailure));
-    /// ```
-    fn into_ticks<Rep: TimeInt>(self, scaling_factor: Fraction) -> Result<Rep, ConversionError>
-    where
-        Self::Rep: TimeInt,
-        Rep: TryFrom<Self::Rep>,
-    {
-        if size_of::<Rep>() > size_of::<Self::Rep>() {
-            let ticks =
-                Rep::try_from(self.count()).map_err(|_| ConversionError::ConversionFailure)?;
-
-            if scaling_factor > <Fraction>::new(1, 1) {
-                TimeInt::checked_div_period(
-                    &TimeInt::checked_mul_period(&ticks, &Self::SCALING_FACTOR)?,
-                    &scaling_factor,
-                )
-            } else {
-                TimeInt::checked_mul_period(
-                    &ticks,
-                    &Self::SCALING_FACTOR.checked_div(&scaling_factor)?,
-                )
-            }
-        } else {
-            let ticks = if Self::SCALING_FACTOR > <Fraction>::new(1, 1) {
-                TimeInt::checked_div_period(
-                    &TimeInt::checked_mul_period(&self.count(), &Self::SCALING_FACTOR)?,
-                    &scaling_factor,
-                )?
-            } else {
-                TimeInt::checked_mul_period(
-                    &self.count(),
-                    &Self::SCALING_FACTOR.checked_div(&scaling_factor)?,
-                )?
-            };
-
-            Rep::try_from(ticks).map_err(|_| ConversionError::ConversionFailure)
-        }
-    }
-
-    /// ```rust
-    /// # use embedded_time::{traits::*, units::*};
-    /// assert_eq!(u32::MIN, Seconds::<u32>::min_value());
-    /// ```
-    #[must_use]
-    fn min_value() -> Self::Rep {
-        Self::Rep::min_value()
-    }
-
-    /// ```rust
-    /// # use embedded_time::{traits::*, units::*};
-    /// assert_eq!(u32::MAX, Seconds::<u32>::max_value());
-    /// ```
-    #[must_use]
-    fn max_value() -> Self::Rep {
-        Self::Rep::max_value()
-    }
-}
-
-/// Attempt to convert from one duration type to another
-///
-/// This is basically a specialization of the [`TryFrom`](core::convert::TryFrom) trait.
-pub trait TryConvertFrom<Source>: Sized {
-    /// Perform the conversion
-    fn try_convert_from(other: Source) -> Result<Self, ConversionError>;
-}
-
-/// Attempt to convert from one duration type to another
-///
-/// This is basically a specialization of the [`TryInto`](core::convert::TryInto) trait.
-pub trait TryConvertInto<Dest> {
-    /// Perform the conversion
-    fn try_convert_into(self) -> Result<Dest, ConversionError>;
-}
-
-impl<Source: Duration, Dest: Duration> TryConvertFrom<Source> for Dest
-where
-    Dest::Rep: TryFrom<Source::Rep>,
-{
-    /// Attempt to convert from one duration type to another
-    ///
-    /// Both the inner type and/or the _scaling factor_ (units) can be converted
-    ///
-    /// # Examples
-    /// ```rust
-    /// # use embedded_time::{traits::*, units::*};
-    /// assert_eq!(Seconds::<u32>::try_convert_from(Milliseconds(23_000_u64)),
-    ///     Ok(Seconds(23_u32)));
-    ///
-    /// assert_eq!(Seconds::<u64>::try_convert_from(Milliseconds(23_000_u32)),
-    ///     Ok(Seconds(23_u64)));
-    ///
-    /// assert_eq!(Seconds::<u32>::try_convert_from(Milliseconds(230_u32)),
-    ///     Ok(Seconds(0)));
-    /// ```
-    ///
-    /// # Errors
-    ///
-    /// Failure will only occur if the value does not fit in the selected destination type.
-    ///
-    /// [`ConversionError::Overflow`] : The conversion of periods causes an overflow:
-    ///
-    /// ```rust
-    /// # use embedded_time::{traits::*, units::*, ConversionError};
-    /// assert_eq!(Milliseconds::<u32>::try_convert_from(Seconds(u32::MAX)),
-    ///     Err(ConversionError::Overflow));
-    /// ```
-    ///
-    /// [`ConversionError::ConversionFailure`] : The Self integer cast to that of the destination
-    /// type fails:
-    ///
-    /// ```rust
-    /// # use embedded_time::{traits::*, units::*, ConversionError};
-    /// assert_eq!(Seconds::<u32>::try_convert_from(Seconds(u32::MAX as u64 + 1)),
-    ///     Err(ConversionError::ConversionFailure));
-    /// ```
-    ///
-    /// However, these work because the sequence of cast/conversion adapts:
-    ///
-    /// ```rust
-    /// # use embedded_time::{traits::*, units::*};
-    /// // _scaling factor_ conversion applied first
-    /// assert_eq!(Hours::<u32>::try_convert_from(Microseconds(3_600_000_000_u64)),
-    ///     Ok(Hours(1_u32)));
-    ///
-    /// // cast applied first
-    /// assert_eq!(Microseconds::<u64>::try_convert_from(Hours(1_u32)),
-    ///     Ok(Microseconds(3_600_000_000_u64)));
-    /// ```
-    fn try_convert_from(source: Source) -> Result<Self, ConversionError> {
-        Self::from_ticks(source.count(), Source::SCALING_FACTOR)
-    }
-}
-
-impl<Source, Dest> TryConvertInto<Dest> for Source
-where
-    Source: Duration,
-    Dest: Duration + TryConvertFrom<Source>,
-{
-    /// The reciprocal of [`TryConvertFrom`]
-    ///
-    /// # Examples
-    /// ```rust
-    /// # use embedded_time::{traits::*, units::*};
-    /// assert_eq!(Seconds(23_u64).try_convert_into(),
-    ///     Ok(Seconds(23_u32)));
-    ///
-    /// assert_eq!(Seconds(23_u32).try_convert_into(),
-    ///     Ok(Seconds(23_u64)));
-    ///
-    /// assert_eq!(Milliseconds(23_000_u64).try_convert_into(),
-    ///     Ok(Seconds(23_u32)));
-    /// ```
-    ///
-    /// # Errors
-    /// Failure will only occur if the value does not fit in the selected destination type.
-    ///
-    /// [`ConversionError::Overflow`] - The conversion of periods causes an overflow:
-    ///
-    /// ```rust
-    /// # use embedded_time::{traits::*, units::*, ConversionError};
-    /// use embedded_time::duration::TryConvertInto;
-    /// assert_eq!(<Seconds<u32> as TryConvertInto<Milliseconds<u32>>>::try_convert_into(Seconds(u32::MAX)),
-    ///     Err(ConversionError::Overflow));
-    /// ```
-    ///
-    /// [`ConversionError::ConversionFailure`] - The Self integer cast to that of the destination
-    /// type fails:
-    ///
-    /// ```rust
-    /// # use embedded_time::{traits::*, units::*, ConversionError};
-    /// use embedded_time::duration::TryConvertInto;
-    /// assert_eq!(<Seconds<u64> as TryConvertInto<Seconds<u32>>>::try_convert_into(Seconds(u32::MAX as u64 + 1)),
-    ///     Err(ConversionError::ConversionFailure));
-    /// ```
-    ///
-    /// However, the following work because the sequence of cast/conversion adapts:
-    ///
-    /// ```rust
-    /// # use embedded_time::{traits::*, units::*};
-    /// // _scaling factor_ conversion applied first
-    /// assert_eq!(Microseconds(3_600_000_000_u64).try_convert_into(),
-    ///     Ok(Hours(1_u32)));
-    ///
-    /// // cast applied first
-    /// assert_eq!(Hours(1_u32).try_convert_into(),
-    ///     Ok(Microseconds(3_600_000_000_u64)));
-    /// ```
-    fn try_convert_into(self) -> Result<Dest, ConversionError> {
-        Dest::try_convert_from(self)
-    }
-}
+pub trait Duration: FixedPoint {}
 
 #[doc(hidden)]
 pub mod units {
     use crate::{
-        duration::{Duration, TryConvertFrom},
-        fraction::Fraction,
-        time_int::TimeInt,
+        duration::Duration, fixed_point::FixedPoint, fraction::Fraction, time_int::TimeInt,
         ConversionError,
     };
     use core::{
@@ -536,9 +196,11 @@ pub mod units {
             #[derive(Copy, Clone, Debug, Eq, Ord)]
             pub struct $name<T: TimeInt = u32>(pub T);
 
-            impl<Rep: TimeInt> Duration for $name<Rep> {
+            impl<Rep: TimeInt> Duration for $name<Rep> {}
+
+            impl<Rep: TimeInt> FixedPoint for $name<Rep> {
                 type Rep = Rep;
-                const SCALING_FACTOR: Fraction = <Fraction>::new($numer, $denom);
+                const SCALING_FACTOR: Fraction = Fraction::new($numer, $denom);
 
                 fn new(value: Self::Rep) -> Self {
                     Self(value)
@@ -593,9 +255,7 @@ pub mod units {
                 type Output = Self;
 
                 fn rem(self, rhs: Dur) -> Self::Output {
-                    let rhs = <Self as TryConvertFrom<Dur>>::try_convert_from(rhs)
-                        .unwrap()
-                        .count();
+                    let rhs = Self::try_convert_from(rhs).unwrap().count();
 
                     if rhs > Rep::from(0) {
                         Self(self.count() % rhs)
