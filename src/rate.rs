@@ -17,7 +17,7 @@ use core::{convert::TryFrom, prelude::v1::*};
 /// # Constructing a rate
 ///
 /// ```rust
-/// # use embedded_time::{traits::*, units::*};
+/// # use embedded_time::{traits::*, rate::units::*};
 /// #
 /// assert_eq!(45_u32.hertz(), Hertz(45_u32));
 /// ```
@@ -34,7 +34,7 @@ use core::{convert::TryFrom, prelude::v1::*};
 /// #### Examples
 ///
 /// ```rust
-/// # use embedded_time::{Fraction, units::*, rate::Generic, ConversionError};
+/// # use embedded_time::{Fraction, rate::units::*, rate::Generic, ConversionError};
 /// # use core::convert::TryFrom;
 /// #
 /// assert_eq!(Hertz::<u32>::try_from(Generic::new(u32::MAX, Fraction::new(10,1))),
@@ -47,7 +47,7 @@ use core::{convert::TryFrom, prelude::v1::*};
 /// #### Examples
 ///
 /// ```rust
-/// # use embedded_time::{Fraction, units::*, rate::Generic, ConversionError};
+/// # use embedded_time::{Fraction, rate::units::*, rate::Generic, ConversionError};
 /// # use core::convert::TryFrom;
 /// #
 /// assert_eq!(Hertz::<u32>::try_from(Generic::new(u32::MAX as u64 + 1, Fraction::new(1,1))),
@@ -57,7 +57,7 @@ use core::{convert::TryFrom, prelude::v1::*};
 /// ### Examples
 ///
 /// ```rust
-/// # use embedded_time::{Fraction, units::*, rate::Generic};
+/// # use embedded_time::{Fraction, rate::units::*, rate::Generic};
 /// # use core::convert::{TryFrom, TryInto};
 /// #
 /// assert_eq!(Hertz::<u64>::try_from(Generic::new(2_000_u32, Fraction::new(1,1_000))),
@@ -70,7 +70,7 @@ use core::{convert::TryFrom, prelude::v1::*};
 /// # Read the integer
 ///
 /// ```rust
-/// # use embedded_time::{traits::*, units::*};
+/// # use embedded_time::{traits::*, rate::units::*};
 /// #
 /// assert_eq!(Hertz(45_u32).count(), 45_u32);
 /// ```
@@ -80,7 +80,7 @@ use core::{convert::TryFrom, prelude::v1::*};
 /// Just forwards the underlying integer to [`core::fmt::Display::fmt()`]
 ///
 /// ```rust
-/// # use embedded_time::{traits::*, units::*};
+/// # use embedded_time::{traits::*, rate::units::*};
 /// #
 /// assert_eq!(format!("{}", Hertz(123_u32)), "123");
 /// ```
@@ -92,7 +92,7 @@ use core::{convert::TryFrom, prelude::v1::*};
 /// ## Examples
 ///
 /// ```rust
-/// # use embedded_time::{traits::*, units::*};
+/// # use embedded_time::{traits::*, rate::units::*};
 /// #
 /// assert_eq!((Hertz(2u32) - Hertz(1_u32)),
 ///     Hertz(1_u32));
@@ -109,7 +109,7 @@ use core::{convert::TryFrom, prelude::v1::*};
 /// ### Examples
 ///
 /// ```rust,should_panic
-/// # use embedded_time::{traits::*, units::*};
+/// # use embedded_time::{traits::*, rate::units::*};
 /// #
 /// let _ = Hertz(u32::MAX) + Hertz(1_u32);
 /// ```
@@ -117,7 +117,7 @@ use core::{convert::TryFrom, prelude::v1::*};
 /// # Equality
 ///
 /// ```rust
-/// # use embedded_time::{traits::*, units::*};
+/// # use embedded_time::{traits::*, rate::units::*};
 /// #
 /// assert_eq!(Hertz(123_u32), Hertz(123_u32));
 /// ```
@@ -125,7 +125,7 @@ use core::{convert::TryFrom, prelude::v1::*};
 /// # Comparisons
 ///
 /// ```rust
-/// # use embedded_time::{traits::*, units::*};
+/// # use embedded_time::{traits::*, rate::units::*};
 /// #
 /// assert!(Hertz(2_u32) < Hertz(3_u32));
 /// assert_eq!(Hertz(2_u32), Hertz(2_u32));
@@ -135,7 +135,7 @@ use core::{convert::TryFrom, prelude::v1::*};
 /// # Remainder
 ///
 /// ```rust
-/// # use embedded_time::{traits::*, units::*};
+/// # use embedded_time::{traits::*, rate::units::*};
 /// #
 /// assert_eq!(Hertz(2_037_u32) % Kilohertz(1_u32), Hertz(37_u32));
 /// ```
@@ -152,7 +152,7 @@ pub trait Rate: Copy {
     /// ## Examples
     ///
     /// ```rust
-    /// # use embedded_time::{Fraction, units::*, rate::{Rate, Generic}, ConversionError};
+    /// # use embedded_time::{Fraction, rate::units::*, rate::{Rate, Generic}, ConversionError};
     /// # use core::convert::TryFrom;
     /// #
     /// assert_eq!(Hertz(u32::MAX).try_into_generic::<u32>(Fraction::new(1, 2)),
@@ -165,7 +165,7 @@ pub trait Rate: Copy {
     /// ## Examples
     ///
     /// ```rust
-    /// # use embedded_time::{Fraction, units::*, rate::{Rate, Generic}, ConversionError};
+    /// # use embedded_time::{Fraction, rate::units::*, rate::{Rate, Generic}, ConversionError};
     /// # use core::convert::TryFrom;
     /// #
     /// assert_eq!(Hertz(u32::MAX as u64 + 1).try_into_generic::<u32>(Fraction::new(1, 1)),
@@ -175,7 +175,7 @@ pub trait Rate: Copy {
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{Fraction, units::*, rate::{Generic, Rate}};
+    /// # use embedded_time::{Fraction, rate::units::*, rate::{Generic, Rate}};
     /// # use core::convert::{TryFrom, TryInto};
     /// #
     /// assert_eq!(Hertz(2_u64).try_into_generic(Fraction::new(1,2_000)),
@@ -202,7 +202,7 @@ pub trait Rate: Copy {
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{rate::{Rate, units::*}, duration::units::*};
+    /// # use embedded_time::{duration::units::*, rate::{Rate, units::*}};
     /// #
     /// assert_eq!(
     ///     Kilohertz::<u32>::try_from_duration(Microseconds(2_u32)),
@@ -274,7 +274,7 @@ impl<T: TimeInt> Generic<T> {
 
 impl<T: TimeInt> Rate for Generic<T> {}
 
-#[doc(hidden)]
+/// Rate-type units
 pub mod units {
     use super::*;
     use crate::{

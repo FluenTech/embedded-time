@@ -201,7 +201,9 @@ impl<Clock: crate::Clock, Dur: Duration> Timer<'_, Periodic, Running, Clock, Dur
 #[allow(unsafe_code)]
 mod test {
     use crate::fixed_point::FixedPoint;
-    use crate::{duration::Duration, traits::*, units::*, Fraction, Instant};
+    use crate::{
+        duration::units::*, duration::Duration, rate::units::*, traits::*, Fraction, Instant,
+    };
     use core::convert::{Infallible, TryFrom};
     use crossbeam_utils::thread;
     use std::sync::atomic::{AtomicU64, Ordering};
