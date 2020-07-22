@@ -1,6 +1,10 @@
 //! An instant of time
 
-use crate::{duration::Duration, fixed_point, ConversionError};
+use crate::{
+    duration::{self, Duration},
+    fixed_point::FixedPoint,
+    ConversionError,
+};
 use core::{cmp::Ordering, convert::TryFrom, ops};
 use num::traits::{WrappingAdd, WrappingSub};
 
@@ -51,7 +55,8 @@ impl<Clock: crate::Clock> Instant<Clock> {
     ///
     /// # Examples
     /// ```rust
-    /// # use embedded_time::{Fraction, units::*, Instant, ConversionError};
+    /// # use embedded_time::{Fraction, units::*, Instant, ConversionError, duration};
+    /// # use core::convert::TryInto;
     /// # #[derive(Debug)]
     /// #
     /// struct Clock;
@@ -64,11 +69,11 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// # fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
     /// }
     ///
-    /// assert_eq!(Ok(Microseconds(2_000_u64)),
-    ///     Instant::<Clock>::new(5).duration_since::<Microseconds<u64>>(&Instant::<Clock>::new(3)));
+    /// assert_eq!(Instant::<Clock>::new(5).duration_since(&Instant::<Clock>::new(3)).unwrap().try_into(),
+    ///     Ok(Microseconds(2_000_u64)));
     ///
-    /// assert_eq!(Err(ConversionError::NegDuration),
-    ///     Instant::<Clock>::new(3).duration_since::<Microseconds<u64>>(&Instant::<Clock>::new(5)));
+    /// assert_eq!(Instant::<Clock>::new(3).duration_since(&Instant::<Clock>::new(5)),
+    ///     Err(ConversionError::NegDuration));
     /// ```
     ///
     /// # Errors
@@ -76,15 +81,15 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// - [`ConversionError::NegDuration`] : `Instant` is in the future
     /// - [`ConversionError::Overflow`] : problem coverting to the desired [`Duration`]
     /// - [`ConversionError::ConversionFailure`] : problem coverting to the desired [`Duration`]
-    pub fn duration_since<Dur: Duration>(&self, other: &Self) -> Result<Dur, ConversionError>
-    where
-        Dur::Rep: TryFrom<Clock::Rep>,
-    {
+    pub fn duration_since(
+        &self,
+        other: &Self,
+    ) -> Result<duration::Generic<Clock::Rep>, ConversionError> {
         if self >= other {
-            fixed_point::from_ticks::<_, Dur>(
+            Ok(duration::Generic::new(
                 self.ticks.wrapping_sub(&other.ticks),
                 Clock::SCALING_FACTOR,
-            )
+            ))
         } else {
             Err(ConversionError::NegDuration)
         }
@@ -121,13 +126,14 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// - [`ConversionError::ConversionFailure`] : problem coverting to the desired [`Duration`]
     pub fn duration_until<Dur: Duration>(&self, other: &Self) -> Result<Dur, ConversionError>
     where
+        Dur: FixedPoint + TryFrom<duration::Generic<Clock::Rep>, Error = ConversionError>,
         Dur::Rep: TryFrom<Clock::Rep>,
     {
         if self <= other {
-            fixed_point::from_ticks::<_, Dur>(
+            Dur::try_from(duration::Generic::new(
                 other.ticks.wrapping_sub(&self.ticks),
                 Clock::SCALING_FACTOR,
-            )
+            ))
         } else {
             Err(ConversionError::NegDuration)
         }
@@ -137,17 +143,11 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// [`Clock`](clock/trait.Clock.html)'s 0)
     ///
     /// If it is a _wrapping_ clock, the result is meaningless.
-    pub fn duration_since_epoch<Dur: Duration>(&self) -> Result<Dur, ConversionError>
-    where
-        Dur::Rep: TryFrom<Clock::Rep>,
-        Clock::Rep: TryFrom<Dur::Rep>,
-    {
-        Self::duration_since::<Dur>(
-            &self,
-            &Self {
-                ticks: Clock::Rep::from(0),
-            },
-        )
+    pub fn duration_since_epoch(&self) -> duration::Generic<Clock::Rep> {
+        self.duration_since(&Self {
+            ticks: Clock::Rep::from(0),
+        })
+        .unwrap()
     }
 
     /// Add a [`Duration`] to an `Instant` resulting in a new, later `Instant`
@@ -193,6 +193,7 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// ```
     pub fn checked_add_duration<Dur: Duration>(self, duration: Dur) -> Result<Self, ConversionError>
     where
+        Dur: FixedPoint,
         Clock::Rep: TryFrom<Dur::Rep>,
     {
         let add_ticks: Clock::Rep = duration.into_ticks(Clock::SCALING_FACTOR)?;
@@ -248,6 +249,7 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// ```
     pub fn checked_sub_duration<Dur: Duration>(self, duration: Dur) -> Result<Self, ConversionError>
     where
+        Dur: FixedPoint,
         Clock::Rep: TryFrom<Dur::Rep>,
     {
         let sub_ticks: Clock::Rep = duration.into_ticks(Clock::SCALING_FACTOR)?;
@@ -316,6 +318,7 @@ impl<Clock: crate::Clock> Ord for Instant<Clock> {
 impl<Clock: crate::Clock, Dur: Duration> ops::Add<Dur> for Instant<Clock>
 where
     Clock::Rep: TryFrom<Dur::Rep>,
+    Dur: FixedPoint,
 {
     type Output = Self;
 
@@ -374,6 +377,7 @@ where
 impl<Clock: crate::Clock, Dur: Duration> ops::Sub<Dur> for Instant<Clock>
 where
     Clock::Rep: TryFrom<Dur::Rep>,
+    Dur: FixedPoint,
 {
     type Output = Self;
 
@@ -432,7 +436,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{self as time, units::*, ConversionError, Fraction, Instant};
+    use crate::{self as time, duration, units::*, ConversionError, Fraction, Instant};
 
     #[derive(Debug)]
     struct Clock;
@@ -449,20 +453,13 @@ mod tests {
 
     #[test]
     fn duration_since() {
-        let diff: Result<Milliseconds<_>, _> =
-            Instant::<Clock>::new(5).duration_since(&Instant::<Clock>::new(3));
-        assert_eq!(diff, Ok(Milliseconds(2_u32)));
+        let diff = Instant::<Clock>::new(5).duration_since(&Instant::<Clock>::new(3));
+        assert_eq!(
+            diff,
+            Ok(duration::Generic::new(2_u32, Fraction::new(1, 1_000)))
+        );
 
-        let diff: Result<Microseconds<u64>, _> =
-            Instant::<Clock>::new(5).duration_since(&Instant::<Clock>::new(3));
-        assert_eq!(diff, Ok(Microseconds(2_000_u64)));
-
-        let diff: Result<Microseconds<u64>, _> =
-            Instant::<Clock>::new(u32::MIN).duration_since(&Instant::<Clock>::new(u32::MAX));
-        assert_eq!(diff, Ok(Microseconds(1_000_u64)));
-
-        let diff: Result<Microseconds<u64>, _> =
-            Instant::<Clock>::new(5).duration_since(&Instant::<Clock>::new(6));
+        let diff = Instant::<Clock>::new(5).duration_since(&Instant::<Clock>::new(6));
         assert_eq!(diff, Err(ConversionError::NegDuration));
     }
 }
