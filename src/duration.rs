@@ -74,12 +74,12 @@ use core::{convert::TryFrom, prelude::v1::*};
 /// );
 /// ```
 ///
-/// # Get the integer count
+/// # Get the integer part
 ///
 /// ```rust
 /// # use embedded_time::{traits::*, duration::units::*};
 /// #
-/// assert_eq!(Milliseconds(23_u32).count(), 23_u32);
+/// assert_eq!(Milliseconds(23_u32).integer(), &23_u32);
 /// ```
 ///
 /// # Formatting
@@ -357,13 +357,6 @@ impl<T> Generic<T> {
     }
 }
 
-impl<T: TimeInt> Generic<T> {
-    /// Returns the integer of the fixed-point value
-    pub fn count(&self) -> T {
-        self.integer
-    }
-}
-
 impl<T: TimeInt> Duration for Generic<T> {}
 
 /// Duration units
@@ -399,8 +392,8 @@ pub mod units {
                     Self(value)
                 }
 
-                fn count(self) -> Self::Rep {
-                    self.0
+                fn integer(&self) -> &Self::Rep {
+                    &self.0
                 }
             }
 
@@ -522,7 +515,7 @@ pub mod units {
                 /// Convert an embedded_time::[`Duration`] into a [`core::time::Duration`]
                 fn try_from(duration: $name<Rep>) -> Result<Self, Self::Error> {
                     let seconds = Seconds::<u64>::try_convert_from(duration)?;
-                    Ok(Self::from_secs(seconds.count()))
+                    Ok(Self::from_secs(*seconds.integer()))
                 }
             }
 
@@ -544,7 +537,7 @@ pub mod units {
 
                 /// Convert an embedded_time::[`Duration`] into a [`core::time::Duration`]
                 fn try_from(duration: $name<Rep>) -> Result<Self, Self::Error> {
-                    Ok(Self::$from_core_dur(duration.count().into()))
+                    Ok(Self::$from_core_dur((*duration.integer()).into()))
                 }
             }
 
@@ -603,9 +596,9 @@ mod tests {
     }
 
     #[test]
-    fn get_generic_count() {
+    fn get_generic_integer() {
         let generic = Generic::new(246_u32, Fraction::new(1, 2));
-        assert_eq!(generic.count(), 246_u32);
+        assert_eq!(generic.integer(), &246_u32);
     }
 
     #[test]

@@ -67,12 +67,12 @@ use core::{convert::TryFrom, prelude::v1::*};
 ///     Ok(Hertz(2_u64)));
 /// ```
 ///
-/// # Read the integer
+/// # Read the integer part
 ///
 /// ```rust
 /// # use embedded_time::{traits::*, rate::units::*};
 /// #
-/// assert_eq!(Hertz(45_u32).count(), 45_u32);
+/// assert_eq!(Hertz(45_u32).integer(), &45_u32);
 /// ```
 ///
 /// # Formatting
@@ -265,13 +265,6 @@ impl<T> Generic<T> {
     }
 }
 
-impl<T: TimeInt> Generic<T> {
-    /// Returns the integer of the fixed-point value
-    pub fn count(&self) -> T {
-        self.integer
-    }
-}
-
 impl<T: TimeInt> Rate for Generic<T> {}
 
 /// Rate-type units
@@ -305,8 +298,8 @@ pub mod units {
                     Self(value)
                 }
 
-                fn count(self) -> Self::Rep {
-                    self.0
+                fn integer(&self) -> &Self::Rep {
+                    &self.0
                 }
             }
 
@@ -393,7 +386,7 @@ pub mod units {
 
             impl<T: TimeInt> From<$name<T>> for Generic<T> {
                 fn from(rate: $name<T>) -> Self {
-                    Self::new(rate.count(), $name::<T>::SCALING_FACTOR)
+                    Self::new(*rate.integer(), $name::<T>::SCALING_FACTOR)
                 }
             }
         };
@@ -451,7 +444,7 @@ mod tests {
     #[test]
     fn get_generic_count() {
         let generic = Generic::new(246_u32, Fraction::new(1, 2));
-        assert_eq!(generic.count(), 246_u32);
+        assert_eq!(generic.integer(), &246_u32);
     }
 
     #[test]

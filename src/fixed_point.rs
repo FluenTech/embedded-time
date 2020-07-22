@@ -20,7 +20,7 @@ pub trait FixedPoint: Sized + Copy + fmt::Display {
     fn new(value: Self::Rep) -> Self;
 
     /// Returns the integer value of the `FixedPoint`
-    fn count(self) -> Self::Rep;
+    fn integer(&self) -> &Self::Rep;
 
     /// Returns the integer of the fixed-point value after converting to the _scaling factor_
     /// provided
@@ -48,7 +48,7 @@ pub trait FixedPoint: Sized + Copy + fmt::Display {
     {
         if size_of::<Rep>() > size_of::<Self::Rep>() {
             let ticks =
-                Rep::try_from(self.count()).map_err(|_| ConversionError::ConversionFailure)?;
+                Rep::try_from(*self.integer()).map_err(|_| ConversionError::ConversionFailure)?;
 
             if fraction > Fraction::new(1, 1) {
                 TimeInt::checked_div_fraction(
@@ -61,12 +61,12 @@ pub trait FixedPoint: Sized + Copy + fmt::Display {
         } else {
             let ticks = if Self::SCALING_FACTOR > Fraction::new(1, 1) {
                 TimeInt::checked_div_fraction(
-                    &TimeInt::checked_mul_fraction(&self.count(), &Self::SCALING_FACTOR)?,
+                    &TimeInt::checked_mul_fraction(self.integer(), &Self::SCALING_FACTOR)?,
                     &fraction,
                 )?
             } else {
                 TimeInt::checked_mul_fraction(
-                    &self.count(),
+                    self.integer(),
                     &Self::SCALING_FACTOR.checked_div(&fraction)?,
                 )?
             };
@@ -91,7 +91,7 @@ pub trait FixedPoint: Sized + Copy + fmt::Display {
     where
         Self::Rep: TryFrom<Source::Rep>,
     {
-        from_ticks(source.count(), Source::SCALING_FACTOR)
+        from_ticks(*source.integer(), Source::SCALING_FACTOR)
     }
 
     /// The reciprocal of [`FixedPoint::try_convert_from()`]
@@ -118,7 +118,7 @@ pub trait FixedPoint: Sized + Copy + fmt::Display {
     where
         Self::Rep: TryFrom<Rhs::Rep>,
     {
-        Self::new(self.count() + Self::try_convert_from(rhs).unwrap().count())
+        Self::new(*self.integer() + *Self::try_convert_from(rhs).unwrap().integer())
     }
 
     /// Panicky subtraction
@@ -126,7 +126,7 @@ pub trait FixedPoint: Sized + Copy + fmt::Display {
     where
         Self::Rep: TryFrom<Rhs::Rep>,
     {
-        Self::new(self.count() - Self::try_convert_from(rhs).unwrap().count())
+        Self::new(*self.integer() - *Self::try_convert_from(rhs).unwrap().integer())
     }
 
     /// Panicky remainder
@@ -134,10 +134,10 @@ pub trait FixedPoint: Sized + Copy + fmt::Display {
     where
         Self::Rep: TryFrom<Rhs::Rep>,
     {
-        let rhs = Self::try_convert_from(rhs).unwrap().count();
+        let rhs = *Self::try_convert_from(rhs).unwrap().integer();
 
         if rhs > Self::Rep::from(0) {
-            Self::new(self.count() % rhs)
+            Self::new(*self.integer() % rhs)
         } else {
             Self::new(Self::Rep::from(0))
         }
@@ -150,9 +150,9 @@ pub trait FixedPoint: Sized + Copy + fmt::Display {
         Rhs::Rep: TryFrom<Self::Rep>,
     {
         if Self::SCALING_FACTOR < Rhs::SCALING_FACTOR {
-            self.count() == Self::try_convert_from(*rhs).unwrap().count()
+            self.integer() == Self::try_convert_from(*rhs).unwrap().integer()
         } else {
-            Rhs::try_convert_from(*self).unwrap().count() == rhs.count()
+            Rhs::try_convert_from(*self).unwrap().integer() == rhs.integer()
         }
     }
 
@@ -164,15 +164,15 @@ pub trait FixedPoint: Sized + Copy + fmt::Display {
     {
         if Self::SCALING_FACTOR < Rhs::SCALING_FACTOR {
             Some(
-                self.count()
-                    .cmp(&Self::try_convert_from(*rhs).unwrap().count()),
+                self.integer()
+                    .cmp(&Self::try_convert_from(*rhs).unwrap().integer()),
             )
         } else {
             Some(
                 Rhs::try_convert_from(*self)
                     .unwrap()
-                    .count()
-                    .cmp(&rhs.count()),
+                    .integer()
+                    .cmp(&rhs.integer()),
             )
         }
     }
