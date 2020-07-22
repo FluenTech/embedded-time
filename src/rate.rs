@@ -397,17 +397,17 @@ pub mod units {
     impl_rate![Kilohertz, (1_000, 1)];
     impl_rate![Hertz, (1, 1)];
 
-    impl_rate![MebibytePerSecond, (1_048_576, 1)];
-    impl_rate![MegabytePerSecond, (1_000_000, 1)];
-    impl_rate![KibibytePerSecond, (1_024, 1)];
-    impl_rate![KiloBytePerSecond, (1_000, 1)];
-    impl_rate![BytePerSecond, (1, 1)];
+    impl_rate![MebibytesPerSecond, (1_048_576, 1)];
+    impl_rate![MegabytesPerSecond, (1_000_000, 1)];
+    impl_rate![KibibytesPerSecond, (1_024, 1)];
+    impl_rate![KiloBytesPerSecond, (1_000, 1)];
+    impl_rate![BytesPerSecond, (1, 1)];
 
-    impl_rate![MebibitPerSecond, (1_048_576, 1)];
-    impl_rate![MegabitPerSecond, (1_000_000, 1)];
-    impl_rate![KibibitPerSecond, (1_024, 1)];
-    impl_rate![KilobitPerSecond, (1_000, 1)];
-    impl_rate![BitPerSecond, (1, 1)];
+    impl_rate![MebibitsPerSecond, (1_048_576, 1)];
+    impl_rate![MegabitsPerSecond, (1_000_000, 1)];
+    impl_rate![KibibitsPerSecond, (1_024, 1)];
+    impl_rate![KilobitsPerSecond, (1_000, 1)];
+    impl_rate![BitsPerSecond, (1, 1)];
 
     impl_rate![Megabaud, (1, 1)];
     impl_rate![Kilobaud, (1, 1)];

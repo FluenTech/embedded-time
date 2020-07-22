@@ -436,7 +436,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{self as time, duration, units::*, ConversionError, Fraction, Instant};
+    use crate::{self as time, duration, ConversionError, Fraction, Instant};
 
     #[derive(Debug)]
     struct Clock;

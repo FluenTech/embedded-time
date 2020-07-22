@@ -197,12 +197,13 @@ impl<Clock: crate::Clock, Dur: Duration> Timer<'_, Periodic, Running, Clock, Dur
 }
 
 #[cfg(test)]
-#[allow(unused_imports)]
 #[allow(unsafe_code)]
 mod test {
-    use crate::fixed_point::FixedPoint;
     use crate::{
-        duration::units::*, duration::Duration, rate::units::*, traits::*, Fraction, Instant,
+        duration::{units::*, Duration},
+        fixed_point::FixedPoint,
+        traits::*,
+        Fraction, Instant,
     };
     use core::convert::{Infallible, TryFrom};
     use crossbeam_utils::thread;

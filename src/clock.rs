@@ -1,4 +1,4 @@
-//! Clock abstractions
+//! Abstraction for hardware timers/clocks
 
 use crate::{
     duration::Duration, fixed_point::FixedPoint, fraction::Fraction, instant::Instant,

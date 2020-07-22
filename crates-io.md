@@ -2,19 +2,7 @@
 
 
 `embedded-time` provides a comprehensive library for implementing abstractions over
-hardware and work with _clocks_, _timers_, _instants_, _durations_, _periods_, and _frequencies_ in a more intuitive way.
-
-## Hardware Abstraction
-
-- `Clock` trait allowing abstraction of hardware timers for timekeeping.
-
-## Timers
-
-- Software timers spawned from a `Clock` impl object.
-- One-shot or periodic/continuous
-- Blocking delay
-- Poll for expiration
-- Read elapsed/remaining duration
+hardware and work with _clocks_, _timers_, _instants_, _durations_, and _rates_ in a more intuitive way.
 
 ## Duration Types
 
@@ -24,6 +12,10 @@ hardware and work with _clocks_, _timers_, _instants_, _durations_, _periods_, a
 - Seconds
 - Minutes
 - Hours
+
+### `core` Compatibility
+
+- Conversion to/from `core::time::Duration`
 
 ### Benchmark Comparisons to `core` duration type
 
@@ -43,16 +35,41 @@ let count = core_duration.as_millis();
 
 _(the size of `core` duration type is 12 B)_
 
-![](https://raw.githubusercontent.com/FluenTech/embedded-time/v0.7.0/resources/duration_violin_v0.7.0.svg)
+![](resources/duration_violin_v0.7.0.svg)
 
-## Frequency Type
+## Rate Types
 
+- Megahertz
+- Kilohertz
 - Hertz
-  - Conversion to/from `Period`
+ 
+- MebibytePerSecond
+- MegabytePerSecond
+- KibibytePerSecond
+- KiloBytePerSecond
+- BytePerSecond
+ 
+- MebibitPerSecond
+- MegabitPerSecond
+- KibibitPerSecond
+- KilobitPerSecond
+- BitPerSecond
+ 
+- Megabaud
+- Kilobaud
+- Baud
 
-## `core` Compatibility
+## Hardware Abstraction
 
-- Conversion to/from `core::time::Duration`
+- `Clock` trait allowing abstraction of hardware timers for timekeeping.
+
+## Timers
+
+- Software timers spawned from a `Clock` impl object.
+- One-shot or periodic/continuous
+- Blocking delay
+- Poll for expiration
+- Read elapsed/remaining duration
 
 ## Reliability and Usability
 - Extensive tests
