@@ -89,8 +89,10 @@ mod time_int;
 mod timer;
 
 pub use clock::Clock;
+pub use duration::Duration;
 pub use fraction::Fraction;
 pub use instant::Instant;
+pub use rate::Rate;
 pub use timer::Timer;
 
 /// Public _traits_
@@ -102,8 +104,10 @@ pub use timer::Timer;
 pub mod traits {
     // Rename traits to `_` to avoid any potential name conflicts.
     pub use crate::clock::Clock as _;
+    pub use crate::duration::Duration as _;
     pub use crate::fixed_point::FixedPoint as _;
     pub use crate::numeric_constructor::NumericConstructor as _;
+    pub use crate::rate::Rate as _;
     pub use crate::time_int::TimeInt as _;
 }
 
