@@ -14,10 +14,10 @@
 //! In addition frequency-type types are available including [`Hertz`] ([`u32`]) and it's reciprocal
 //! [`Fraction`] ([`u32`]/[`u32`] seconds).
 //!
-//! [`Seconds`]: units::Seconds
-//! [`Milliseconds`]: units::Milliseconds
-//! [`Hertz`]: units::Hertz
-//! [`Duration`]: duration/trait.Duration.html
+//! [`Seconds`]: duration::units::Seconds
+//! [`Milliseconds`]: duration::units::Milliseconds
+//! [`Hertz`]: rate::units::Hertz
+//! [`Duration`]: duration::Duration
 //! [`Duration::count()`]: duration/trait.Duration.html#tymethod.count
 //!
 //! ## Definitions
@@ -43,7 +43,7 @@
 //!
 //! # Example Usage
 //! ```rust,no_run
-//! # use embedded_time::{traits::*, units::*, Instant, Fraction};
+//! # use embedded_time::{traits::*, duration::units::*, rate::units::*, Instant, Fraction};
 //! # use core::convert::TryFrom;
 //! # #[derive(Debug)]
 //! struct SomeClock;
@@ -107,14 +107,6 @@ pub mod traits {
     pub use crate::time_int::TimeInt as _;
 }
 
-pub mod units {
-    //! Time-based units of measure ([`Milliseconds`], [`Hertz`], etc)
-    #[doc(inline)]
-    pub use crate::duration::units::*;
-    #[doc(inline)]
-    pub use crate::rate::units::*;
-}
-
 /// Crate errors
 #[non_exhaustive]
 #[derive(Debug, Eq, PartialEq)]
@@ -165,7 +157,7 @@ impl<E> From<ConversionError> for TimeError<E> {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    use crate::{self as time, clock, traits::*, units::*};
+    use crate::{self as time, clock, duration::units::*, rate::units::*, traits::*};
     use core::{
         convert::{Infallible, TryFrom, TryInto},
         fmt::{self, Formatter},

@@ -9,7 +9,7 @@ use crate::{duration::units::*, rate::units::*, time_int::TimeInt};
 /// # Examples
 /// Basic construction of time-based values.
 /// ```rust
-/// # use embedded_time::{traits::*, units::*};
+/// # use embedded_time::{traits::*, duration::units::*, rate::units::*};
 /// assert_eq!(5_u32.nanoseconds(), Nanoseconds(5_u32));
 /// assert_eq!(5_u32.microseconds(), Microseconds(5_u32));
 /// assert_eq!(5_u32.milliseconds(), Milliseconds(5_u32));
