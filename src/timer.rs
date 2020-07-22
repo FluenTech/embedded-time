@@ -1,10 +1,4 @@
-use crate::{
-    duration::{Duration, TryConvertFrom},
-    timer::param::*,
-    traits::*,
-    units::*,
-    Instant, TimeError,
-};
+use crate::{duration::Duration, timer::param::*, traits::*, Instant, TimeError};
 use core::{convert::TryFrom, marker::PhantomData, ops::Add, prelude::v1::*};
 
 pub(crate) mod param {
@@ -117,14 +111,13 @@ impl<Type, Clock: crate::Clock, Dur: Duration> Timer<'_, Type, Running, Clock, D
     /// The units of the [`Duration`] are the same as that used to construct the `Timer`.
     pub fn remaining(&self) -> Result<Dur, TimeError<Clock::ImplError>>
     where
-        Dur::Rep: TryFrom<Clock::Rep>,
+        Dur::Rep: TryFrom<Clock::Rep> + From<u32>,
         Clock::Rep: TryFrom<Dur::Rep>,
-        Dur: TryConvertFrom<Seconds<u32>>,
     {
         if let Ok(duration) = self.expiration.duration_since(&self.clock.now()?) {
             Ok(duration)
         } else {
-            0.seconds().try_convert_into().map_err(|e| e.into())
+            0_u32.seconds().try_convert_into().map_err(|e| e.into())
         }
     }
 }

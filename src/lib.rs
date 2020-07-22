@@ -77,6 +77,7 @@
 
 pub mod clock;
 pub mod duration;
+mod fixed_point;
 mod fraction;
 mod instant;
 mod numeric_constructor;
@@ -99,9 +100,7 @@ pub use timer::Timer;
 pub mod traits {
     // Rename traits to `_` to avoid any potential name conflicts.
     pub use crate::clock::Clock as _;
-    pub use crate::duration::Duration as _;
-    pub use crate::duration::TryConvertFrom as _;
-    pub use crate::duration::TryConvertInto as _;
+    pub use crate::fixed_point::FixedPoint as _;
     pub use crate::numeric_constructor::NumericConstructor as _;
     pub use crate::time_int::TimeInt as _;
 }
@@ -164,7 +163,6 @@ impl<E> From<ConversionError> for TimeError<E> {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    use crate::duration::TryConvertFrom;
     use crate::{self as time, clock, traits::*, units::*};
     use core::{
         convert::{Infallible, TryFrom, TryInto},
