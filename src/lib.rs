@@ -44,6 +44,7 @@
 //! # Example Usage
 //! ```rust,no_run
 //! # use embedded_time::{traits::*, units::*, Instant, Fraction};
+//! # use core::convert::TryFrom;
 //! # #[derive(Debug)]
 //! struct SomeClock;
 //! impl embedded_time::Clock for SomeClock {
@@ -64,9 +65,11 @@
 //! assert!(instant1 < instant2);    // instant1 is *before* instant2
 //!
 //! // duration is the difference between the instances
-//! let duration: Result<Microseconds<u64>, _> = instant2.duration_since(&instant1);
-//!
+//! let duration = instant2.duration_since(&instant1);
 //! assert!(duration.is_ok());
+//!
+//! // convert to _named_ duration
+//! let duration = Microseconds::<u64>::try_from(duration.unwrap());
 //! assert_eq!(instant1 + duration.unwrap(), instant2);
 //! ```
 
@@ -81,14 +84,13 @@ mod fixed_point;
 mod fraction;
 mod instant;
 mod numeric_constructor;
-mod rate;
+pub mod rate;
 mod time_int;
 mod timer;
 
 pub use clock::Clock;
 pub use fraction::Fraction;
 pub use instant::Instant;
-pub(crate) use time_int::TimeInt;
 pub use timer::Timer;
 
 /// Public _traits_
@@ -218,12 +220,8 @@ mod tests {
         Clock::Rep: TryFrom<u32>,
     {
         assert_eq!(
-            Ok(Seconds(2_u32)),
-            clock
-                .now()
-                .ok()
-                .unwrap()
-                .duration_since_epoch::<Seconds<u32>>()
+            clock.now().ok().unwrap().duration_since_epoch().try_into(),
+            Ok(Seconds(2_u32))
         );
     }
 
@@ -269,9 +267,7 @@ mod tests {
         Clock: time::Clock,
     {
         fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-            let duration = self
-                .0
-                .duration_since_epoch::<Milliseconds<u64>>()
+            let duration = Milliseconds::<u64>::try_from(self.0.duration_since_epoch())
                 .map_err(|_| fmt::Error {})?;
 
             let hours = Hours::<u32>::try_convert_from(duration).map_err(|_| fmt::Error {})?;
