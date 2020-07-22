@@ -19,7 +19,7 @@ use core::{convert::TryFrom, prelude::v1::*};
 /// ```rust
 /// # use embedded_time::{traits::*, rate::units::*};
 /// #
-/// assert_eq!(45_u32.hertz(), Hertz(45_u32));
+/// assert_eq!(45_u32.Hz(), Hertz(45_u32));
 /// ```
 ///
 /// ## From a [`Generic`] `Rate`
@@ -232,6 +232,8 @@ pub trait Rate: Copy {
             Self::SCALING_FACTOR,
         )
     }
+
+    // TODO: add try_into_duration
 }
 
 /// The `Generic` `Rate` type allows arbitrary scaling factors to be used without having to impl
