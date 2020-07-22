@@ -1,12 +1,12 @@
 //! Representations of frequency-based values
 
 pub(crate) mod units {
-    use crate::{ConversionError, Period, TimeInt};
+    use crate::{ConversionError, Fraction, TimeInt};
     use core::{convert, ops};
 
     /// A frequency unit type
     ///
-    /// Convertible to/from [`Period`].
+    /// Convertible to/from [`Fraction`].
     #[derive(Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq)]
     pub struct Hertz<T: TimeInt = u32>(pub T);
 
@@ -40,33 +40,33 @@ pub(crate) mod units {
         }
     }
 
-    impl<T: TimeInt> convert::TryFrom<Period<T>> for Hertz<T> {
+    impl<T: TimeInt> convert::TryFrom<Fraction<T>> for Hertz<T> {
         type Error = ConversionError;
 
-        /// Create a new `Frequency` from a fractional [`Period`] in seconds
+        /// Create a new `Frequency` from a [`Fraction`] in seconds
         ///
         /// # Examples
         ///
         /// ```rust
-        /// # use embedded_time::{Period, units::*, ConversionError};
+        /// # use embedded_time::{Fraction, units::*, ConversionError};
         /// # use core::{convert::{TryFrom, TryInto}};
         /// #
-        /// assert_eq!(Hertz::try_from(<Period>::new(1, 1_000)),
+        /// assert_eq!(Hertz::try_from(<Fraction>::new(1, 1_000)),
         ///     Ok(Hertz(1_000_u32)));
         ///
-        /// assert_eq!(Hertz::try_from(<Period>::new(0, 1_000)),
+        /// assert_eq!(Hertz::try_from(<Fraction>::new(0, 1_000)),
         ///     Err(ConversionError::DivByZero));
         ///
-        /// assert_eq!(<Period>::new(1, 1_000).try_into(),
+        /// assert_eq!(<Fraction>::new(1, 1_000).try_into(),
         ///     Ok(Hertz(1_000_u32)));
         /// ```
         ///
         /// # Errors
         ///
         /// [`ConversionError::DivByZero`]
-        fn try_from(period: Period<T>) -> Result<Self, Self::Error> {
-            if !period.numerator().is_zero() {
-                Ok(Hertz(period.recip().to_integer()))
+        fn try_from(fraction: Fraction<T>) -> Result<Self, Self::Error> {
+            if !fraction.numerator().is_zero() {
+                Ok(Hertz(fraction.recip().to_integer()))
             } else {
                 Err(ConversionError::DivByZero)
             }
