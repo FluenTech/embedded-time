@@ -83,7 +83,7 @@ impl<'a, Type, Clock: crate::Clock, Dur: Duration> Timer<'a, Type, Armed, Clock,
         Ok(Timer::<Type, Running, Clock, Dur> {
             clock: self.clock,
             duration: self.duration,
-            expiration: self.clock.now()?.checked_add_duration(self.duration)?,
+            expiration: self.clock.try_now()?.checked_add_duration(self.duration)?,
             _type: PhantomData,
             _state: PhantomData,
         })
@@ -92,7 +92,7 @@ impl<'a, Type, Clock: crate::Clock, Dur: Duration> Timer<'a, Type, Armed, Clock,
 
 impl<Type, Clock: crate::Clock, Dur: Duration> Timer<'_, Type, Running, Clock, Dur> {
     fn _is_expired(&self) -> Result<bool, TimeError<Clock::ImplError>> {
-        Ok(self.clock.now()? >= self.expiration)
+        Ok(self.clock.try_now()? >= self.expiration)
     }
 
     /// Returns the [`Duration`] of time elapsed since it was started
@@ -106,7 +106,7 @@ impl<Type, Clock: crate::Clock, Dur: Duration> Timer<'_, Type, Running, Clock, D
         Dur::Rep: TryFrom<Clock::Rep>,
         Clock::Rep: TryFrom<Dur::Rep>,
     {
-        Ok(Dur::try_from(self.clock.now()?.duration_since(
+        Ok(Dur::try_from(self.clock.try_now()?.duration_since(
             &(self.expiration.checked_sub_duration(self.duration)?),
         )?)?)
     }
@@ -122,7 +122,7 @@ impl<Type, Clock: crate::Clock, Dur: Duration> Timer<'_, Type, Running, Clock, D
         Dur::Rep: TryFrom<u32> + TryFrom<Clock::Rep>,
         Clock::Rep: TryFrom<Dur::Rep>,
     {
-        match self.expiration.duration_since(&self.clock.now()?) {
+        match self.expiration.duration_since(&self.clock.try_now()?) {
             Ok(duration) => Ok(Dur::try_from(duration)?),
             Err(error) if error == ConversionError::NegDuration => {
                 Ok(0.seconds().try_convert_into().unwrap())
@@ -218,7 +218,7 @@ mod test {
         type ImplError = Infallible;
         const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
 
-        fn now(&self) -> Result<Instant<Self>, crate::clock::Error<Self::ImplError>> {
+        fn try_now(&self) -> Result<Instant<Self>, crate::clock::Error<Self::ImplError>> {
             Ok(Instant::new(TICKS.load(Ordering::SeqCst)))
         }
     }
