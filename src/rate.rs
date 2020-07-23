@@ -290,6 +290,13 @@ pub mod units {
             #[derive(Copy, Clone, Debug, Eq, Ord)]
             pub struct $name<T: TimeInt = u32>(pub T);
 
+            impl<Rep: TimeInt> $name<Rep> {
+                #[doc(hidden)]
+                pub fn new(value: Rep) -> Self {
+                    Self(value)
+                }
+            }
+
             impl<Rep: TimeInt> Rate for $name<Rep> {}
 
             impl<Rep: TimeInt> FixedPoint for $name<Rep> {
@@ -412,6 +419,102 @@ pub mod units {
     impl_rate![Megabaud, (1, 1)];
     impl_rate![Kilobaud, (1, 1)];
     impl_rate![Baud, (1, 1)];
+
+    /// Create time-based values from primitive and core numeric types.
+    ///
+    /// This trait is anonomously re-exported in [`traits`](crate::traits)
+    ///
+    /// # Examples
+    /// Basic construction of time-based values.
+    /// ```rust
+    /// # use embedded_time::{traits::*, rate::units::*};
+    /// assert_eq!(5_u32.MHz(), Megahertz(5_u32));
+    /// assert_eq!(5_u32.kHz(), Kilohertz(5_u32));
+    /// assert_eq!(5_u32.Hz(), Hertz(5_u32));
+    /// assert_eq!(5_u32.MiBps(), MebibytesPerSecond(5_u32));
+    /// assert_eq!(5_u32.MBps(), MegabytesPerSecond(5_u32));
+    /// assert_eq!(5_u32.KiBps(), KibibytesPerSecond(5_u32));
+    /// assert_eq!(5_u32.kBps(), KiloBytesPerSecond(5_u32));
+    /// assert_eq!(5_u32.Bps(), BytesPerSecond(5_u32));
+    /// assert_eq!(5_u32.Mibps(), MebibitsPerSecond(5_u32));
+    /// assert_eq!(5_u32.Mbps(), MegabitsPerSecond(5_u32));
+    /// assert_eq!(5_u32.Kibps(), KibibitsPerSecond(5_u32));
+    /// assert_eq!(5_u32.kbps(), KilobitsPerSecond(5_u32));
+    /// assert_eq!(5_u32.bps(), BitsPerSecond(5_u32));
+    /// assert_eq!(5_u32.MBd(), Megabaud(5_u32));
+    /// assert_eq!(5_u32.kBd(), Kilobaud(5_u32));
+    /// assert_eq!(5_u32.Bd(), Baud(5_u32));
+    /// ```
+    #[allow(non_snake_case)]
+    pub trait Extensions: TimeInt {
+        /// megahertz
+        fn MHz(self) -> Megahertz<Self> {
+            Megahertz::new(self)
+        }
+        /// kilohertz
+        fn kHz(self) -> Kilohertz<Self> {
+            Kilohertz::new(self)
+        }
+        /// hertz
+        fn Hz(self) -> Hertz<Self> {
+            Hertz::new(self)
+        }
+        /// mebibytes per second
+        fn MiBps(self) -> MebibytesPerSecond<Self> {
+            MebibytesPerSecond::new(self)
+        }
+        /// megabytes per second
+        fn MBps(self) -> MegabytesPerSecond<Self> {
+            MegabytesPerSecond::new(self)
+        }
+        /// kibibytes per second
+        fn KiBps(self) -> KibibytesPerSecond<Self> {
+            KibibytesPerSecond::new(self)
+        }
+        /// kiloBytes per second
+        fn kBps(self) -> KiloBytesPerSecond<Self> {
+            KiloBytesPerSecond::new(self)
+        }
+        /// bytes per second
+        fn Bps(self) -> BytesPerSecond<Self> {
+            BytesPerSecond::new(self)
+        }
+        /// mebibits per second
+        fn Mibps(self) -> MebibitsPerSecond<Self> {
+            MebibitsPerSecond::new(self)
+        }
+        /// megabits per second
+        fn Mbps(self) -> MegabitsPerSecond<Self> {
+            MegabitsPerSecond::new(self)
+        }
+        /// kibibits per second
+        fn Kibps(self) -> KibibitsPerSecond<Self> {
+            KibibitsPerSecond::new(self)
+        }
+        /// kilobits per second
+        fn kbps(self) -> KilobitsPerSecond<Self> {
+            KilobitsPerSecond::new(self)
+        }
+        /// bits per second
+        fn bps(self) -> BitsPerSecond<Self> {
+            BitsPerSecond::new(self)
+        }
+        /// megabaud
+        fn MBd(self) -> Megabaud<Self> {
+            Megabaud::new(self)
+        }
+        /// kilobaud
+        fn kBd(self) -> Kilobaud<Self> {
+            Kilobaud::new(self)
+        }
+        /// baud
+        fn Bd(self) -> Baud<Self> {
+            Baud::new(self)
+        }
+    }
+
+    impl Extensions for u32 {}
+    impl Extensions for u64 {}
 }
 
 #[cfg(test)]
