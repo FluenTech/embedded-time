@@ -52,16 +52,16 @@
 //!     type ImplError = ();
 //!     const SCALING_FACTOR: Fraction = Fraction::new(1, 16_000_000);
 //!
-//!     fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {
+//!     fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {
 //!         // ...
 //! #         unimplemented!()
 //!     }
 //! }
 //!
 //! let mut clock = SomeClock;
-//! let instant1 = clock.now().unwrap();
+//! let instant1 = clock.try_now().unwrap();
 //! // ...
-//! let instant2 = clock.now().unwrap();
+//! let instant2 = clock.try_now().unwrap();
 //! assert!(instant1 < instant2);    // instant1 is *before* instant2
 //!
 //! // duration is the difference between the instances
@@ -173,7 +173,7 @@ mod tests {
         type ImplError = Infallible;
         const SCALING_FACTOR: time::Fraction = <time::Fraction>::new(1, 64_000_000);
 
-        fn now(&self) -> Result<time::Instant<Self>, time::clock::Error<Self::ImplError>> {
+        fn try_now(&self) -> Result<time::Instant<Self>, time::clock::Error<Self::ImplError>> {
             Ok(time::Instant::new(128_000_000))
         }
     }
@@ -186,7 +186,7 @@ mod tests {
         type ImplError = Infallible;
         const SCALING_FACTOR: time::Fraction = <time::Fraction>::new(1, 16_000_000);
 
-        fn now(&self) -> Result<time::Instant<Self>, time::clock::Error<Self::ImplError>> {
+        fn try_now(&self) -> Result<time::Instant<Self>, time::clock::Error<Self::ImplError>> {
             Ok(time::Instant::new(32_000_000))
         }
     }
@@ -205,7 +205,7 @@ mod tests {
         type ImplError = ClockImplError;
         const SCALING_FACTOR: time::Fraction = <time::Fraction>::new(1, 16_000_000);
 
-        fn now(&self) -> Result<time::Instant<Self>, time::clock::Error<Self::ImplError>> {
+        fn try_now(&self) -> Result<time::Instant<Self>, time::clock::Error<Self::ImplError>> {
             Err(time::clock::Error::Other(ClockImplError::NotStarted))
         }
     }
@@ -216,15 +216,20 @@ mod tests {
         Clock::Rep: TryFrom<u32>,
     {
         assert_eq!(
-            clock.now().ok().unwrap().duration_since_epoch().try_into(),
+            clock
+                .try_now()
+                .ok()
+                .unwrap()
+                .duration_since_epoch()
+                .try_into(),
             Ok(Seconds(2_u32))
         );
     }
 
     #[test]
     fn common_types() {
-        let then = MockClock32.now().unwrap();
-        let now = MockClock32.now().unwrap();
+        let then = MockClock32.try_now().unwrap();
+        let now = MockClock32.try_now().unwrap();
 
         let clock64 = MockClock64 {};
         let clock32 = MockClock32 {};
@@ -240,7 +245,7 @@ mod tests {
     #[test]
     fn clock_error() {
         assert_eq!(
-            BadClock.now(),
+            BadClock.try_now(),
             Err(time::clock::Error::Other(ClockImplError::NotStarted))
         );
     }
