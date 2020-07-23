@@ -13,7 +13,7 @@ impl time::Clock for SysClock {
     type ImplError = Infallible;
     const SCALING_FACTOR: time::Fraction = <time::Fraction>::new(1, 1_000_000);
 
-    fn now(&self) -> Result<time::Instant<Self>, time::clock::Error<Self::ImplError>> {
+    fn try_now(&self) -> Result<time::Instant<Self>, time::clock::Error<Self::ImplError>> {
         Ok(time::Instant::new(23 as Self::Rep))
     }
 }
