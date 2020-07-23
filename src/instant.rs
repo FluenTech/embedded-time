@@ -11,13 +11,15 @@ use num::traits::{WrappingAdd, WrappingSub};
 /// Represents an instant of time relative to a specific [`Clock`](clock/trait.Clock.html)
 ///
 /// # Example
+///
 /// Typically an `Instant` will be obtained from a [`Clock`](clock/trait.Clock.html)
+///
 /// ```rust
 /// # use embedded_time::{Fraction, traits::*, Instant};
 /// # #[derive(Debug)]
 /// # struct SomeClock;
 /// # impl embedded_time::Clock for SomeClock {
-/// #     type Rep = u32;
+/// #     type T = u32;
 /// #     type ImplError = ();
 /// #     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
 /// #     fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {Ok(Instant::<Self>::new(23))}
@@ -28,12 +30,13 @@ use num::traits::{WrappingAdd, WrappingSub};
 ///
 /// However, an `Instant` can also be constructed directly. In this case the constructed `Instant`
 /// is `23 * SomeClock::SCALING_FACTOR` seconds since the clock's epoch
+///
 /// ```rust,no_run
 /// # use embedded_time::{Fraction, Instant};
 /// # #[derive(Debug)]
 /// # struct SomeClock;
 /// # impl embedded_time::Clock for SomeClock {
-/// #     type Rep = u32;
+/// #     type T = u32;
 /// #     type ImplError = ();
 /// #     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
 /// #     fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
@@ -42,18 +45,19 @@ use num::traits::{WrappingAdd, WrappingSub};
 /// ```
 #[derive(Debug)]
 pub struct Instant<Clock: crate::Clock> {
-    ticks: Clock::Rep,
+    ticks: Clock::T,
 }
 
 impl<Clock: crate::Clock> Instant<Clock> {
     /// Construct a new Instant from the provided [`Clock`](clock/trait.Clock.html)
-    pub fn new(ticks: Clock::Rep) -> Self {
+    pub fn new(ticks: Clock::T) -> Self {
         Self { ticks }
     }
 
     /// Returns the [`Duration`] since the given `Instant`
     ///
     /// # Examples
+    ///
     /// ```rust
     /// # use embedded_time::{Fraction, duration::units::*, rate::units::*, Instant, ConversionError, duration};
     /// # use core::convert::TryInto;
@@ -61,7 +65,7 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// #
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
-    ///     type Rep = u32;
+    ///     type T = u32;
     /// #   type ImplError = ();
     ///     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
     ///     // ...
@@ -79,12 +83,17 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// # Errors
     ///
     /// - [`ConversionError::NegDuration`] : `Instant` is in the future
+    // TODO: add example
+    ///
     /// - [`ConversionError::Overflow`] : problem coverting to the desired [`Duration`]
+    // TODO: add example
+    ///
     /// - [`ConversionError::ConversionFailure`] : problem coverting to the desired [`Duration`]
+    // TODO: add example
     pub fn duration_since(
         &self,
         other: &Self,
-    ) -> Result<duration::Generic<Clock::Rep>, ConversionError> {
+    ) -> Result<duration::Generic<Clock::T>, ConversionError> {
         if self >= other {
             Ok(duration::Generic::new(
                 self.ticks.wrapping_sub(&other.ticks),
@@ -105,7 +114,7 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// #
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
-    ///     type Rep = u32;
+    ///     type T = u32;
     /// # type ImplError = ();
     ///     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
     ///     // ...
@@ -122,12 +131,17 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// # Errors
     ///
     /// - [`ConversionError::NegDuration`] : `Instant` is in the past
+    // TODO: add example
+    ///
     /// - [`ConversionError::Overflow`] : problem coverting to the desired [`Duration`]
+    // TODO: add example
+    ///
     /// - [`ConversionError::ConversionFailure`] : problem coverting to the desired [`Duration`]
+    // TODO: add example
     pub fn duration_until<Dur: Duration>(&self, other: &Self) -> Result<Dur, ConversionError>
     where
-        Dur: FixedPoint + TryFrom<duration::Generic<Clock::Rep>, Error = ConversionError>,
-        Dur::Rep: TryFrom<Clock::Rep>,
+        Dur: FixedPoint + TryFrom<duration::Generic<Clock::T>, Error = ConversionError>,
+        Dur::T: TryFrom<Clock::T>,
     {
         if self <= other {
             Dur::try_from(duration::Generic::new(
@@ -143,9 +157,9 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// [`Clock`](clock/trait.Clock.html)'s 0)
     ///
     /// If it is a _wrapping_ clock, the result is meaningless.
-    pub fn duration_since_epoch(&self) -> duration::Generic<Clock::Rep> {
+    pub fn duration_since_epoch(&self) -> duration::Generic<Clock::T> {
         self.duration_since(&Self {
-            ticks: Clock::Rep::from(0),
+            ticks: Clock::T::from(0),
         })
         .unwrap()
     }
@@ -153,12 +167,13 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// Add a [`Duration`] to an `Instant` resulting in a new, later `Instant`
     ///
     /// # Examples
+    ///
     /// ```rust
     /// # use embedded_time::{Fraction, duration::units::*, rate::units::*, Instant};
     /// # #[derive(Debug)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
-    ///     type Rep = u32;
+    ///     type T = u32;
     /// # type ImplError = ();
     ///     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
     ///     // ...
@@ -172,7 +187,9 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// assert_eq!(Instant::<Clock>::new(0) + Milliseconds(u32::MAX / 2),
     /// Instant::<Clock>::new(u32::MAX/2));
     /// ```
+    ///
     /// # Errors
+    ///
     /// [`ConversionError::Overflow`] : The duration is more than half the wrap-around period of the
     /// clock
     ///
@@ -181,7 +198,7 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// # #[derive(Debug)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
-    ///     type Rep = u32;
+    ///     type T = u32;
     /// # type ImplError = ();
     ///     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
     ///     // ...
@@ -194,10 +211,10 @@ impl<Clock: crate::Clock> Instant<Clock> {
     pub fn checked_add_duration<Dur: Duration>(self, duration: Dur) -> Result<Self, ConversionError>
     where
         Dur: FixedPoint,
-        Clock::Rep: TryFrom<Dur::Rep>,
+        Clock::T: TryFrom<Dur::T>,
     {
-        let add_ticks: Clock::Rep = duration.into_ticks(Clock::SCALING_FACTOR)?;
-        if add_ticks <= (<Clock::Rep as num::Bounded>::max_value() / 2.into()) {
+        let add_ticks: Clock::T = duration.into_ticks(Clock::SCALING_FACTOR)?;
+        if add_ticks <= (<Clock::T as num::Bounded>::max_value() / 2.into()) {
             Ok(Self {
                 ticks: self.ticks.wrapping_add(&add_ticks),
             })
@@ -209,12 +226,13 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// Subtracts a [`Duration`] from an `Instant` resulting in a new, earlier `Instant`
     ///
     /// # Examples
+    ///
     /// ```rust
     /// # use embedded_time::{Fraction, duration::units::*, rate::units::*, Instant};
     /// # #[derive(Debug)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
-    ///     type Rep = u32;
+    ///     type T = u32;
     /// # type ImplError = ();
     ///     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
     ///     // ...
@@ -228,7 +246,9 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// assert_eq!(Instant::<Clock>::new(u32::MAX) - Milliseconds(i32::MAX as u32),
     /// Instant::<Clock>::new(u32::MAX/2 + 1));
     /// ```
+    ///
     /// # Errors
+    ///
     /// [`ConversionError::Overflow`] : The duration is more than half the wrap-around period of the
     /// clock
     ///
@@ -237,7 +257,7 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// # #[derive(Debug)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
-    ///     type Rep = u32;
+    ///     type T = u32;
     /// # type ImplError = ();
     ///     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
     ///     // ...
@@ -250,10 +270,10 @@ impl<Clock: crate::Clock> Instant<Clock> {
     pub fn checked_sub_duration<Dur: Duration>(self, duration: Dur) -> Result<Self, ConversionError>
     where
         Dur: FixedPoint,
-        Clock::Rep: TryFrom<Dur::Rep>,
+        Clock::T: TryFrom<Dur::T>,
     {
-        let sub_ticks: Clock::Rep = duration.into_ticks(Clock::SCALING_FACTOR)?;
-        if sub_ticks <= (<Clock::Rep as num::Bounded>::max_value() / 2.into()) {
+        let sub_ticks: Clock::T = duration.into_ticks(Clock::SCALING_FACTOR)?;
+        if sub_ticks <= (<Clock::T as num::Bounded>::max_value() / 2.into()) {
             Ok(Self {
                 ticks: self.ticks.wrapping_sub(&sub_ticks),
             })
@@ -280,16 +300,14 @@ impl<Clock: crate::Clock> PartialEq for Instant<Clock> {
 impl<Clock: crate::Clock> Eq for Instant<Clock> {}
 
 impl<Clock: crate::Clock> PartialOrd for Instant<Clock> {
-    /// Calculates the difference between two `Instance`s resulting in a [`Duration`]
-    ///
-    /// # Examples
+    /// Calculates the difference between two `Instant`s resulting in a [`Duration`]
     ///
     /// ```rust
     /// # use embedded_time::{Fraction, duration::units::*, rate::units::*, Instant};
     /// # #[derive(Debug)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
-    ///     type Rep = u32;
+    ///     type T = u32;
     /// # type ImplError = ();
     ///     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
     ///     // ...
@@ -309,15 +327,14 @@ impl<Clock: crate::Clock> Ord for Instant<Clock> {
     fn cmp(&self, other: &Self) -> Ordering {
         self.ticks
             .wrapping_sub(&other.ticks)
-            .cmp(&(<Clock::Rep as num::Bounded>::max_value() / 2.into()))
+            .cmp(&(<Clock::T as num::Bounded>::max_value() / 2.into()))
             .reverse()
     }
 }
 
-/// Add a [`Duration`] to an `Instant` resulting in a later `Instant`
 impl<Clock: crate::Clock, Dur: Duration> ops::Add<Dur> for Instant<Clock>
 where
-    Clock::Rep: TryFrom<Dur::Rep>,
+    Clock::T: TryFrom<Dur::T>,
     Dur: FixedPoint,
 {
     type Output = Self;
@@ -325,12 +342,13 @@ where
     /// Add a [`Duration`] to an `Instant` resulting in a new, later `Instant`
     ///
     /// # Examples
+    ///
     /// ```rust
     /// # use embedded_time::{Fraction, duration::units::*, rate::units::*, Instant};
     /// # #[derive(Debug)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
-    ///     type Rep = u32;
+    ///     type T = u32;
     /// # type ImplError = ();
     ///     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
     ///     // ...
@@ -350,6 +368,7 @@ where
     /// ```
     ///
     /// # Panics
+    ///
     /// Virtually the same reason the integer operation would panic. Namely, if the
     /// result overflows the type. Specifically, if the duration is more than half
     /// the wrap-around period of the clock.
@@ -359,7 +378,7 @@ where
     /// # #[derive(Debug)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
-    ///     type Rep = u32;
+    ///     type T = u32;
     /// # type ImplError = ();
     ///     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
     ///     // ...
@@ -373,10 +392,9 @@ where
     }
 }
 
-/// Subtract a [`Duration`] from an `Instant` resulting in an earlier `Instant`
 impl<Clock: crate::Clock, Dur: Duration> ops::Sub<Dur> for Instant<Clock>
 where
-    Clock::Rep: TryFrom<Dur::Rep>,
+    Clock::T: TryFrom<Dur::T>,
     Dur: FixedPoint,
 {
     type Output = Self;
@@ -390,7 +408,7 @@ where
     /// # #[derive(Debug)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
-    ///     type Rep = u32;
+    ///     type T = u32;
     /// # type ImplError = ();
     ///     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
     ///     // ...
@@ -420,7 +438,7 @@ where
     /// # #[derive(Debug)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
-    ///     type Rep = u32;
+    ///     type T = u32;
     /// # type ImplError = ();
     ///     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
     ///     // ...
@@ -442,7 +460,7 @@ mod tests {
     struct Clock;
 
     impl time::Clock for Clock {
-        type Rep = u32;
+        type T = u32;
         type ImplError = ();
         const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
 

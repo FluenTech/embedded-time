@@ -42,7 +42,7 @@ impl<'a, Clock: crate::Clock, Dur: Duration> Timer<'_, param::None, param::None,
         Timer::<OneShot, Armed, Clock, Dur> {
             clock,
             duration,
-            expiration: Instant::new(Clock::Rep::from(0)),
+            expiration: Instant::new(Clock::T::from(0)),
             _type: PhantomData,
             _state: PhantomData,
         }
@@ -77,7 +77,7 @@ impl<'a, Type, Clock: crate::Clock, Dur: Duration> Timer<'a, Type, Armed, Clock,
     /// Start the timer from this instant
     pub fn start(self) -> Result<Timer<'a, Type, Running, Clock, Dur>, TimeError<Clock::ImplError>>
     where
-        Clock::Rep: TryFrom<Dur::Rep>,
+        Clock::T: TryFrom<Dur::T>,
         Dur: FixedPoint,
     {
         Ok(Timer::<Type, Running, Clock, Dur> {
@@ -102,9 +102,9 @@ impl<Type, Clock: crate::Clock, Dur: Duration> Timer<'_, Type, Running, Clock, D
     /// The units of the [`Duration`] are the same as that used to construct the `Timer`.
     pub fn elapsed(&self) -> Result<Dur, TimeError<Clock::ImplError>>
     where
-        Dur: FixedPoint + TryFrom<duration::Generic<Clock::Rep>, Error = ConversionError>,
-        Dur::Rep: TryFrom<Clock::Rep>,
-        Clock::Rep: TryFrom<Dur::Rep>,
+        Dur: FixedPoint + TryFrom<duration::Generic<Clock::T>, Error = ConversionError>,
+        Dur::T: TryFrom<Clock::T>,
+        Clock::T: TryFrom<Dur::T>,
     {
         Ok(Dur::try_from(self.clock.try_now()?.duration_since(
             &(self.expiration.checked_sub_duration(self.duration)?),
@@ -118,9 +118,9 @@ impl<Type, Clock: crate::Clock, Dur: Duration> Timer<'_, Type, Running, Clock, D
     /// The units of the [`Duration`] are the same as that used to construct the `Timer`.
     pub fn remaining(&self) -> Result<Dur, TimeError<Clock::ImplError>>
     where
-        Dur: FixedPoint + TryFrom<duration::Generic<Clock::Rep>, Error = ConversionError>,
-        Dur::Rep: TryFrom<u32> + TryFrom<Clock::Rep>,
-        Clock::Rep: TryFrom<Dur::Rep>,
+        Dur: FixedPoint + TryFrom<duration::Generic<Clock::T>, Error = ConversionError>,
+        Dur::T: TryFrom<u32> + TryFrom<Clock::T>,
+        Clock::T: TryFrom<Dur::T>,
     {
         match self.expiration.duration_since(&self.clock.try_now()?) {
             Ok(duration) => Ok(Dur::try_from(duration)?),
@@ -205,7 +205,7 @@ mod test {
         traits::*,
         Fraction, Instant,
     };
-    use core::convert::{Infallible, TryFrom};
+    use core::convert::Infallible;
     use crossbeam_utils::thread;
     use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -214,7 +214,7 @@ mod test {
     #[derive(Debug)]
     struct Clock;
     impl crate::Clock for Clock {
-        type Rep = u64;
+        type T = u64;
         type ImplError = Infallible;
         const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
 
@@ -338,7 +338,7 @@ mod test {
         let ticks = TICKS.load(Ordering::SeqCst);
         let ticks = ticks
             + duration
-                .into_ticks::<<Clock as crate::Clock>::Rep>(Clock::SCALING_FACTOR)
+                .into_ticks::<<Clock as crate::Clock>::T>(Clock::SCALING_FACTOR)
                 .unwrap();
         TICKS.store(ticks, Ordering::SeqCst);
     }

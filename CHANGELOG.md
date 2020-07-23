@@ -2,12 +2,55 @@
 
 ## [Unreleased]
 
+
+[unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.8.0...HEAD
+
+## [0.8.0] - 2020-07-24
+
 ### Added
 
 - A full range of rate types implemented at the same level as the duration types (as a fixed-point value)
+
+    | Units             | Extension |
+    | :---------------- | :-------- |
+    | Megahertz         | MHz       |
+    | Kilohertz         | kHz       |
+    | Hertz             | Hz        |
+    |                   |           |
+    | MebibytePerSecond | MiBps     |
+    | MegabytePerSecond | MBps      |
+    | KibibytePerSecond | KiBps     |
+    | KiloBytePerSecond | KBps      |
+    | BytePerSecond     | Bps       |
+    |                   |           |
+    | MebibitPerSecond  | Mibps     |
+    | MegabitPerSecond  | Mbps      |
+    | KibibitPerSecond  | Kibps     |
+    | KilobitPerSecond  | kbps      |
+    | BitPerSecond      | bps       |
+    |                   |           |
+    | Mebibaud          | MiBd      |
+    | Megabaud          | MBd       |
+    | Kibibaud          | KiBd      |
+    | Kilobaud          | kBd       |
+    | Baud              | Bd        |
+
 - Conversion between duration and rate types
+
+    ```rust
+    Microseconds::<u32>::try_from_rate(Kilohertz(2_u32)) -> Ok(Microseconds(500_u32))
+    Kilohertz::<u32>::try_from_duration(Microseconds(2_u32)) -> Ok(Kilohertz(500_u32))
+    ```
+
 - `Generic` duration/rate types returned by `Instant` methods that return a duration/rate and convertible to/from _named_ durations/rates
-- A `FixedPoint` trait for common duration and rate behaviors
+
+    ```rust
+    Seconds(2_u64).try_into_generic(Fraction::new(1, 2_000)) -> Ok(Generic::new(4_000_u32, Fraction::new(1, 2_000))))
+    Seconds::<u64>::try_from(Generic::new(2_000_u32, Fraction::new(1, 1_000))) -> Ok(Seconds(2_u64))
+
+    Hertz(2_u64).try_into_generic(Fraction::new(1,2_000)) -> Ok(Generic::new(4_000_u32, Fraction::new(1,2_000))))
+    Hertz::<u64>::try_from(Generic::new(2_000_u32, Fraction::new(1,1_000))) -> Ok(Hertz(2_u64))
+    ```
 
 ### Changed
 
@@ -16,7 +59,7 @@
 - The `const PERIOD`s in duration and clock traits is now `const SCALING_FACTOR`
 - The `Period` type is renamed to `Fraction` and is no longer generic (now u32)
 
-[unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.7.0...HEAD
+[0.8.0]: https://github.com/FluenTech/embedded-time/compare/v0.7.0...v0.8.0
 
 ## [0.7.0] - 2020-07-13
 

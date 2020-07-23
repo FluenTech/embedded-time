@@ -1,26 +1,35 @@
-//! `embedded-time` provides a comprehensive library for implementing [`Clock`] abstractions over
-//! hardware to generate [`Instant`]s and using [`Duration`]s ([`Seconds`], [`Milliseconds`], etc)
+//! `embedded-time` provides a comprehensive library of [`Duration`] and [`Rate`] types as well as
+//! a [`Clock`] abstractions for hardware timers/clocks and the associated [`Instant`] type for
 //! in embedded systems.
 //!
-//! The approach is similar to the C++ `chrono` library. A [`Duration`]
-//! consists of an integer (whose type is chosen by the user to be either [`u32`] or [`u64`]) as
-//! well as a `const` fraction ([`Fraction`]) where the integer value multiplied by the fraction is
-//! the [`Duration`] in seconds. Put another way, the ratio is the precision of the LSbit of the
-//! integer. This structure avoids unnecessary arithmetic. For example, if the [`Duration`] type is
-//! [`Milliseconds`], a call to the [`Duration::count()`] method simply returns the stored integer
-//! value directly which is the number of milliseconds being represented. Conversion arithmetic is
-//! only performed when explicitly converting between time units.
+//! Additionally, an implementation of software timers is provided that work seemlessly with all
+//! the types in this crate.
 //!
-//! In addition frequency-type types are available including [`Hertz`] ([`u32`]) and it's reciprocal
-//! [`Fraction`] ([`u32`]/[`u32`] seconds).
+//! The approach taken is similar to the C++ `chrono` library. [`Duration`]s and [`Rate`]s are
+//! fixed-point values as in they are comprised of _integer_ and _scaling factor_ values.
+//! The _scaling factor_ is a `const` [`Fraction`]. One benefit of this structure is that it avoids
+//! unnecessary arithmetic. For example, if the [`Duration`] type is
+//! [`Milliseconds`], a call to the [`Duration::integer()`] method simply returns the _integer_
+//! part directly which in the case is the number of milliseconds represented by the [`Duration`].
+//! Conversion arithmetic is only performed when explicitly converting between time units (eg.
+//! [`Milliseconds`] --> [`Seconds`]).
+//!
+//! In addition, a wide range of rate-type types are available including [`Hertz`],
+//! [`BitsPerSecond`], [`Baud`], etc.
+//!
+//! A [`Duration`] type can be converted to a [`Rate`] type and vica-versa.
 //!
 //! [`Seconds`]: duration::units::Seconds
 //! [`Milliseconds`]: duration::units::Milliseconds
+//! [`Rate`]: rate::Rate
 //! [`Hertz`]: rate::units::Hertz
+//! [`BitsPerSecond`]: rate::units::BitsPerSecond
+//! [`Baud`]: rate::units::Baud
 //! [`Duration`]: duration::Duration
-//! [`Duration::count()`]: duration/trait.Duration.html#tymethod.count
+//! [`Duration::integer()`]: duration/trait.Duration.html#tymethod.integer
 //!
 //! ## Definitions
+//!
 //! **Clock**: Any entity that periodically counts (ie an external or peripheral hardware
 //! timer/counter). Generally, this needs to be monotonic. A wrapping clock is considered monotonic
 //! in this context as long as it fulfills the other requirements.
@@ -32,8 +41,10 @@
 //!
 //! **Instant**: A specific instant in time ("time-point") read from a clock.
 //!
-//! **Duration**: The difference of two instances. The time that has elapsed since an instant. A
+//! **Duration**: The difference of two instants. The time that has elapsed since an instant. A
 //! span of time.
+//!
+//! **Rate**: A measure of events per time such as frequency, data-rate, etc.
 //!
 //! ## Notes
 //! Some parts of this crate were derived from various sources:
@@ -48,7 +59,7 @@
 //! # #[derive(Debug)]
 //! struct SomeClock;
 //! impl embedded_time::Clock for SomeClock {
-//!     type Rep = u64;
+//!     type T = u64;
 //!     type ImplError = ();
 //!     const SCALING_FACTOR: Fraction = Fraction::new(1, 16_000_000);
 //!
@@ -64,7 +75,7 @@
 //! let instant2 = clock.try_now().unwrap();
 //! assert!(instant1 < instant2);    // instant1 is *before* instant2
 //!
-//! // duration is the difference between the instances
+//! // duration is the difference between the instants
 //! let duration = instant2.duration_since(&instant1);
 //! assert!(duration.is_ok());
 //!
@@ -169,7 +180,7 @@ mod tests {
 
     struct MockClock64;
     impl time::Clock for MockClock64 {
-        type Rep = u64;
+        type T = u64;
         type ImplError = Infallible;
         const SCALING_FACTOR: time::Fraction = <time::Fraction>::new(1, 64_000_000);
 
@@ -182,7 +193,7 @@ mod tests {
     struct MockClock32;
 
     impl time::Clock for MockClock32 {
-        type Rep = u32;
+        type T = u32;
         type ImplError = Infallible;
         const SCALING_FACTOR: time::Fraction = <time::Fraction>::new(1, 16_000_000);
 
@@ -201,7 +212,7 @@ mod tests {
     struct BadClock;
 
     impl time::Clock for BadClock {
-        type Rep = u32;
+        type T = u32;
         type ImplError = ClockImplError;
         const SCALING_FACTOR: time::Fraction = <time::Fraction>::new(1, 16_000_000);
 
@@ -212,8 +223,8 @@ mod tests {
 
     fn get_time<Clock: time::Clock>(clock: &Clock)
     where
-        u32: TryFrom<Clock::Rep>,
-        Clock::Rep: TryFrom<u32>,
+        u32: TryFrom<Clock::T>,
+        Clock::T: TryFrom<u32>,
     {
         assert_eq!(
             clock
