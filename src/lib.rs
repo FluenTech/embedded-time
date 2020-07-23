@@ -83,7 +83,6 @@ pub mod duration;
 mod fixed_point;
 mod fraction;
 mod instant;
-mod numeric_constructor;
 pub mod rate;
 mod time_int;
 mod timer;
@@ -104,9 +103,10 @@ pub use timer::Timer;
 pub mod traits {
     // Rename traits to `_` to avoid any potential name conflicts.
     pub use crate::clock::Clock as _;
+    pub use crate::duration::units::Extensions as _;
     pub use crate::duration::Duration as _;
     pub use crate::fixed_point::FixedPoint as _;
-    pub use crate::numeric_constructor::NumericConstructor as _;
+    pub use crate::rate::units::Extensions as _;
     pub use crate::rate::Rate as _;
     pub use crate::time_int::TimeInt as _;
 }

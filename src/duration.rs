@@ -385,6 +385,13 @@ pub mod units {
             #[derive(Copy, Clone, Debug, Eq, Ord)]
             pub struct $name<T: TimeInt = u32>(pub T);
 
+            impl<Rep: TimeInt> $name<Rep> {
+                #[doc(hidden)]
+                pub fn new(value: Rep) -> Self {
+                    Self(value)
+                }
+            }
+
             impl<Rep: TimeInt> Duration for $name<Rep> {}
 
             impl<Rep: TimeInt> FixedPoint for $name<Rep> {
@@ -565,6 +572,51 @@ pub mod units {
     impl_duration![Milliseconds, (1, 1_000), from_millis, as_millis];
     impl_duration![Microseconds, (1, 1_000_000), from_micros, as_micros];
     impl_duration![Nanoseconds, (1, 1_000_000_000), from_nanos, as_nanos];
+
+    /// Create time-based values from primitive and core numeric types.
+    ///
+    /// This trait is anonomously re-exported in [`traits`](crate::traits)
+    ///
+    /// # Examples
+    /// Basic construction of time-based values.
+    /// ```rust
+    /// # use embedded_time::{traits::*, duration::units::*};
+    /// assert_eq!(5_u32.nanoseconds(), Nanoseconds(5_u32));
+    /// assert_eq!(5_u32.microseconds(), Microseconds(5_u32));
+    /// assert_eq!(5_u32.milliseconds(), Milliseconds(5_u32));
+    /// assert_eq!(5_u32.seconds(), Seconds(5_u32));
+    /// assert_eq!(5_u32.minutes(), Minutes(5_u32));
+    /// assert_eq!(5_u32.hours(), Hours(5_u32));
+    /// ```
+    pub trait Extensions: TimeInt {
+        /// nanoseconds
+        fn nanoseconds(self) -> Nanoseconds<Self> {
+            Nanoseconds::new(self)
+        }
+        /// microseconds
+        fn microseconds(self) -> Microseconds<Self> {
+            Microseconds::new(self)
+        }
+        /// milliseconds
+        fn milliseconds(self) -> Milliseconds<Self> {
+            Milliseconds::new(self)
+        }
+        /// seconds
+        fn seconds(self) -> Seconds<Self> {
+            Seconds::new(self)
+        }
+        /// minutes
+        fn minutes(self) -> Minutes<Self> {
+            Minutes::new(self)
+        }
+        /// hours
+        fn hours(self) -> Hours<Self> {
+            Hours::new(self)
+        }
+    }
+
+    impl Extensions for u32 {}
+    impl Extensions for u64 {}
 }
 
 #[cfg(test)]
