@@ -35,7 +35,7 @@ impl SysClock {
 }
 
 impl time::Clock for SysClock {
-    type Rep = u64;
+    type T = u64;
     type ImplError = Infallible;
     const SCALING_FACTOR: time::Fraction = <time::Fraction>::new(1, 16_000_000);
 
@@ -45,7 +45,7 @@ impl time::Clock for SysClock {
         let ticks =
             self.low.cc[0].read().bits() as u64 | ((self.high.cc[0].read().bits() as u64) << 32);
 
-        Ok(time::Instant::new(ticks as Self::Rep))
+        Ok(time::Instant::new(ticks as Self::T))
     }
 }
 

@@ -1,17 +1,29 @@
 # embedded-time
 
-
-`embedded-time` provides a comprehensive library for implementing abstractions over
-hardware and work with _clocks_, _timers_, _instants_, _durations_, and _rates_ in a more intuitive way.
+`embedded-time` provides a comprehensive library implementing _duration_, _rate_, _instant_, and software _timer_ types as well as a _clock_ trait for abstracting over hardware timers/clocks.
 
 ## Duration Types
 
-- Nanoseconds
-- Microseconds
-- Milliseconds
-- Seconds
-- Minutes
-- Hours
+| Units        | Extension    |
+| :----------- | :----------- |
+| Hours        | hours        |
+| Minutes      | minutes      |
+| Seconds      | seconds      |
+| Milliseconds | milliseconds |
+| Microseconds | microseconds |
+| Nanoseconds  | nanoseconds  |
+
+- Conversion from `Rate` types
+    ```rust
+    Microseconds::<u32>::try_from_rate(Kilohertz(2_u32)) -> Ok(Microseconds(500_u32))
+    ```
+
+- Conversion to/from `Generic` `Duration` type
+
+    ```rust
+    Seconds(2_u64).try_into_generic(Fraction::new(1, 2_000)) -> Ok(Generic::new(4_000_u32, Fraction::new(1, 2_000))))
+    Seconds::<u64>::try_from(Generic::new(2_000_u32, Fraction::new(1, 1_000))) -> Ok(Seconds(2_u64))
+    ```
 
 ### `core` Compatibility
 
@@ -39,29 +51,46 @@ _(the size of `core` duration type is 12 B)_
 
 ## Rate Types
 
-- Megahertz
-- Kilohertz
-- Hertz
- 
-- MebibytePerSecond
-- MegabytePerSecond
-- KibibytePerSecond
-- KiloBytePerSecond
-- BytePerSecond
- 
-- MebibitPerSecond
-- MegabitPerSecond
-- KibibitPerSecond
-- KilobitPerSecond
-- BitPerSecond
- 
-- Megabaud
-- Kilobaud
-- Baud
+| Units             | Extension |
+| :---------------- | :-------- |
+| Megahertz         | MHz       |
+| Kilohertz         | kHz       |
+| Hertz             | Hz        |
+|                   |           |
+| MebibytePerSecond | MiBps     |
+| MegabytePerSecond | MBps      |
+| KibibytePerSecond | KiBps     |
+| KiloBytePerSecond | KBps      |
+| BytePerSecond     | Bps       |
+|                   |           |
+| MebibitPerSecond  | Mibps     |
+| MegabitPerSecond  | Mbps      |
+| KibibitPerSecond  | Kibps     |
+| KilobitPerSecond  | kbps      |
+| BitPerSecond      | bps       |
+|                   |           |
+| Mebibaud          | MiBd      |
+| Megabaud          | MBd       |
+| Kibibaud          | KiBd      |
+| Kilobaud          | kBd       |
+| Baud              | Bd        |
+
+- Conversion from `Duration` types
+
+    ```rust
+    Kilohertz::<u32>::try_from_duration(Microseconds(2_u32)) -> Ok(Kilohertz(500_u32))
+    ```
+
+- Conversion to/from `Generic` `Rate` type
+
+    ```rust
+    Hertz(2_u64).try_into_generic(Fraction::new(1,2_000)) -> Ok(Generic::new(4_000_u32, Fraction::new(1,2_000))))
+    Hertz::<u64>::try_from(Generic::new(2_000_u32, Fraction::new(1,1_000))) -> Ok(Hertz(2_u64))
+    ```
 
 ## Hardware Abstraction
 
-- `Clock` trait allowing abstraction of hardware timers for timekeeping.
+- `Clock` trait allowing abstraction of hardware timers/clocks for timekeeping.
 
 ## Timers
 
@@ -83,7 +112,7 @@ The handling of time on embedded systems is generally much different than that o
 #### Duration
 - The storage is `u64` seconds and `u32` nanoseconds.
   - This is huge overkill and adds needless complexity beyond what is required (or desired) for embedded systems.
-- Any read requires arithmetic to convert to the requested units
+- Any read (with the exception of seconds and nanoseconds) requires arithmetic to convert to the requested units
   - This is much slower than this project's implementation of what is analogous to a tagged union of time units.
 #### Instant
 - The `Instant` type requires `std`.
@@ -104,4 +133,4 @@ This project is licensed under either of
 
 at your option.
 
-Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in time by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in `embedded-time` by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.

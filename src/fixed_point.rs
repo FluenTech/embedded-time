@@ -5,24 +5,30 @@ use num::Bounded;
 
 /// Fixed-point value type
 ///
-/// QX.32 where X: bit-width of `Rep`
+/// QX.32 where X: bit-width of `T`
 pub trait FixedPoint: Sized + Copy + fmt::Display {
-    /// The integer (magnitude) type
-    type Rep: TimeInt;
+    /// The _integer_ (magnitude) type
+    type T: TimeInt;
 
-    /// The fractional scaling factor
+    /// The fractional _scaling factor_
     const SCALING_FACTOR: Fraction;
 
     /// Not generally useful to call directly
     ///
     /// It only exists to allow FixedPoint methods with default definitions to create a
     /// new fixed-point type
-    fn new(value: Self::Rep) -> Self;
+    fn new(value: Self::T) -> Self;
 
     /// Returns the integer value of the `FixedPoint`
-    fn integer(&self) -> &Self::Rep;
+    ///
+    /// ```rust
+    /// # use embedded_time::{traits::*, rate::units::*};
+    /// #
+    /// assert_eq!(Hertz(45_u32).integer(), &45_u32);
+    /// ```
+    fn integer(&self) -> &Self::T;
 
-    /// Returns the integer of the fixed-point value after converting to the _scaling factor_
+    /// Returns the _integer_ of the fixed-point value after converting to the _scaling factor_
     /// provided
     ///
     /// # Examples
@@ -35,20 +41,19 @@ pub trait FixedPoint: Sized + Copy + fmt::Display {
     ///
     /// # Errors
     ///
-    /// Failure will only occur if the converted integer does not fit in the selected destination
-    /// type.
+    /// Failure will only occur if the provided value does not fit in the selected destination type.
     ///
     /// [`ConversionError::Overflow`] : The conversion of the _scaling factor_ causes an overflow.
-    /// [`ConversionError::ConversionFailure`] : The integer type cast to that of the destination
+    /// [`ConversionError::ConversionFailure`] : The _integer_ type cast to that of the destination
     /// fails.
-    fn into_ticks<Rep: TimeInt>(self, fraction: Fraction) -> Result<Rep, ConversionError>
+    fn into_ticks<T: TimeInt>(self, fraction: Fraction) -> Result<T, ConversionError>
     where
-        Self::Rep: TimeInt,
-        Rep: TryFrom<Self::Rep>,
+        Self::T: TimeInt,
+        T: TryFrom<Self::T>,
     {
-        if size_of::<Rep>() > size_of::<Self::Rep>() {
+        if size_of::<T>() > size_of::<Self::T>() {
             let ticks =
-                Rep::try_from(*self.integer()).map_err(|_| ConversionError::ConversionFailure)?;
+                T::try_from(*self.integer()).map_err(|_| ConversionError::ConversionFailure)?;
 
             if fraction > Fraction::new(1, 1) {
                 TimeInt::checked_div_fraction(
@@ -71,44 +76,42 @@ pub trait FixedPoint: Sized + Copy + fmt::Display {
                 )?
             };
 
-            Rep::try_from(ticks).map_err(|_| ConversionError::ConversionFailure)
+            T::try_from(ticks).map_err(|_| ConversionError::ConversionFailure)
         }
     }
 
     /// Attempt to convert from one duration type to another
     ///
-    /// The integer type and/or the scaling factor may be changed.
+    /// The integer type and/or the _scaling factor_ may be changed.
     ///
     /// # Errors
     ///
-    /// Failure will only occur if the resulting integer does not fit in the selected destination
-    /// type.
+    /// Failure will only occur if the provided value does not fit in the selected destination type.
     ///
     /// [`ConversionError::Overflow`] - The conversion of the _scaling factor_ causes an overflow.
     /// [`ConversionError::ConversionFailure`] - The integer type cast to that of the destination
     /// type fails.
     fn try_convert_from<Source: FixedPoint>(source: Source) -> Result<Self, ConversionError>
     where
-        Self::Rep: TryFrom<Source::Rep>,
+        Self::T: TryFrom<Source::T>,
     {
         from_ticks(*source.integer(), Source::SCALING_FACTOR)
     }
 
     /// The reciprocal of [`FixedPoint::try_convert_from()`]
     ///
-    /// The integer type and/or the scaling factor may be changed.
+    /// The _integer_ type and/or the _scaling factor_ may be changed.
     ///
     /// # Errors
     ///
-    /// Failure will only occur if the resulting integer does not fit in the selected destination
-    /// type.
+    /// Failure will only occur if the provided value does not fit in the selected destination type.
     ///
     /// [`ConversionError::Overflow`] - The conversion of the _scaling factor_ causes an overflow.
     /// [`ConversionError::ConversionFailure`] - The integer type cast to that of the destination
     /// type fails.
     fn try_convert_into<Dest: FixedPoint>(self) -> Result<Dest, ConversionError>
     where
-        Dest::Rep: TryFrom<Self::Rep>,
+        Dest::T: TryFrom<Self::T>,
     {
         Dest::try_convert_from(self)
     }
@@ -116,7 +119,7 @@ pub trait FixedPoint: Sized + Copy + fmt::Display {
     /// Panicky addition
     fn add<Rhs: FixedPoint>(self, rhs: Rhs) -> Self
     where
-        Self::Rep: TryFrom<Rhs::Rep>,
+        Self::T: TryFrom<Rhs::T>,
     {
         Self::new(*self.integer() + *Self::try_convert_from(rhs).unwrap().integer())
     }
@@ -124,7 +127,7 @@ pub trait FixedPoint: Sized + Copy + fmt::Display {
     /// Panicky subtraction
     fn sub<Rhs: FixedPoint>(self, rhs: Rhs) -> Self
     where
-        Self::Rep: TryFrom<Rhs::Rep>,
+        Self::T: TryFrom<Rhs::T>,
     {
         Self::new(*self.integer() - *Self::try_convert_from(rhs).unwrap().integer())
     }
@@ -132,22 +135,22 @@ pub trait FixedPoint: Sized + Copy + fmt::Display {
     /// Panicky remainder
     fn rem<Rhs: FixedPoint>(self, rhs: Rhs) -> Self
     where
-        Self::Rep: TryFrom<Rhs::Rep>,
+        Self::T: TryFrom<Rhs::T>,
     {
         let rhs = *Self::try_convert_from(rhs).unwrap().integer();
 
-        if rhs > Self::Rep::from(0) {
+        if rhs > Self::T::from(0) {
             Self::new(*self.integer() % rhs)
         } else {
-            Self::new(Self::Rep::from(0))
+            Self::new(Self::T::from(0))
         }
     }
 
     /// Panicky equality
     fn eq<Rhs: FixedPoint>(&self, rhs: &Rhs) -> bool
     where
-        Self::Rep: TryFrom<Rhs::Rep>,
-        Rhs::Rep: TryFrom<Self::Rep>,
+        Self::T: TryFrom<Rhs::T>,
+        Rhs::T: TryFrom<Self::T>,
     {
         if Self::SCALING_FACTOR < Rhs::SCALING_FACTOR {
             self.integer() == Self::try_convert_from(*rhs).unwrap().integer()
@@ -159,8 +162,8 @@ pub trait FixedPoint: Sized + Copy + fmt::Display {
     /// Panicky comparison
     fn partial_cmp<Rhs: FixedPoint>(&self, rhs: &Rhs) -> Option<core::cmp::Ordering>
     where
-        Self::Rep: TryFrom<Rhs::Rep>,
-        Rhs::Rep: TryFrom<Self::Rep>,
+        Self::T: TryFrom<Rhs::T>,
+        Rhs::T: TryFrom<Self::T>,
     {
         if Self::SCALING_FACTOR < Rhs::SCALING_FACTOR {
             Some(
@@ -179,14 +182,14 @@ pub trait FixedPoint: Sized + Copy + fmt::Display {
 
     /// Returns the minimum integer value
     #[must_use]
-    fn min_value() -> Self::Rep {
-        Self::Rep::min_value()
+    fn min_value() -> Self::T {
+        Self::T::min_value()
     }
 
     /// Returns the maximum integer value
     #[must_use]
-    fn max_value() -> Self::Rep {
-        Self::Rep::max_value()
+    fn max_value() -> Self::T {
+        Self::T::max_value()
     }
 }
 
@@ -194,20 +197,20 @@ pub trait FixedPoint: Sized + Copy + fmt::Display {
 ///
 /// # Errors
 ///
-/// Failure will only occur if the integer does not fit in the selected destination type.
+/// Failure will only occur if the provided value does not fit in the selected destination type.
 ///
 /// [`ConversionError::Overflow`] : The conversion of the _scaling factor_ causes an overflow.
-/// [`ConversionError::ConversionFailure`] : The integer cast to that of the destination
+/// [`ConversionError::ConversionFailure`] : The integer conversion to that of the destination
 /// type fails.
 pub(crate) fn from_ticks<SourceInt: TimeInt, Dest: FixedPoint>(
     ticks: SourceInt,
     scaling_factor: Fraction,
 ) -> Result<Dest, ConversionError>
 where
-    Dest::Rep: TryFrom<SourceInt>,
+    Dest::T: TryFrom<SourceInt>,
 {
-    if size_of::<Dest::Rep>() > size_of::<SourceInt>() {
-        let ticks = Dest::Rep::try_from(ticks).map_err(|_| ConversionError::ConversionFailure)?;
+    if size_of::<Dest::T>() > size_of::<SourceInt>() {
+        let ticks = Dest::T::try_from(ticks).map_err(|_| ConversionError::ConversionFailure)?;
 
         let ticks = if scaling_factor > Fraction::new(1, 1) {
             TimeInt::checked_div_fraction(
@@ -240,7 +243,7 @@ where
             )?
         };
 
-        let ticks = Dest::Rep::try_from(ticks).map_err(|_| ConversionError::ConversionFailure)?;
+        let ticks = Dest::T::try_from(ticks).map_err(|_| ConversionError::ConversionFailure)?;
 
         Ok(Dest::new(ticks))
     }

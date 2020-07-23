@@ -36,13 +36,14 @@ impl Fraction {
 }
 
 impl Fraction {
-    /// Construct a new fractional `Fraction`.
+    /// Construct a new `Fraction`.
     ///
     /// A reduction and `denominator == 0` check **are** performed.
     ///
     /// # Errors
     ///
     /// [`ConversionError::DivByZero`] : A `0` denominator was detected
+    // TODO: add example
     pub fn new_reduce(numerator: u32, denominator: u32) -> Result<Self, ConversionError> {
         if !denominator.is_zero() {
             Ok(Self(Ratio::new(numerator, denominator)))
@@ -68,7 +69,7 @@ impl Fraction {
         Self(self.0.recip())
     }
 
-    /// Checked `Fraction` * `Fraction` = `Fraction`
+    /// Checked `Fraction` × `Fraction` = `Fraction`
     ///
     /// # Examples
     ///
@@ -85,6 +86,7 @@ impl Fraction {
     /// # Errors
     ///
     /// [`ConversionError::Overflow`]
+    // TODO: add example
     pub fn checked_mul(&self, v: &Self) -> Result<Self, ConversionError> {
         Ok(Self(
             self.0.checked_mul(&v.0).ok_or(ConversionError::Overflow)?,
@@ -108,13 +110,14 @@ impl Fraction {
     /// # Errors
     ///
     /// [`ConversionError::Overflow`]
+    // TODO: add example
     pub fn checked_div(&self, v: &Self) -> Result<Self, ConversionError> {
         Ok(Self(
             self.0.checked_div(&v.0).ok_or(ConversionError::Overflow)?,
         ))
     }
 
-    /// Checked `Fraction` * integer = `Fraction`
+    /// Checked `Fraction` × integer = `Fraction`
     ///
     /// # Examples
     ///
@@ -131,6 +134,9 @@ impl Fraction {
     /// # Errors
     ///
     /// [`ConversionError::Overflow`]
+    // TODO: add example
+    /// [`ConversionError::DivByZero`]
+    // TODO: add example
     pub fn checked_mul_integer(&self, multiplier: u32) -> Result<Self, ConversionError> {
         Ok(Self(
             Ratio::checked_mul(&self.0, &Ratio::from_integer(multiplier))
@@ -158,22 +164,25 @@ impl Fraction {
     /// # Errors
     ///
     /// [`ConversionError::Overflow`]
+    // TODO: add example
+    /// [`ConversionError::DivByZero`]
+    // TODO: add example
     pub fn checked_div_integer(&self, divisor: u32) -> Result<Self, ConversionError> {
-        Ok(Self(
-            Ratio::checked_div(&self.0, &Ratio::from_integer(divisor))
-                .ok_or(ConversionError::Overflow)?,
-        ))
+        if divisor == 0 {
+            Err(ConversionError::DivByZero)
+        } else {
+            Ok(Self(
+                Ratio::checked_div(&self.0, &Ratio::from_integer(divisor))
+                    .ok_or(ConversionError::Overflow)?,
+            ))
+        }
     }
 }
 
 impl ops::Mul for Fraction {
     type Output = Self;
-    /// Panicky `Fraction` * `Fraction` = `Fraction`
-    ///
-    /// # Panics
-    ///
-    /// The same reason the integer operation would panic. Namely, if the
-    /// result overflows the type.
+
+    /// Panicky `Fraction` × `Fraction` = `Fraction`
     ///
     /// # Examples
     ///
@@ -182,6 +191,12 @@ impl ops::Mul for Fraction {
     /// assert_eq!(Fraction::new(1000, 1) * Fraction::new(5,5),
     ///     Fraction::new(5_000, 5));
     /// ```
+    ///
+    /// # Panics
+    ///
+    /// The same reason the integer operation would panic. Namely, if the
+    /// result overflows the type.
+    // TODO: add example
     fn mul(self, rhs: Self) -> Self::Output {
         self.checked_mul(&rhs).unwrap()
     }
@@ -192,11 +207,6 @@ impl ops::Div for Fraction {
 
     /// Panicky `Fraction` / `Fraction` = `Fraction`
     ///
-    /// # Panics
-    ///
-    /// The same reason the integer operation would panic. Namely, if the
-    /// result overflows the type.
-    ///
     /// # Examples
     ///
     /// ```rust
@@ -204,6 +214,12 @@ impl ops::Div for Fraction {
     /// assert_eq!(Fraction::new(1000, 1) / Fraction::new(10, 1_000),
     ///     Fraction::new(1_000_000, 10));
     /// ```
+    ///
+    /// # Panics
+    ///
+    /// The same reason the integer operation would panic. Namely, if the
+    /// result overflows the type.
+    // TODO: add example
     fn div(self, rhs: Self) -> Self::Output {
         self.checked_div(&rhs).unwrap()
     }
