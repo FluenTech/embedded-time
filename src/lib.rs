@@ -4,7 +4,7 @@
 //!
 //! The approach is similar to the C++ `chrono` library. A [`Duration`]
 //! consists of an integer (whose type is chosen by the user to be either [`u32`] or [`u64`]) as
-//! well as a `const` fraction ([`Period`]) where the integer value multiplied by the fraction is
+//! well as a `const` fraction ([`Fraction`]) where the integer value multiplied by the fraction is
 //! the [`Duration`] in seconds. Put another way, the ratio is the precision of the LSbit of the
 //! integer. This structure avoids unnecessary arithmetic. For example, if the [`Duration`] type is
 //! [`Milliseconds`], a call to the [`Duration::count()`] method simply returns the stored integer
@@ -12,7 +12,7 @@
 //! only performed when explicitly converting between time units.
 //!
 //! In addition frequency-type types are available including [`Hertz`] ([`u32`]) and it's reciprocal
-//! [`Period`] ([`u32`]/[`u32`] seconds).
+//! [`Fraction`] ([`u32`]/[`u32`] seconds).
 //!
 //! [`Seconds`]: units::Seconds
 //! [`Milliseconds`]: units::Milliseconds
@@ -43,13 +43,13 @@
 //!
 //! # Example Usage
 //! ```rust,no_run
-//! # use embedded_time::{traits::*, units::*, Instant, Period};
+//! # use embedded_time::{traits::*, units::*, Instant, Fraction};
 //! # #[derive(Debug)]
 //! struct SomeClock;
 //! impl embedded_time::Clock for SomeClock {
 //!     type Rep = u64;
 //!     type ImplError = ();
-//!     const PERIOD: Period = <Period>::new(1, 16_000_000);
+//!     const SCALING_FACTOR: Fraction = <Fraction>::new(1, 16_000_000);
 //!
 //!     fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {
 //!         // ...
@@ -77,16 +77,16 @@
 
 pub mod clock;
 pub mod duration;
+mod fraction;
 mod instant;
 mod numeric_constructor;
-mod period;
 mod rate;
 mod time_int;
 mod timer;
 
 pub use clock::Clock;
+pub use fraction::Fraction;
 pub use instant::Instant;
-pub use period::Period;
 pub(crate) use time_int::TimeInt;
 pub use timer::Timer;
 
@@ -175,7 +175,7 @@ mod tests {
     impl time::Clock for MockClock64 {
         type Rep = u64;
         type ImplError = Infallible;
-        const PERIOD: time::Period = <time::Period>::new(1, 64_000_000);
+        const SCALING_FACTOR: time::Fraction = <time::Fraction>::new(1, 64_000_000);
 
         fn now(&self) -> Result<time::Instant<Self>, time::clock::Error<Self::ImplError>> {
             Ok(time::Instant::new(128_000_000))
@@ -188,7 +188,7 @@ mod tests {
     impl time::Clock for MockClock32 {
         type Rep = u32;
         type ImplError = Infallible;
-        const PERIOD: time::Period = <time::Period>::new(1, 16_000_000);
+        const SCALING_FACTOR: time::Fraction = <time::Fraction>::new(1, 16_000_000);
 
         fn now(&self) -> Result<time::Instant<Self>, time::clock::Error<Self::ImplError>> {
             Ok(time::Instant::new(32_000_000))
@@ -207,7 +207,7 @@ mod tests {
     impl time::Clock for BadClock {
         type Rep = u32;
         type ImplError = ClockImplError;
-        const PERIOD: time::Period = <time::Period>::new(1, 16_000_000);
+        const SCALING_FACTOR: time::Fraction = <time::Fraction>::new(1, 16_000_000);
 
         fn now(&self) -> Result<time::Instant<Self>, time::clock::Error<Self::ImplError>> {
             Err(time::clock::Error::Other(ClockImplError::NotStarted))

@@ -1,4 +1,4 @@
-use crate::{ConversionError, Period};
+use crate::{ConversionError, Fraction};
 use core::{convert::TryFrom, convert::TryInto, fmt};
 
 /// The core inner-type trait for time-related types
@@ -22,44 +22,46 @@ pub trait TimeInt:
     + fmt::Display
     + fmt::Debug
 {
-    /// Checked integer * [`Period`] = integer
+    /// Checked integer * [`Fraction`] = integer
     ///
     /// Returns truncated integer
     ///
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{Period, traits::*};
-    /// assert_eq!(8_u32.checked_mul_period(&<Period>::new(1,2)), Ok(4_u32));
+    /// # use embedded_time::{Fraction, traits::*};
+    /// #
+    /// assert_eq!(8_u32.checked_mul_fraction(&<Fraction>::new(1,2)), Ok(4_u32));
     ///
     /// // the result is not rounded, but truncated
-    /// assert_eq!(8_u32.checked_mul_period(&<Period>::new(1,3)), Ok(2_u32));
+    /// assert_eq!(8_u32.checked_mul_fraction(&<Fraction>::new(1,3)), Ok(2_u32));
     /// ```
-    fn checked_mul_period(&self, period: &Period) -> Result<Self, ConversionError> {
+    fn checked_mul_fraction(&self, fraction: &Fraction) -> Result<Self, ConversionError> {
         <Self as num::CheckedDiv>::checked_div(
-            &<Self as num::CheckedMul>::checked_mul(&self, &(*period.numerator()).into())
+            &<Self as num::CheckedMul>::checked_mul(&self, &(*fraction.numerator()).into())
                 .ok_or(ConversionError::Overflow)?,
-            &(*period.denominator()).into(),
+            &(*fraction.denominator()).into(),
         )
         .ok_or(ConversionError::DivByZero)
     }
 
-    /// Checked integer / [`Period`] = integer
+    /// Checked integer / [`Fraction`] = integer
     ///
     /// Returns truncated integer
     ///
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{Period, traits::*};
-    /// assert_eq!(8_u32.checked_div_period(&<Period>::new(1,2)), Ok(16_u32));
-    /// assert_eq!(8_u32.checked_div_period(&<Period>::new(3,2)), Ok(5_u32));
+    /// # use embedded_time::{Fraction, traits::*};
+    /// #
+    /// assert_eq!(8_u32.checked_div_fraction(&<Fraction>::new(1,2)), Ok(16_u32));
+    /// assert_eq!(8_u32.checked_div_fraction(&<Fraction>::new(3,2)), Ok(5_u32));
     /// ```
-    fn checked_div_period(&self, period: &Period) -> Result<Self, ConversionError> {
+    fn checked_div_fraction(&self, fraction: &Fraction) -> Result<Self, ConversionError> {
         <Self as num::CheckedDiv>::checked_div(
-            &<Self as num::CheckedMul>::checked_mul(&self, &(*period.denominator()).into())
+            &<Self as num::CheckedMul>::checked_mul(&self, &(*fraction.denominator()).into())
                 .ok_or(ConversionError::Overflow)?,
-            &(*period.numerator()).into(),
+            &(*fraction.numerator()).into(),
         )
         .ok_or(ConversionError::DivByZero)
     }

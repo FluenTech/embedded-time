@@ -1,10 +1,10 @@
-use crate::{rate::units::Hertz, ConversionError, TimeInt};
-use core::{cmp, convert, ops};
+use crate::{ConversionError, TimeInt};
+use core::{cmp, ops};
 use num::{rational::Ratio, CheckedDiv, CheckedMul};
 
-/// A fractional time period
+/// A fractional/rational value
 ///
-/// Used primarily to define the period of one count of a [`Duration`], [`Instant`] and [`Clock`]
+/// Used primarily to define the _scaling factor_ for [`Duration`], [`Instant`], and [`Clock`]
 /// impl types but also convertible to/from [`Hertz`].
 ///
 /// The default inner type is [`u32`].
@@ -12,13 +12,14 @@ use num::{rational::Ratio, CheckedDiv, CheckedMul};
 /// [`Duration`]: duration/trait.Duration.html
 /// [`Clock`]: clock/trait.Clock.html
 /// [`Instant`]: instant/struct.Instant.html
+/// [`Hertz`]: rate/units/struct.Hertz.html
 #[derive(Debug)]
-pub struct Period<T = u32>(Ratio<T>);
+pub struct Fraction<T = u32>(Ratio<T>);
 
-impl<T> Period<T> {
-    /// Construct a new fractional `Period`.
+impl<T> Fraction<T> {
+    /// Construct a new fractional `Fraction`.
     ///
-    /// A reduction is **not** performed. If reduction is needed, use [`Period::new_reduce()`]
+    /// A reduction is **not** performed. If reduction is needed, use [`Fraction::new_reduce()`]
     pub const fn new(numerator: T, denominator: T) -> Self {
         Self(Ratio::new_raw(numerator, denominator))
     }
@@ -34,8 +35,8 @@ impl<T> Period<T> {
     }
 }
 
-impl<T: TimeInt> Period<T> {
-    /// Construct a new fractional `Period`.
+impl<T: TimeInt> Fraction<T> {
+    /// Construct a new fractional `Fraction`.
     ///
     /// A reduction **is** performed.
     ///
@@ -55,9 +56,9 @@ impl<T: TimeInt> Period<T> {
         self.0.to_integer()
     }
 
-    /// Constructs a `Period` from an integer.
+    /// Constructs a `Fraction` from an integer.
     ///
-    /// Equivalent to `Period::new(value,1)`.
+    /// Equivalent to `Fraction::new(value,1)`.
     pub fn from_integer(value: T) -> Self {
         Self(Ratio::from_integer(value))
     }
@@ -67,17 +68,17 @@ impl<T: TimeInt> Period<T> {
         Self(self.0.recip())
     }
 
-    /// Checked `Period` * `Period` = `Period`
+    /// Checked `Fraction` * `Fraction` = `Fraction`
     ///
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{Period, ConversionError};
+    /// # use embedded_time::{Fraction, ConversionError};
     /// #
-    /// assert_eq!(<Period>::new(1000, 1).checked_mul(&<Period>::new(5,5)),
-    ///     Ok(<Period>::new(5_000, 5)));
+    /// assert_eq!(<Fraction>::new(1000, 1).checked_mul(&<Fraction>::new(5,5)),
+    ///     Ok(<Fraction>::new(5_000, 5)));
     ///
-    /// assert_eq!(<Period>::new(u32::MAX, 1).checked_mul(&<Period>::new(2,1)),
+    /// assert_eq!(<Fraction>::new(u32::MAX, 1).checked_mul(&<Fraction>::new(2,1)),
     ///     Err(ConversionError::Overflow));
     /// ```
     ///
@@ -90,17 +91,17 @@ impl<T: TimeInt> Period<T> {
         ))
     }
 
-    /// Checked `Period` / `Period` = `Period`
+    /// Checked `Fraction` / `Fraction` = `Fraction`
     ///
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{Period, ConversionError};
+    /// # use embedded_time::{Fraction, ConversionError};
     /// #
-    /// assert_eq!(<Period>::new(1000, 1).checked_div(&<Period>::new(10, 1000)),
-    ///     Ok(<Period>::new(1_000_000, 10)));
+    /// assert_eq!(<Fraction>::new(1000, 1).checked_div(&<Fraction>::new(10, 1000)),
+    ///     Ok(<Fraction>::new(1_000_000, 10)));
     ///
-    /// assert_eq!(<Period>::new(1, u32::MAX).checked_div(&<Period>::new(2,1)),
+    /// assert_eq!(<Fraction>::new(1, u32::MAX).checked_div(&<Fraction>::new(2,1)),
     ///     Err(ConversionError::Overflow));
     /// ```
     ///
@@ -113,17 +114,17 @@ impl<T: TimeInt> Period<T> {
         ))
     }
 
-    /// Checked `Period` * integer = `Period`
+    /// Checked `Fraction` * integer = `Fraction`
     ///
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{Period, ConversionError};
+    /// # use embedded_time::{Fraction, ConversionError};
     /// #
-    /// assert_eq!(<Period>::new(1000, 1).checked_mul_integer(5_u32),
-    ///     Ok(<Period>::new(5_000, 1)));
+    /// assert_eq!(<Fraction>::new(1000, 1).checked_mul_integer(5_u32),
+    ///     Ok(<Fraction>::new(5_000, 1)));
     ///
-    /// assert_eq!(<Period>::new(u32::MAX, 1).checked_mul_integer(2_u32),
+    /// assert_eq!(<Fraction>::new(u32::MAX, 1).checked_mul_integer(2_u32),
     ///     Err(ConversionError::Overflow));
     /// ```
     ///
@@ -137,20 +138,20 @@ impl<T: TimeInt> Period<T> {
         ))
     }
 
-    /// Checked `Period` / integer = `Period`
+    /// Checked `Fraction` / integer = `Fraction`
     ///
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{Period, ConversionError};
+    /// # use embedded_time::{Fraction, ConversionError};
     /// #
-    /// assert_eq!(<Period>::new(1000, 1).checked_div_integer(5_u32),
-    ///     Ok(<Period>::new(200, 1)));
+    /// assert_eq!(<Fraction>::new(1000, 1).checked_div_integer(5_u32),
+    ///     Ok(<Fraction>::new(200, 1)));
     ///
-    /// assert_eq!(<Period>::new(1, 1000).checked_div_integer(5_u32),
-    ///     Ok(<Period>::new(1, 5000)));
+    /// assert_eq!(<Fraction>::new(1, 1000).checked_div_integer(5_u32),
+    ///     Ok(<Fraction>::new(1, 5000)));
     ///
-    /// assert_eq!(<Period>::new(1, u32::MAX).checked_div_integer(2_u32),
+    /// assert_eq!(<Fraction>::new(1, u32::MAX).checked_div_integer(2_u32),
     ///     Err(ConversionError::Overflow));
     /// ```
     ///
@@ -165,78 +166,45 @@ impl<T: TimeInt> Period<T> {
     }
 }
 
-impl<T> ops::Mul for Period<T>
+impl<T> ops::Mul for Fraction<T>
 where
     T: TimeInt,
 {
     type Output = Self;
 
     /// ```rust
-    /// # use embedded_time::Period;
-    /// assert_eq!(Period::<u32>::new(1000, 1) * <Period>::new(5,5),
-    ///     <Period>::new(5_000, 5));
+    /// # use embedded_time::Fraction;
+    /// assert_eq!(Fraction::<u32>::new(1000, 1) * <Fraction>::new(5,5),
+    ///     <Fraction>::new(5_000, 5));
     /// ```
     fn mul(self, rhs: Self) -> Self::Output {
         self.checked_mul(&rhs).unwrap()
     }
 }
 
-impl<T> ops::Div for Period<T>
+impl<T> ops::Div for Fraction<T>
 where
     T: TimeInt,
 {
     type Output = Self;
 
     /// ```rust
-    /// # use embedded_time::Period;
-    /// assert_eq!(Period::<u32>::new(1000, 1) / <Period>::new(10, 1_000),
-    ///     <Period>::new(1_000_000, 10));
+    /// # use embedded_time::Fraction;
+    /// assert_eq!(Fraction::<u32>::new(1000, 1) / <Fraction>::new(10, 1_000),
+    ///     <Fraction>::new(1_000_000, 10));
     /// ```
     fn div(self, rhs: Self) -> Self::Output {
         self.checked_div(&rhs).unwrap()
     }
 }
 
-impl<T: TimeInt> convert::TryFrom<Hertz<T>> for Period<T> {
-    type Error = ConversionError;
-
-    /// Constructs a `Period` in seconds from a frequency in [`Hertz`]
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// # use embedded_time::{Period, units::*, ConversionError};
-    /// # use core::convert::{TryFrom, TryInto};
-    /// #
-    /// assert_eq!(Period::try_from(Hertz(1_000_u32)),
-    ///     Ok(<Period>::new(1, 1_000)));
-    ///
-    /// assert_eq!(Period::try_from(Hertz(0_u32)),
-    ///     Err(ConversionError::DivByZero));
-    ///
-    /// assert_eq!(Hertz(1_000_u32).try_into(),
-    ///     Ok(<Period>::new(1, 1_000)));
-    /// ```
-    ///
-    /// # Errors
-    ///
-    /// [`ConversionError::DivByZero`]
-    fn try_from(freq: Hertz<T>) -> Result<Self, Self::Error> {
-        if !freq.0.is_zero() {
-            Ok(Self(Ratio::from_integer(freq.0).recip()))
-        } else {
-            Err(ConversionError::DivByZero)
-        }
-    }
-}
-
-impl<T: TimeInt> PartialOrd for Period<T> {
+impl<T: TimeInt> PartialOrd for Fraction<T> {
     fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
         self.0.partial_cmp(&other.0)
     }
 }
 
-impl<T: TimeInt> PartialEq for Period<T> {
+impl<T: TimeInt> PartialEq for Fraction<T> {
     fn eq(&self, other: &Self) -> bool {
         self.0 == other.0
     }

@@ -1,12 +1,12 @@
 //! Duration types/units creation and conversion.
 
-use crate::{period::Period, time_int::TimeInt, ConversionError};
+use crate::{fraction::Fraction, time_int::TimeInt, ConversionError};
 use core::{convert::TryFrom, fmt, mem::size_of, prelude::v1::*};
 use num::Bounded;
 
 /// An unsigned duration of time
 ///
-/// Each implementation defines a constant [`Period`] which is a fraction/ratio representing the
+/// Each implementation defines a constant [`Fraction`] which represents the
 /// period of the count's LSbit
 ///
 ///
@@ -183,7 +183,7 @@ pub trait Duration: Sized + Copy + fmt::Display {
 
     /// A fraction/ratio representing the period of the count's LSbit. The precision of the
     /// `Duration`.
-    const PERIOD: Period;
+    const SCALING_FACTOR: Fraction;
 
     /// Not generally useful or needed as the duration can be constructed like this:
     ///
@@ -207,17 +207,17 @@ pub trait Duration: Sized + Copy + fmt::Display {
     /// ```
     fn count(self) -> Self::Rep;
 
-    /// Constructs a `Duration` from a value of ticks and a period
+    /// Constructs a `Duration` from a value of ticks and a _scaling factor_
     ///
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{traits::*, units::*, Period};
-    /// assert_eq!(Microseconds::<u32>::from_ticks(5_u64, <Period>::new(1, 1_000)),
+    /// # use embedded_time::{traits::*, units::*, Fraction};
+    /// assert_eq!(Microseconds::<u32>::from_ticks(5_u64, <Fraction>::new(1, 1_000)),
     ///     Ok(Microseconds(5_000_u32)));
     ///
     /// // the conversion arithmetic will not cause overflow
-    /// assert_eq!(Milliseconds::<u32>::from_ticks((u32::MAX as u64) + 1, <Period>::new(1, 1_000_000)),
+    /// assert_eq!(Milliseconds::<u32>::from_ticks((u32::MAX as u64) + 1, <Fraction>::new(1, 1_000_000)),
     ///     Ok(Milliseconds((((u32::MAX as u64) + 1) / 1_000) as u32)));
     /// ```
     ///
@@ -228,8 +228,8 @@ pub trait Duration: Sized + Copy + fmt::Display {
     /// [`ConversionError::Overflow`] : The conversion of periods causes an overflow:
     ///
     /// ```rust
-    /// # use embedded_time::{traits::*, units::*, Period, ConversionError};
-    /// assert_eq!(Milliseconds::<u32>::from_ticks(u32::MAX, <Period>::new(1, 1)),
+    /// # use embedded_time::{traits::*, units::*, Fraction, ConversionError};
+    /// assert_eq!(Milliseconds::<u32>::from_ticks(u32::MAX, <Fraction>::new(1, 1)),
     ///     Err(ConversionError::Overflow));
     /// ```
     ///
@@ -237,11 +237,14 @@ pub trait Duration: Sized + Copy + fmt::Display {
     /// type fails:
     ///
     /// ```rust
-    /// # use embedded_time::{traits::*, units::*, Period, ConversionError};
-    /// assert_eq!(Seconds::<u32>::from_ticks(u32::MAX as u64 + 1, <Period>::new(1, 1)),
+    /// # use embedded_time::{traits::*, units::*, Fraction, ConversionError};
+    /// assert_eq!(Seconds::<u32>::from_ticks(u32::MAX as u64 + 1, <Fraction>::new(1, 1)),
     ///     Err(ConversionError::ConversionFailure));
     /// ```
-    fn from_ticks<Rep: TimeInt>(ticks: Rep, period: Period) -> Result<Self, ConversionError>
+    fn from_ticks<Rep: TimeInt>(
+        ticks: Rep,
+        scaling_factor: Fraction,
+    ) -> Result<Self, ConversionError>
     where
         Self::Rep: TryFrom<Rep>,
     {
@@ -249,30 +252,33 @@ pub trait Duration: Sized + Copy + fmt::Display {
             let converted_ticks =
                 Self::Rep::try_from(ticks).map_err(|_| ConversionError::ConversionFailure)?;
 
-            if period > <Period>::new(1, 1) {
+            if scaling_factor > <Fraction>::new(1, 1) {
                 Ok(Self::new(TimeInt::checked_div_period(
-                    &TimeInt::checked_mul_period(&converted_ticks, &period)?,
-                    &Self::PERIOD,
+                    &TimeInt::checked_mul_period(&converted_ticks, &scaling_factor)?,
+                    &Self::SCALING_FACTOR,
                 )?))
             } else {
                 Ok(Self::new(TimeInt::checked_mul_period(
                     &converted_ticks,
-                    &period.checked_div(&Self::PERIOD)?,
+                    &scaling_factor.checked_div(&Self::SCALING_FACTOR)?,
                 )?))
             }
         } else {
-            let ticks = if period > <Period>::new(1, 1) {
+            let ticks = if scaling_factor > <Fraction>::new(1, 1) {
                 TimeInt::checked_div_period(
-                    &TimeInt::checked_mul_period(&ticks, &period)?,
-                    &Self::PERIOD,
+                    &TimeInt::checked_mul_period(&ticks, &scaling_factor)?,
+                    &Self::SCALING_FACTOR,
                 )?
-            } else if Self::PERIOD > <Period>::new(1, 1) {
+            } else if Self::SCALING_FACTOR > <Fraction>::new(1, 1) {
                 TimeInt::checked_mul_period(
-                    &TimeInt::checked_div_period(&ticks, &Self::PERIOD)?,
-                    &period,
+                    &TimeInt::checked_div_period(&ticks, &Self::SCALING_FACTOR)?,
+                    &scaling_factor,
                 )?
             } else {
-                TimeInt::checked_mul_period(&ticks, &period.checked_div(&Self::PERIOD)?)?
+                TimeInt::checked_mul_period(
+                    &ticks,
+                    &scaling_factor.checked_div(&Self::SCALING_FACTOR)?,
+                )?
             };
 
             let converted_ticks =
@@ -286,16 +292,16 @@ pub trait Duration: Sized + Copy + fmt::Display {
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{traits::*, units::*, Period, ConversionError};
-    /// assert_eq!(Microseconds(5_000_u32).into_ticks::<u32>(<Period>::new(1, 1_000)),
+    /// # use embedded_time::{traits::*, units::*, Fraction, ConversionError};
+    /// assert_eq!(Microseconds(5_000_u32).into_ticks::<u32>(<Fraction>::new(1, 1_000)),
     ///     Ok(5_u32));
     ///
-    /// // the _into_ period can be any value
-    /// assert_eq!(Microseconds(5_000_u32).into_ticks::<u32>(<Period>::new(1, 200)),
+    /// // the _into_ _scaling factor_ can be any value
+    /// assert_eq!(Microseconds(5_000_u32).into_ticks::<u32>(<Fraction>::new(1, 200)),
     ///     Ok(1_u32));
     ///
     /// // as long as the result fits in the provided integer, it will succeed
-    /// assert_eq!(Microseconds::<u32>(u32::MAX).into_ticks::<u64>(<Period>::new(1, 2_000_000)),
+    /// assert_eq!(Microseconds::<u32>(u32::MAX).into_ticks::<u64>(<Fraction>::new(1, 2_000_000)),
     ///     Ok((u32::MAX as u64) * 2));
     /// ```
     ///
@@ -306,8 +312,8 @@ pub trait Duration: Sized + Copy + fmt::Display {
     /// [`ConversionError::Overflow`] : The conversion of periods causes an overflow:
     ///
     /// ```rust
-    /// # use embedded_time::{traits::*, units::*, Period, ConversionError};
-    /// assert_eq!(Seconds(u32::MAX).into_ticks::<u32>(<Period>::new(1, 1_000)),
+    /// # use embedded_time::{traits::*, units::*, Fraction, ConversionError};
+    /// assert_eq!(Seconds(u32::MAX).into_ticks::<u32>(<Fraction>::new(1, 1_000)),
     ///     Err(ConversionError::Overflow));
     /// ```
     ///
@@ -315,11 +321,11 @@ pub trait Duration: Sized + Copy + fmt::Display {
     /// type fails:
     ///
     /// ```rust
-    /// # use embedded_time::{traits::*, units::*, Period, ConversionError};
-    /// assert_eq!(Seconds(u32::MAX as u64 + 1).into_ticks::<u32>(<Period>::new(1, 1)),
+    /// # use embedded_time::{traits::*, units::*, Fraction, ConversionError};
+    /// assert_eq!(Seconds(u32::MAX as u64 + 1).into_ticks::<u32>(<Fraction>::new(1, 1)),
     ///     Err(ConversionError::ConversionFailure));
     /// ```
-    fn into_ticks<Rep: TimeInt>(self, period: Period) -> Result<Rep, ConversionError>
+    fn into_ticks<Rep: TimeInt>(self, scaling_factor: Fraction) -> Result<Rep, ConversionError>
     where
         Self::Rep: TimeInt,
         Rep: TryFrom<Self::Rep>,
@@ -328,22 +334,28 @@ pub trait Duration: Sized + Copy + fmt::Display {
             let ticks =
                 Rep::try_from(self.count()).map_err(|_| ConversionError::ConversionFailure)?;
 
-            if period > <Period>::new(1, 1) {
+            if scaling_factor > <Fraction>::new(1, 1) {
                 TimeInt::checked_div_period(
-                    &TimeInt::checked_mul_period(&ticks, &Self::PERIOD)?,
-                    &period,
+                    &TimeInt::checked_mul_period(&ticks, &Self::SCALING_FACTOR)?,
+                    &scaling_factor,
                 )
             } else {
-                TimeInt::checked_mul_period(&ticks, &Self::PERIOD.checked_div(&period)?)
+                TimeInt::checked_mul_period(
+                    &ticks,
+                    &Self::SCALING_FACTOR.checked_div(&scaling_factor)?,
+                )
             }
         } else {
-            let ticks = if Self::PERIOD > <Period>::new(1, 1) {
+            let ticks = if Self::SCALING_FACTOR > <Fraction>::new(1, 1) {
                 TimeInt::checked_div_period(
-                    &TimeInt::checked_mul_period(&self.count(), &Self::PERIOD)?,
-                    &period,
+                    &TimeInt::checked_mul_period(&self.count(), &Self::SCALING_FACTOR)?,
+                    &scaling_factor,
                 )?
             } else {
-                TimeInt::checked_mul_period(&self.count(), &Self::PERIOD.checked_div(&period)?)?
+                TimeInt::checked_mul_period(
+                    &self.count(),
+                    &Self::SCALING_FACTOR.checked_div(&scaling_factor)?,
+                )?
             };
 
             Rep::try_from(ticks).map_err(|_| ConversionError::ConversionFailure)
@@ -391,7 +403,7 @@ where
 {
     /// Attempt to convert from one duration type to another
     ///
-    /// Both the inner type and/or the LSbit period (units) can be converted
+    /// Both the inner type and/or the _scaling factor_ (units) can be converted
     ///
     /// # Examples
     /// ```rust
@@ -431,7 +443,7 @@ where
     ///
     /// ```rust
     /// # use embedded_time::{traits::*, units::*};
-    /// // period conversion applied first
+    /// // _scaling factor_ conversion applied first
     /// assert_eq!(Hours::<u32>::try_convert_from(Microseconds(3_600_000_000_u64)),
     ///     Ok(Hours(1_u32)));
     ///
@@ -440,7 +452,7 @@ where
     ///     Ok(Microseconds(3_600_000_000_u64)));
     /// ```
     fn try_convert_from(source: Source) -> Result<Self, ConversionError> {
-        Self::from_ticks(source.count(), Source::PERIOD)
+        Self::from_ticks(source.count(), Source::SCALING_FACTOR)
     }
 }
 
@@ -490,7 +502,7 @@ where
     ///
     /// ```rust
     /// # use embedded_time::{traits::*, units::*};
-    /// // period conversion applied first
+    /// // _scaling factor_ conversion applied first
     /// assert_eq!(Microseconds(3_600_000_000_u64).try_convert_into(),
     ///     Ok(Hours(1_u32)));
     ///
@@ -507,7 +519,7 @@ where
 pub mod units {
     use crate::{
         duration::{Duration, TryConvertFrom},
-        period::Period,
+        fraction::Fraction,
         time_int::TimeInt,
         ConversionError,
     };
@@ -526,7 +538,7 @@ pub mod units {
 
             impl<Rep: TimeInt> Duration for $name<Rep> {
                 type Rep = Rep;
-                const PERIOD: Period = <Period>::new($numer, $denom);
+                const SCALING_FACTOR: Fraction = <Fraction>::new($numer, $denom);
 
                 fn new(value: Self::Rep) -> Self {
                     Self(value)
@@ -601,7 +613,7 @@ pub mod units {
             {
                 /// See module-level documentation for details about this type
                 fn eq(&self, other: &OtherDur) -> bool {
-                    if Self::PERIOD < OtherDur::PERIOD {
+                    if Self::SCALING_FACTOR < OtherDur::SCALING_FACTOR {
                         self.count() == Self::try_convert_from(*other).unwrap().count()
                     } else {
                         OtherDur::try_convert_from(*self).unwrap().count() == other.count()
@@ -617,7 +629,7 @@ pub mod units {
             {
                 /// See module-level documentation for details about this type
                 fn partial_cmp(&self, other: &OtherDur) -> Option<core::cmp::Ordering> {
-                    if Self::PERIOD < OtherDur::PERIOD {
+                    if Self::SCALING_FACTOR < OtherDur::SCALING_FACTOR {
                         Some(
                             self.count()
                                 .cmp(&Self::try_convert_from(*other).unwrap().count()),
