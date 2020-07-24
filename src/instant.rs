@@ -9,13 +9,13 @@ use num::traits::{WrappingAdd, WrappingSub};
 /// # Example
 /// Typically an `Instant` will be obtained from a [`Clock`](clock/trait.Clock.html)
 /// ```rust
-/// # use embedded_time::{Period, traits::*, Instant};
+/// # use embedded_time::{Fraction, traits::*, Instant};
 /// # #[derive(Debug)]
 /// # struct SomeClock;
 /// # impl embedded_time::Clock for SomeClock {
 /// #     type Rep = u32;
 /// #     type ImplError = ();
-/// #     const PERIOD: Period = <Period>::new(1, 1_000);
+/// #     const SCALING_FACTOR: Fraction = <Fraction>::new(1, 1_000);
 /// #     fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {Ok(Instant::<Self>::new(23))}
 /// # }
 /// let some_clock = SomeClock;
@@ -23,15 +23,15 @@ use num::traits::{WrappingAdd, WrappingSub};
 /// ```
 ///
 /// However, an `Instant` can also be constructed directly. In this case the constructed `Instant`
-/// is `23 * SomeClock::PERIOD` seconds since the clock's epoch
+/// is `23 * SomeClock::SCALING_FACTOR` seconds since the clock's epoch
 /// ```rust,no_run
-/// # use embedded_time::{Period, Instant};
+/// # use embedded_time::{Fraction, Instant};
 /// # #[derive(Debug)]
 /// # struct SomeClock;
 /// # impl embedded_time::Clock for SomeClock {
 /// #     type Rep = u32;
 /// #     type ImplError = ();
-/// #     const PERIOD: Period = <Period>::new(1, 1_000);
+/// #     const SCALING_FACTOR: Fraction = <Fraction>::new(1, 1_000);
 /// #     fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
 /// # }
 /// Instant::<SomeClock>::new(23);
@@ -51,14 +51,14 @@ impl<Clock: crate::Clock> Instant<Clock> {
     ///
     /// # Examples
     /// ```rust
-    /// # use embedded_time::{Period, units::*, Instant, ConversionError};
+    /// # use embedded_time::{Fraction, units::*, Instant, ConversionError};
     /// # #[derive(Debug)]
     /// #
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type Rep = u32;
     /// #   type ImplError = ();
-    ///     const PERIOD: Period = <Period>::new(1, 1_000);
+    ///     const SCALING_FACTOR: Fraction = <Fraction>::new(1, 1_000);
     ///     // ...
     ///
     /// # fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
@@ -81,7 +81,7 @@ impl<Clock: crate::Clock> Instant<Clock> {
         Dur::Rep: TryFrom<Clock::Rep>,
     {
         if self >= other {
-            Dur::from_ticks(self.ticks.wrapping_sub(&other.ticks), Clock::PERIOD)
+            Dur::from_ticks(self.ticks.wrapping_sub(&other.ticks), Clock::SCALING_FACTOR)
         } else {
             Err(ConversionError::NegDuration)
         }
@@ -92,14 +92,14 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{Period, units::*, Instant, ConversionError};
+    /// # use embedded_time::{Fraction, units::*, Instant, ConversionError};
     /// # #[derive(Debug)]
     /// #
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type Rep = u32;
     /// # type ImplError = ();
-    ///     const PERIOD: Period = <Period>::new(1, 1_000);
+    ///     const SCALING_FACTOR: Fraction = <Fraction>::new(1, 1_000);
     ///     // ...
     /// # fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
     /// }
@@ -121,7 +121,7 @@ impl<Clock: crate::Clock> Instant<Clock> {
         Dur::Rep: TryFrom<Clock::Rep>,
     {
         if self <= other {
-            Dur::from_ticks(other.ticks.wrapping_sub(&self.ticks), Clock::PERIOD)
+            Dur::from_ticks(other.ticks.wrapping_sub(&self.ticks), Clock::SCALING_FACTOR)
         } else {
             Err(ConversionError::NegDuration)
         }
@@ -148,13 +148,13 @@ impl<Clock: crate::Clock> Instant<Clock> {
     ///
     /// # Examples
     /// ```rust
-    /// # use embedded_time::{Period, units::*, Instant};
+    /// # use embedded_time::{Fraction, units::*, Instant};
     /// # #[derive(Debug)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type Rep = u32;
     /// # type ImplError = ();
-    ///     const PERIOD: Period = <Period>::new(1, 1_000);
+    ///     const SCALING_FACTOR: Fraction = <Fraction>::new(1, 1_000);
     ///     // ...
     /// # fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
     /// }
@@ -171,13 +171,13 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// clock
     ///
     /// ```rust
-    /// # use embedded_time::{Period, units::*, Instant, ConversionError};
+    /// # use embedded_time::{Fraction, units::*, Instant, ConversionError};
     /// # #[derive(Debug)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type Rep = u32;
     /// # type ImplError = ();
-    ///     const PERIOD: Period = <Period>::new(1, 1_000);
+    ///     const SCALING_FACTOR: Fraction = <Fraction>::new(1, 1_000);
     ///     // ...
     /// # fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
     /// }
@@ -189,7 +189,7 @@ impl<Clock: crate::Clock> Instant<Clock> {
     where
         Clock::Rep: TryFrom<Dur::Rep>,
     {
-        let add_ticks: Clock::Rep = duration.into_ticks(Clock::PERIOD)?;
+        let add_ticks: Clock::Rep = duration.into_ticks(Clock::SCALING_FACTOR)?;
         if add_ticks <= (<Clock::Rep as num::Bounded>::max_value() / 2.into()) {
             Ok(Self {
                 ticks: self.ticks.wrapping_add(&add_ticks),
@@ -203,13 +203,13 @@ impl<Clock: crate::Clock> Instant<Clock> {
     ///
     /// # Examples
     /// ```rust
-    /// # use embedded_time::{Period, units::*, Instant};
+    /// # use embedded_time::{Fraction, units::*, Instant};
     /// # #[derive(Debug)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type Rep = u32;
     /// # type ImplError = ();
-    ///     const PERIOD: Period = <Period>::new(1, 1_000);
+    ///     const SCALING_FACTOR: Fraction = <Fraction>::new(1, 1_000);
     ///     // ...
     /// # fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
     /// }
@@ -226,13 +226,13 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// clock
     ///
     /// ```rust
-    /// # use embedded_time::{Period, units::*, Instant, ConversionError};
+    /// # use embedded_time::{Fraction, units::*, Instant, ConversionError};
     /// # #[derive(Debug)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type Rep = u32;
     /// # type ImplError = ();
-    ///     const PERIOD: Period = <Period>::new(1, 1_000);
+    ///     const SCALING_FACTOR: Fraction = <Fraction>::new(1, 1_000);
     ///     // ...
     /// # fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
     /// }
@@ -244,7 +244,7 @@ impl<Clock: crate::Clock> Instant<Clock> {
     where
         Clock::Rep: TryFrom<Dur::Rep>,
     {
-        let sub_ticks: Clock::Rep = duration.into_ticks(Clock::PERIOD)?;
+        let sub_ticks: Clock::Rep = duration.into_ticks(Clock::SCALING_FACTOR)?;
         if sub_ticks <= (<Clock::Rep as num::Bounded>::max_value() / 2.into()) {
             Ok(Self {
                 ticks: self.ticks.wrapping_sub(&sub_ticks),
@@ -277,13 +277,13 @@ impl<Clock: crate::Clock> PartialOrd for Instant<Clock> {
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{Period, units::*, Instant};
+    /// # use embedded_time::{Fraction, units::*, Instant};
     /// # #[derive(Debug)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type Rep = u32;
     /// # type ImplError = ();
-    ///     const PERIOD: Period = <Period>::new(1, 1_000);
+    ///     const SCALING_FACTOR: Fraction = <Fraction>::new(1, 1_000);
     ///     // ...
     /// # fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
     /// }
@@ -317,13 +317,13 @@ where
     ///
     /// # Examples
     /// ```rust
-    /// # use embedded_time::{Period, units::*, Instant};
+    /// # use embedded_time::{Fraction, units::*, Instant};
     /// # #[derive(Debug)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type Rep = u32;
     /// # type ImplError = ();
-    ///     const PERIOD: Period = <Period>::new(1, 1_000);
+    ///     const SCALING_FACTOR: Fraction = <Fraction>::new(1, 1_000);
     ///     // ...
     /// # fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
     /// }
@@ -346,13 +346,13 @@ where
     /// the wrap-around period of the clock.
     ///
     /// ```rust,should_panic
-    /// # use embedded_time::{Period, units::*, Instant};
+    /// # use embedded_time::{Fraction, units::*, Instant};
     /// # #[derive(Debug)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type Rep = u32;
     /// # type ImplError = ();
-    ///     const PERIOD: Period = <Period>::new(1, 1_000);
+    ///     const SCALING_FACTOR: Fraction = <Fraction>::new(1, 1_000);
     ///     // ...
     /// # fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
     /// }
@@ -376,13 +376,13 @@ where
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{Period, units::*, Instant};
+    /// # use embedded_time::{Fraction, units::*, Instant};
     /// # #[derive(Debug)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type Rep = u32;
     /// # type ImplError = ();
-    ///     const PERIOD: Period = <Period>::new(1, 1_000);
+    ///     const SCALING_FACTOR: Fraction = <Fraction>::new(1, 1_000);
     ///     // ...
     /// # fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
     /// }
@@ -406,13 +406,13 @@ where
     /// the wrap-around period of the clock.
     ///
     /// ```rust,should_panic
-    /// # use embedded_time::{Period, units::*, Instant};
+    /// # use embedded_time::{Fraction, units::*, Instant};
     /// # #[derive(Debug)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type Rep = u32;
     /// # type ImplError = ();
-    ///     const PERIOD: Period = <Period>::new(1, 1_000);
+    ///     const SCALING_FACTOR: Fraction = <Fraction>::new(1, 1_000);
     ///     // ...
     /// # fn now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
     /// }
@@ -426,7 +426,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{self as time, units::*, ConversionError, Instant, Period};
+    use crate::{self as time, units::*, ConversionError, Fraction, Instant};
 
     #[derive(Debug)]
     struct Clock;
@@ -434,7 +434,7 @@ mod tests {
     impl time::Clock for Clock {
         type Rep = u32;
         type ImplError = ();
-        const PERIOD: Period = <Period>::new(1, 1_000);
+        const SCALING_FACTOR: Fraction = <Fraction>::new(1, 1_000);
 
         fn now(&self) -> Result<Instant<Self>, time::clock::Error<Self::ImplError>> {
             unimplemented!()

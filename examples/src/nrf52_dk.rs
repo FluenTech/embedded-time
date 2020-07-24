@@ -37,7 +37,7 @@ impl SysClock {
 impl time::Clock for SysClock {
     type Rep = u64;
     type ImplError = Infallible;
-    const PERIOD: time::Period = <time::Period>::new(1, 16_000_000);
+    const SCALING_FACTOR: time::Fraction = <time::Fraction>::new(1, 16_000_000);
 
     fn now(&self) -> Result<time::Instant<Self>, time::clock::Error<Self::ImplError>> {
         self.capture_task.tasks_trigger[0].write(|write| unsafe { write.bits(1) });

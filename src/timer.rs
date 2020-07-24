@@ -197,7 +197,7 @@ impl<Clock: crate::Clock, Dur: Duration> Timer<'_, Periodic, Running, Clock, Dur
 #[allow(unused_imports)]
 #[allow(unsafe_code)]
 mod test {
-    use crate::{duration::Duration, traits::*, units::*, Instant, Period};
+    use crate::{duration::Duration, traits::*, units::*, Fraction, Instant};
     use core::convert::{Infallible, TryFrom};
     use crossbeam_utils::thread;
     use std::sync::atomic::{AtomicU64, Ordering};
@@ -209,7 +209,7 @@ mod test {
     impl crate::Clock for Clock {
         type Rep = u64;
         type ImplError = Infallible;
-        const PERIOD: Period = <Period>::new(1, 1_000);
+        const SCALING_FACTOR: Fraction = <Fraction>::new(1, 1_000);
 
         fn now(&self) -> Result<Instant<Self>, crate::clock::Error<Self::ImplError>> {
             Ok(Instant::new(TICKS.load(Ordering::SeqCst)))
@@ -328,7 +328,7 @@ mod test {
         let ticks = TICKS.load(Ordering::SeqCst);
         let ticks = ticks
             + duration
-                .into_ticks::<<Clock as crate::Clock>::Rep>(Clock::PERIOD)
+                .into_ticks::<<Clock as crate::Clock>::Rep>(Clock::SCALING_FACTOR)
                 .unwrap();
         TICKS.store(ticks, Ordering::SeqCst);
     }
