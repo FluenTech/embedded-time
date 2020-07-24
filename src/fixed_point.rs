@@ -51,21 +51,21 @@ pub trait FixedPoint: Sized + Copy + fmt::Display {
                 Rep::try_from(self.count()).map_err(|_| ConversionError::ConversionFailure)?;
 
             if fraction > Fraction::new(1, 1) {
-                TimeInt::checked_div_period(
-                    &TimeInt::checked_mul_period(&ticks, &Self::SCALING_FACTOR)?,
+                TimeInt::checked_div_fraction(
+                    &TimeInt::checked_mul_fraction(&ticks, &Self::SCALING_FACTOR)?,
                     &fraction,
                 )
             } else {
-                TimeInt::checked_mul_period(&ticks, &Self::SCALING_FACTOR.checked_div(&fraction)?)
+                TimeInt::checked_mul_fraction(&ticks, &Self::SCALING_FACTOR.checked_div(&fraction)?)
             }
         } else {
             let ticks = if Self::SCALING_FACTOR > Fraction::new(1, 1) {
-                TimeInt::checked_div_period(
-                    &TimeInt::checked_mul_period(&self.count(), &Self::SCALING_FACTOR)?,
+                TimeInt::checked_div_fraction(
+                    &TimeInt::checked_mul_fraction(&self.count(), &Self::SCALING_FACTOR)?,
                     &fraction,
                 )?
             } else {
-                TimeInt::checked_mul_period(
+                TimeInt::checked_mul_fraction(
                     &self.count(),
                     &Self::SCALING_FACTOR.checked_div(&fraction)?,
                 )?
@@ -210,12 +210,12 @@ where
         let ticks = Dest::Rep::try_from(ticks).map_err(|_| ConversionError::ConversionFailure)?;
 
         let ticks = if scaling_factor > Fraction::new(1, 1) {
-            TimeInt::checked_div_period(
-                &TimeInt::checked_mul_period(&ticks, &scaling_factor)?,
+            TimeInt::checked_div_fraction(
+                &TimeInt::checked_mul_fraction(&ticks, &scaling_factor)?,
                 &Dest::SCALING_FACTOR,
             )?
         } else {
-            TimeInt::checked_mul_period(
+            TimeInt::checked_mul_fraction(
                 &ticks,
                 &scaling_factor.checked_div(&Dest::SCALING_FACTOR)?,
             )?
@@ -224,17 +224,17 @@ where
         Ok(Dest::new(ticks))
     } else {
         let ticks = if scaling_factor > Fraction::new(1, 1) {
-            TimeInt::checked_div_period(
-                &TimeInt::checked_mul_period(&ticks, &scaling_factor)?,
+            TimeInt::checked_div_fraction(
+                &TimeInt::checked_mul_fraction(&ticks, &scaling_factor)?,
                 &Dest::SCALING_FACTOR,
             )?
         } else if Dest::SCALING_FACTOR > Fraction::new(1, 1) {
-            TimeInt::checked_mul_period(
-                &TimeInt::checked_div_period(&ticks, &Dest::SCALING_FACTOR)?,
+            TimeInt::checked_mul_fraction(
+                &TimeInt::checked_div_fraction(&ticks, &Dest::SCALING_FACTOR)?,
                 &scaling_factor,
             )?
         } else {
-            TimeInt::checked_mul_period(
+            TimeInt::checked_mul_fraction(
                 &ticks,
                 &scaling_factor.checked_div(&Dest::SCALING_FACTOR)?,
             )?
