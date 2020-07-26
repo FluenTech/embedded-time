@@ -15,6 +15,9 @@ autoexamples = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lib]
+bench = false
+
 [workspace]
 members = ["examples"]
 
@@ -32,3 +35,4 @@ harness = false
 [[bench]]
 name = "duration_vs_rate"
 harness = false
+bench = false
