@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
-use embedded_time::{duration::units::*, rate::units::*, traits::*, Fraction};
+use embedded_time::{duration::units::*, prelude::*, rate::units::*, Fraction};
 use std::mem::size_of;
 
 fn duration_vs_core_duration(c: &mut Criterion) {

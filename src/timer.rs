@@ -1,8 +1,7 @@
-use crate::fixed_point::FixedPoint;
 use crate::{
-    duration::{self, Duration},
+    duration::{self, units::*, Duration},
+    fixed_point::FixedPoint,
     timer::param::*,
-    traits::*,
     ConversionError, Instant, TimeError,
 };
 use core::{convert::TryFrom, marker::PhantomData, ops::Add, prelude::v1::*};
@@ -202,7 +201,7 @@ mod test {
     use crate::{
         duration::{units::*, Duration},
         fixed_point::FixedPoint,
-        traits::*,
+        prelude::*,
         Fraction, Instant,
     };
     use core::convert::Infallible;

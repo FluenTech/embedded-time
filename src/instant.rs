@@ -15,7 +15,7 @@ use num::traits::{WrappingAdd, WrappingSub};
 /// Typically an `Instant` will be obtained from a [`Clock`](clock/trait.Clock.html)
 ///
 /// ```rust
-/// # use embedded_time::{Fraction, traits::*, Instant};
+/// # use embedded_time::{Fraction, prelude::*, Instant};
 /// # #[derive(Debug)]
 /// # struct SomeClock;
 /// # impl embedded_time::Clock for SomeClock {
