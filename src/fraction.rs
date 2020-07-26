@@ -12,7 +12,7 @@ use num::{rational::Ratio, CheckedDiv, CheckedMul, Zero};
 /// [`Rate`]: rate/trait.Rate.html
 /// [`Clock`]: clock/trait.Clock.html
 /// [`Instant`]: instant/struct.Instant.html
-#[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct Fraction(Ratio<u32>);
 
 impl Fraction {
@@ -222,5 +222,11 @@ impl ops::Div for Fraction {
     // TODO: add example
     fn div(self, rhs: Self) -> Self::Output {
         self.checked_div(&rhs).unwrap()
+    }
+}
+
+impl Default for Fraction {
+    fn default() -> Self {
+        Self::new(1, 1)
     }
 }
