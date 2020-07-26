@@ -100,9 +100,11 @@ mod timer;
 
 pub use clock::Clock;
 pub use duration::Duration;
+pub use fixed_point::FixedPoint;
 pub use fraction::Fraction;
 pub use instant::Instant;
 pub use rate::Rate;
+pub use time_int::TimeInt;
 pub use timer::Timer;
 
 /// Public _traits_
