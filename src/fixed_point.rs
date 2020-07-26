@@ -210,14 +210,22 @@ where
     Dest::T: TryFrom<SourceInt>,
 {
     if size_of::<Dest::T>() > size_of::<SourceInt>() {
+        // the dest integer is wider than the source, first promote the source integer to the dest
+        // type
         let ticks = Dest::T::try_from(ticks).map_err(|_| ConversionError::ConversionFailure)?;
 
         let ticks = if scaling_factor > Fraction::new(1, 1) {
+            // In order to preserve precision, if the source scaling factor is > 1, the source's
+            // pure integer value can be calculated first followed by division by the
+            // dest scaling factor.
             TimeInt::checked_div_fraction(
                 &TimeInt::checked_mul_fraction(&ticks, &scaling_factor)?,
                 &Dest::SCALING_FACTOR,
             )?
         } else {
+            // If the source scaling factor is <= 1, the relative ratio of the scaling factors are
+            // calculated first by dividing the source scaling factor by that of the
+            // dest. The source integer part is then multiplied by the result.
             TimeInt::checked_mul_fraction(
                 &ticks,
                 &scaling_factor.checked_div(&Dest::SCALING_FACTOR)?,
