@@ -29,7 +29,7 @@ pub trait Rate: Copy {
     /// # use embedded_time::{Fraction, rate::units::*, rate::{Generic, Rate}};
     /// # use core::convert::{TryFrom, TryInto};
     /// #
-    /// assert_eq!(Hertz(2_u64).try_into_generic(Fraction::new(1,2_000)),
+    /// assert_eq!(Hertz(2_u64).to_generic(Fraction::new(1,2_000)),
     ///     Ok(Generic::new(4_000_u32, Fraction::new(1,2_000))));
     /// ```
     ///
@@ -45,7 +45,7 @@ pub trait Rate: Copy {
     /// # use embedded_time::{Fraction, rate::units::*, rate::{Rate, Generic}, ConversionError};
     /// # use core::convert::TryFrom;
     /// #
-    /// assert_eq!(Hertz(u32::MAX).try_into_generic::<u32>(Fraction::new(1, 2)),
+    /// assert_eq!(Hertz(u32::MAX).to_generic::<u32>(Fraction::new(1, 2)),
     ///     Err(ConversionError::Overflow));
     /// ```
     ///
@@ -58,10 +58,10 @@ pub trait Rate: Copy {
     /// # use embedded_time::{Fraction, rate::units::*, rate::{Rate, Generic}, ConversionError};
     /// # use core::convert::TryFrom;
     /// #
-    /// assert_eq!(Hertz(u32::MAX as u64 + 1).try_into_generic::<u32>(Fraction::new(1, 1)),
+    /// assert_eq!(Hertz(u32::MAX as u64 + 1).to_generic::<u32>(Fraction::new(1, 1)),
     ///     Err(ConversionError::ConversionFailure));
     /// ```
-    fn try_into_generic<DestInt: TimeInt>(
+    fn to_generic<DestInt: TimeInt>(
         self,
         scaling_factor: Fraction,
     ) -> Result<Generic<DestInt>, ConversionError>
@@ -75,7 +75,7 @@ pub trait Rate: Copy {
         ))
     }
 
-    /// Attempt to construct the given _rate_ type from the given _duration_ type
+    /// Convert to _named_ [`Duration`](duration::Duration)
     ///
     /// (the rate is equal to the reciprocal of the duration)
     ///
@@ -85,8 +85,8 @@ pub trait Rate: Copy {
     /// # use embedded_time::{duration::units::*, rate::{Rate, units::*}};
     /// #
     /// assert_eq!(
-    ///     Kilohertz::<u32>::try_from_duration(Microseconds(2_u32)),
-    ///     Ok(Kilohertz(500_u32))
+    ///     Kilohertz(500_u32).to_duration(),
+    ///     Ok(Microseconds(2_u32))
     /// );
     /// ```
     ///
@@ -102,7 +102,7 @@ pub trait Rate: Copy {
     /// # use embedded_time::{duration::units::*, rate::units::*, ConversionError, traits::*};
     /// #
     /// assert_eq!(
-    ///     Megahertz::<u32>::try_from_duration(u32::MAX.hours()),
+    ///     Megahertz(u32::MAX).to_duration::<Hours<u32>>(),
     ///     Err(ConversionError::Overflow)
     /// );
     /// ```
@@ -115,51 +115,47 @@ pub trait Rate: Copy {
     /// # use embedded_time::{duration::units::*, rate::units::*, ConversionError, traits::*};
     /// #
     /// assert_eq!(
-    ///     Hertz::<u32>::try_from_duration(0_u32.seconds()),
+    ///     Hertz(0_u32).to_duration::<Seconds<u32>>(),
     ///     Err(ConversionError::DivByZero)
     /// );
     /// ```
-    fn try_from_duration<Duration: duration::Duration>(
-        duration: Duration,
-    ) -> Result<Self, ConversionError>
+    fn to_duration<Duration: duration::Duration>(&self) -> Result<Duration, ConversionError>
     where
         Duration: FixedPoint,
         Self: FixedPoint,
-        Self::T: TryFrom<Duration::T>,
+        Duration::T: TryFrom<Self::T>,
     {
-        let conversion_factor = Duration::SCALING_FACTOR
-            .checked_mul(&Self::SCALING_FACTOR)?
+        let conversion_factor = Self::SCALING_FACTOR
+            .checked_mul(&Duration::SCALING_FACTOR)?
             .recip();
 
-        if size_of::<Duration::T>() >= size_of::<Self::T>() {
-            fixed_point::from_ticks(
-                Duration::T::from(*conversion_factor.numerator())
-                    .checked_div(
-                        &duration
-                            .integer()
-                            .checked_mul(&Duration::T::from(*conversion_factor.denominator()))
-                            .ok_or(ConversionError::Overflow)?,
-                    )
-                    .ok_or(ConversionError::DivByZero)?,
-                Self::SCALING_FACTOR,
-            )
-        } else {
+        if size_of::<Self::T>() >= size_of::<Duration::T>() {
             fixed_point::from_ticks(
                 Self::T::from(*conversion_factor.numerator())
                     .checked_div(
-                        &Self::T::try_from(*duration.integer())
-                            .ok()
-                            .unwrap()
+                        &self
+                            .integer()
                             .checked_mul(&Self::T::from(*conversion_factor.denominator()))
                             .ok_or(ConversionError::Overflow)?,
                     )
                     .ok_or(ConversionError::DivByZero)?,
-                Self::SCALING_FACTOR,
+                Duration::SCALING_FACTOR,
+            )
+        } else {
+            fixed_point::from_ticks(
+                Duration::T::from(*conversion_factor.numerator())
+                    .checked_div(
+                        &Duration::T::try_from(*self.integer())
+                            .ok()
+                            .unwrap()
+                            .checked_mul(&Duration::T::from(*conversion_factor.denominator()))
+                            .ok_or(ConversionError::Overflow)?,
+                    )
+                    .ok_or(ConversionError::DivByZero)?,
+                Duration::SCALING_FACTOR,
             )
         }
     }
-
-    // TODO: add try_into_duration
 }
 
 /// The `Generic` `Rate` type allows arbitrary _scaling factor_s to be used without having to impl
@@ -253,8 +249,8 @@ pub mod units {
 
             impl<T: TimeInt, Rhs: Rate> ops::Add<Rhs> for $name<T>
             where
-                T: TryFrom<Rhs::T>,
                 Rhs: FixedPoint,
+                T: TryFrom<Rhs::T>,
             {
                 type Output = Self;
 
@@ -590,7 +586,7 @@ mod tests {
     use crate::{duration::units::*, rate::units::*, traits::*};
 
     #[test]
-    fn try_from_generic_ok() {
+    fn try_from_generic() {
         assert_eq!(
             Hertz::try_from(Generic::new(246_u32, Fraction::new(1, 2))),
             Ok(Hertz(123_u32))
@@ -598,9 +594,9 @@ mod tests {
     }
 
     #[test]
-    fn try_into_generic_ok() {
+    fn to_generic() {
         assert_eq!(
-            Hertz(123_u32).try_into_generic(Fraction::new(1, 2)),
+            Hertz(123_u32).to_generic(Fraction::new(1, 2)),
             Ok(Generic::new(246_u32, Fraction::new(1, 2)))
         );
     }
@@ -608,13 +604,13 @@ mod tests {
     #[test]
     fn try_into_generic_err() {
         assert_eq!(
-            Hertz(u32::MAX).try_into_generic::<u32>(Fraction::new(1, 2)),
+            Hertz(u32::MAX).to_generic::<u32>(Fraction::new(1, 2)),
             Err(ConversionError::Overflow)
         );
     }
 
     #[test]
-    fn get_generic_count() {
+    fn get_generic_integer() {
         let generic = Generic::new(246_u32, Fraction::new(1, 2));
         assert_eq!(generic.integer(), &246_u32);
     }
@@ -628,22 +624,16 @@ mod tests {
 
     #[test]
     fn remainder() {
-        assert_eq!(Hertz(62_u32) % Hertz(60_u32), Hertz(2_u32));
+        assert_eq!(Hertz(456_u32) % Hertz(100_u32), Hertz(56_u32));
         assert_eq!(Hertz(2_003_u32) % Kilohertz(1_u32), Hertz(3_u32));
         assert_eq!(Kilohertz(40_u32) % Hertz(100_u32), Kilohertz(0_u32));
     }
 
     #[test]
-    fn convert_from_duration() {
-        assert_eq!(
-            Hertz::<u32>::try_from_duration(Milliseconds(2_u32)),
-            Ok(Hertz(500_u32))
-        );
+    fn convert_to_duration() {
+        assert_eq!(Hertz(500_u32).to_duration(), Ok(Milliseconds(2_u32)));
 
-        assert_eq!(
-            Kilohertz::<u32>::try_from_duration(Microseconds(2_u32)),
-            Ok(Kilohertz(500_u32))
-        );
+        assert_eq!(Kilohertz(500_u32).to_duration(), Ok(Microseconds(2_u32)));
     }
 
     #[test]
