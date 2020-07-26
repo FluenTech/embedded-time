@@ -3,7 +3,15 @@
 ## [Unreleased]
 
 
-[unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.8.0...HEAD
+[unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.8.1...HEAD
+
+## [0.8.1] - 2020-07-25
+
+### Fixed
+
+The way the conversions from duration to rate (`Rate::try_from_duration()`) and from rate to duration (`Duration::try_from_rate()`) were causing unnecessary arithmetic overflows and type conversion failures. These functions are now optimized similar to the other similar conversion algorithms.
+
+[0.8.1]: https://github.com/FluenTech/embedded-time/compare/v0.8.0...v0.8.1
 
 ## [0.8.0] - 2020-07-24
 
