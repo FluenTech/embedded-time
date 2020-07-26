@@ -11,7 +11,7 @@ fn rem_duration_rate(c: &mut Criterion) {
             let dur1 = black_box(402);
             let dur2 = black_box(10);
             let rem = Seconds::<u64>(dur1) % Seconds::<u64>(dur2);
-            let count = rem.count();
+            let count = rem.integer();
             let _ = black_box(count);
         })
     });
@@ -21,7 +21,7 @@ fn rem_duration_rate(c: &mut Criterion) {
             let rate1 = black_box(402);
             let rate2 = black_box(10);
             let rem = Hertz::<u64>(rate1) % Hertz::<u64>(rate2);
-            let count = rem.count();
+            let count = rem.integer();
             let _ = black_box(count);
         })
     });
