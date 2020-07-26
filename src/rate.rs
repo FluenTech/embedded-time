@@ -20,7 +20,124 @@ use num::{CheckedDiv, CheckedMul};
 /// #
 /// assert_eq!(45_u32.Hz(), Hertz(45_u32));
 /// ```
-pub trait Rate: Copy {
+///
+/// ## From a [`Generic`] `Rate`
+///
+/// ### Examples
+///
+/// ```rust
+/// # use embedded_time::{Fraction, rate::units::*, rate::Generic};
+/// # use core::convert::{TryFrom, TryInto};
+/// #
+/// assert_eq!(
+///     Hertz::<u64>::try_from(Generic::new(2_000_u32, Fraction::new(1,1_000))),
+///     Ok(Hertz(2_u64))
+/// );
+///
+/// // TryInto also works
+/// assert_eq!(
+///     Generic::new(2_000_u64, Fraction::new(1,1_000)).try_into(),
+///     Ok(Hertz(2_u64))
+/// );
+/// ```
+///
+/// ### Errors
+///
+/// Failure will only occur if the provided value does not fit in the selected destination type.
+///
+/// ---
+///
+/// [`ConversionError::Overflow`] : The conversion of the _scaling factor_ causes an overflow.
+///
+/// ```rust
+/// # use embedded_time::{Fraction, rate::units::*, rate::Generic, ConversionError};
+/// # use core::convert::TryFrom;
+/// #
+/// assert_eq!(
+///     Hertz::<u32>::try_from(Generic::new(u32::MAX, Fraction::new(10,1))),
+///     Err(ConversionError::Overflow)
+/// );
+/// ```
+///
+/// ---
+///
+/// [`ConversionError::ConversionFailure`] : The _integer_ conversion to that of the
+/// destination type fails.
+///
+/// ```rust
+/// # use embedded_time::{Fraction, rate::units::*, rate::Generic, ConversionError};
+/// # use core::convert::TryFrom;
+/// #
+/// assert_eq!(
+///     Hertz::<u32>::try_from(Generic::new(u32::MAX as u64 + 1, Fraction::new(1,1))),
+///     Err(ConversionError::ConversionFailure)
+/// );
+/// ```
+///
+/// # Get the integer part
+///
+/// ```rust
+/// # use embedded_time::{traits::*, rate::units::*};
+/// #
+/// assert_eq!(Hertz(45_u32).integer(), &45_u32);
+/// ```
+///
+/// # Formatting
+///
+/// Just forwards the underlying integer to [`core::fmt::Display::fmt()`]
+///
+/// ```rust
+/// # use embedded_time::{traits::*, rate::units::*};
+/// #
+/// assert_eq!(format!("{}", Hertz(123_u32)), "123");
+/// ```
+///
+/// # Add/Sub
+///
+/// The result of the operation is the LHS type
+///
+/// ## Examples
+///
+/// ```rust
+/// # use embedded_time::{traits::*, rate::units::*};
+/// #
+/// assert_eq!((Hertz(2u32) - Hertz(1_u32)),
+///     Hertz(1_u32));
+///
+/// assert_eq!((Hertz(1_u32) + Hertz(1_u32)),
+///     Hertz(2_u32));
+/// ```
+///
+/// ## Panics
+///
+/// The same reason the integer operation would panic. Namely, if the result overflows the type.
+///
+/// ```rust,should_panic
+/// # use embedded_time::{traits::*, rate::units::*};
+/// #
+/// let _ = Hertz(u32::MAX) + Hertz(1_u32);
+/// ```
+///
+/// # Comparisons
+///
+/// ```rust
+/// # use embedded_time::{traits::*, rate::units::*};
+/// #
+/// assert_eq!(Kilohertz(2_u32), Hertz(2_000_u32));
+/// assert_ne!(Kilohertz(2_u32), Hertz(2_001_u32));
+///
+/// assert!(Kilohertz(2_u32) < Hertz(2_001_u32));
+/// assert!(Kilohertz(2_u32) > Hertz(1_999_u32));
+/// ```
+///
+/// # Remainder
+///
+/// ```rust
+/// # use embedded_time::{traits::*, rate::units::*};
+/// #
+/// assert_eq!(Hertz(2_037_u32) % Kilohertz(1_u32), Hertz(37_u32));
+/// ```
+pub trait Rate: Sized + Copy {
     /// Construct a `Generic` `Rate` from an _named_ `Rate`
     ///
     /// # Examples
@@ -213,7 +330,7 @@ pub mod units {
             pub struct $name<T: TimeInt = u32>(pub T);
 
             impl<T: TimeInt> $name<T> {
-                #[doc(hidden)]
+                /// See [Constructing a rate](../trait.Rate.html#constructing_a_rate)
                 pub fn new(value: T) -> Self {
                     Self(value)
                 }
@@ -235,13 +352,6 @@ pub mod units {
             }
 
             impl<T: TimeInt> fmt::Display for $name<T> {
-                /// Just forwards the underlying integer to [`core::fmt::Display::fmt()`]
-                ///
-                /// ```rust
-                /// # use embedded_time::{traits::*, rate::units::*};
-                /// #
-                /// assert_eq!(format!("{}", Hertz(123_u32)), "123");
-                /// ```
                 fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
                     fmt::Display::fmt(&self.0, f)
                 }
@@ -254,26 +364,6 @@ pub mod units {
             {
                 type Output = Self;
 
-                /// Returns the sum as the LHS type
-                ///
-                /// # Examples
-                ///
-                /// ```rust
-                /// # use embedded_time::{traits::*, rate::units::*};
-                /// #
-                /// assert_eq!((Hertz(1_u32) + Hertz(1_u32)), Hertz(2_u32));
-                /// ```
-                ///
-                /// # Panics
-                ///
-                /// The same reason the integer operation would panic. Namely, if the
-                /// result overflows the type.
-                ///
-                /// ```rust,should_panic
-                /// # use embedded_time::{traits::*, rate::units::*};
-                /// #
-                /// let _ = Hertz(u32::MAX) + Hertz(1_u32);
-                /// ```
                 fn add(self, rhs: Rhs) -> Self::Output {
                     <Self as FixedPoint>::add(self, rhs)
                 }
@@ -286,27 +376,6 @@ pub mod units {
             {
                 type Output = Self;
 
-                /// Returns the difference as the LHS type
-                ///
-                /// # Examples
-                ///
-                /// ```rust
-                /// # use embedded_time::{traits::*, rate::units::*};
-                /// #
-                /// assert_eq!((Hertz(2u32) - Hertz(1_u32)),
-                ///     Hertz(1_u32));
-                /// ```
-                ///
-                /// # Panics
-                ///
-                /// The same reason the integer operation would panic. Namely, if the
-                /// result overflows the type.
-                ///
-                /// ```rust,should_panic
-                /// # use embedded_time::{traits::*, rate::units::*};
-                /// #
-                /// let _ = Hertz(0_u32) - Hertz(1_u32);
-                /// ```
                 fn sub(self, rhs: Rhs) -> Self::Output {
                     <Self as FixedPoint>::sub(self, rhs)
                 }
@@ -319,13 +388,6 @@ pub mod units {
             {
                 type Output = Self;
 
-                /// Returns the remainder as the LHS type
-                ///
-                /// ```rust
-                /// # use embedded_time::{traits::*, rate::units::*};
-                /// #
-                /// assert_eq!(Hertz(2_037_u32) % Kilohertz(1_u32), Hertz(37_u32));
-                /// ```
                 fn rem(self, rhs: Rhs) -> Self::Output {
                     <Self as FixedPoint>::rem(self, rhs)
                 }
@@ -337,12 +399,6 @@ pub mod units {
                 Rhs: FixedPoint,
                 Rhs::T: TryFrom<T>,
             {
-                /// ```rust
-                /// # use embedded_time::{traits::*, rate::units::*};
-                /// #
-                /// assert_eq!(Hertz(123_000_u32), Kilohertz(123_u32));
-                /// assert_ne!(Hertz(123_001_u32), Kilohertz(123_u32));
-                /// ```
                 fn eq(&self, rhs: &Rhs) -> bool {
                     <Self as FixedPoint>::eq(self, rhs)
                 }
@@ -354,12 +410,6 @@ pub mod units {
                 Rhs: FixedPoint,
                 Rhs::T: TryFrom<T>,
             {
-                /// ```rust
-                /// # use embedded_time::{traits::*, rate::units::*};
-                /// #
-                /// assert!(Hertz(2_001_u32) > Kilohertz(2_u32));
-                /// assert!(Hertz(1_999_u32) < Kilohertz(2_u32));
-                /// ```
                 fn partial_cmp(&self, rhs: &Rhs) -> Option<core::cmp::Ordering> {
                     <Self as FixedPoint>::partial_cmp(self, rhs)
                 }
@@ -372,55 +422,8 @@ pub mod units {
             {
                 type Error = ConversionError;
 
-                /// Construct a _named_ `Rate` from a `Generic` `Rate`
-                ///
-                /// # Examples
-                ///
-                /// ```rust
-                /// # use embedded_time::{Fraction, rate::units::*, rate::Generic};
-                /// # use core::convert::{TryFrom, TryInto};
-                /// #
-                /// assert_eq!(
-                ///     Hertz::<u64>::try_from(Generic::new(2_000_u32, Fraction::new(1,1_000))),
-                ///     Ok(Hertz(2_u64))
-                /// );
-                ///
-                /// assert_eq!(
-                ///     Generic::new(2_000_u64, Fraction::new(1,1_000)).try_into(),
-                ///     Ok(Hertz(2_u64))
-                /// );
-                /// ```
-                ///
-                /// # Errors
-                ///
-                /// Failure will only occur if the provided value does not fit in the selected
-                /// destination type.
-                ///
-                /// ---
-                ///
-                /// [`ConversionError::Overflow`] : The conversion of the _scaling factor_ causes an
-                /// overflow.
-                ///
-                /// ```rust
-                /// # use embedded_time::{Fraction, rate::units::*, rate::Generic, ConversionError};
-                /// # use core::convert::TryFrom;
-                /// #
-                /// assert_eq!(Hertz::<u32>::try_from(Generic::new(u32::MAX, Fraction::new(10,1))),
-                ///     Err(ConversionError::Overflow));
-                /// ```
-                ///
-                /// ---
-                ///
-                /// [`ConversionError::ConversionFailure`] : The _integer_ conversion to that of the
-                /// destination type fails.
-                ///
-                /// ```rust
-                /// # use embedded_time::{Fraction, rate::units::*, rate::Generic, ConversionError};
-                /// # use core::convert::TryFrom;
-                /// #
-                /// assert_eq!(Hertz::<u32>::try_from(Generic::new(u32::MAX as u64 + 1, Fraction::new(1,1))),
-                ///     Err(ConversionError::ConversionFailure));
-                /// ```
+                /// See [Constructing a rate > From a Generic
+                /// Rate](../trait.Rate.html#from-a-generic-rate)
                 fn try_from(generic_rate: Generic<SourceInt>) -> Result<Self, Self::Error> {
                     fixed_point::from_ticks(generic_rate.integer, generic_rate.scaling_factor)
                 }
