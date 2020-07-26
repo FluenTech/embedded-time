@@ -16,7 +16,7 @@ use num::{CheckedDiv, CheckedMul};
 /// # Constructing a rate
 ///
 /// ```rust
-/// # use embedded_time::{traits::*, rate::units::*};
+/// # use embedded_time::{prelude::*, rate::units::*};
 /// #
 /// assert_eq!(45_u32.Hz(), Hertz(45_u32));
 /// ```
@@ -77,7 +77,7 @@ use num::{CheckedDiv, CheckedMul};
 /// # Get the integer part
 ///
 /// ```rust
-/// # use embedded_time::{traits::*, rate::units::*};
+/// # use embedded_time::{prelude::*, rate::units::*};
 /// #
 /// assert_eq!(Hertz(45_u32).integer(), &45_u32);
 /// ```
@@ -87,7 +87,7 @@ use num::{CheckedDiv, CheckedMul};
 /// Just forwards the underlying integer to [`core::fmt::Display::fmt()`]
 ///
 /// ```rust
-/// # use embedded_time::{traits::*, rate::units::*};
+/// # use embedded_time::{prelude::*, rate::units::*};
 /// #
 /// assert_eq!(format!("{}", Hertz(123_u32)), "123");
 /// ```
@@ -99,7 +99,7 @@ use num::{CheckedDiv, CheckedMul};
 /// ## Examples
 ///
 /// ```rust
-/// # use embedded_time::{traits::*, rate::units::*};
+/// # use embedded_time::{prelude::*, rate::units::*};
 /// #
 /// assert_eq!((Hertz(2u32) - Hertz(1_u32)),
 ///     Hertz(1_u32));
@@ -113,7 +113,7 @@ use num::{CheckedDiv, CheckedMul};
 /// The same reason the integer operation would panic. Namely, if the result overflows the type.
 ///
 /// ```rust,should_panic
-/// # use embedded_time::{traits::*, rate::units::*};
+/// # use embedded_time::{prelude::*, rate::units::*};
 /// #
 /// let _ = Hertz(u32::MAX) + Hertz(1_u32);
 /// ```
@@ -121,7 +121,7 @@ use num::{CheckedDiv, CheckedMul};
 /// # Comparisons
 ///
 /// ```rust
-/// # use embedded_time::{traits::*, rate::units::*};
+/// # use embedded_time::{prelude::*, rate::units::*};
 /// #
 /// assert_eq!(Kilohertz(2_u32), Hertz(2_000_u32));
 /// assert_ne!(Kilohertz(2_u32), Hertz(2_001_u32));
@@ -133,7 +133,7 @@ use num::{CheckedDiv, CheckedMul};
 /// # Remainder
 ///
 /// ```rust
-/// # use embedded_time::{traits::*, rate::units::*};
+/// # use embedded_time::{prelude::*, rate::units::*};
 /// #
 /// assert_eq!(Hertz(2_037_u32) % Kilohertz(1_u32), Hertz(37_u32));
 /// ```
@@ -216,7 +216,7 @@ pub trait Rate: Sized + Copy {
     /// [`ConversionError::Overflow`] : The conversion of the _scaling factor_ causes an overflow.
     ///
     /// ```rust
-    /// # use embedded_time::{duration::units::*, rate::units::*, ConversionError, traits::*};
+    /// # use embedded_time::{duration::units::*, rate::units::*, ConversionError, prelude::*};
     /// #
     /// assert_eq!(
     ///     Megahertz(u32::MAX).to_duration::<Hours<u32>>(),
@@ -229,7 +229,7 @@ pub trait Rate: Sized + Copy {
     /// [`ConversionError::DivByZero`] : The rate is `0`, therefore the reciprocal is undefined.
     ///
     /// ```rust
-    /// # use embedded_time::{duration::units::*, rate::units::*, ConversionError, traits::*};
+    /// # use embedded_time::{duration::units::*, rate::units::*, ConversionError, prelude::*};
     /// #
     /// assert_eq!(
     ///     Hertz(0_u32).to_duration::<Seconds<u32>>(),
@@ -461,12 +461,12 @@ pub mod units {
 
     /// Create time-based values from primitive and core numeric types.
     ///
-    /// This trait is anonomously re-exported in [`traits`](crate::traits)
+    /// This trait is anonomously re-exported in [`crate::prelude`]
     ///
     /// # Examples
     /// Basic construction of time-based values.
     /// ```rust
-    /// # use embedded_time::{traits::*, rate::units::*};
+    /// # use embedded_time::{prelude::*, rate::units::*};
     /// assert_eq!(5_u32.MHz(), Megahertz(5_u32));
     /// assert_eq!(5_u32.kHz(), Kilohertz(5_u32));
     /// assert_eq!(5_u32.Hz(), Hertz(5_u32));
@@ -586,7 +586,7 @@ pub mod units {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{duration::units::*, rate::units::*, traits::*};
+    use crate::{duration::units::*, prelude::*, rate::units::*};
 
     #[test]
     fn try_from_generic() {

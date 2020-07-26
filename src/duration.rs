@@ -6,8 +6,7 @@ use crate::{
     time_int::TimeInt,
     ConversionError, Fraction,
 };
-use core::mem::size_of;
-use core::{convert::TryFrom, prelude::v1::*};
+use core::{convert::TryFrom, mem::size_of, prelude::v1::*};
 use num::{CheckedDiv, CheckedMul};
 
 /// An unsigned, fixed-point duration type
@@ -17,7 +16,7 @@ use num::{CheckedDiv, CheckedMul};
 /// # Constructing a duration
 ///
 /// ```rust
-/// # use embedded_time::{traits::*, duration::units::*};
+/// # use embedded_time::{prelude::*, duration::units::*};
 /// #
 /// assert_eq!(23_u32.milliseconds(), Milliseconds(23_u32));
 /// ```
@@ -78,7 +77,7 @@ use num::{CheckedDiv, CheckedMul};
 /// # Get the integer part
 ///
 /// ```rust
-/// # use embedded_time::{traits::*, duration::units::*};
+/// # use embedded_time::{prelude::*, duration::units::*};
 /// #
 /// assert_eq!(Milliseconds(23_u32).integer(), &23_u32);
 /// ```
@@ -88,7 +87,7 @@ use num::{CheckedDiv, CheckedMul};
 /// Just forwards the underlying integer to [`core::fmt::Display::fmt()`]
 ///
 /// ```rust
-/// # use embedded_time::{traits::*, duration::units::*};
+/// # use embedded_time::{prelude::*, duration::units::*};
 /// #
 /// assert_eq!(format!("{}", Seconds(123_u32)), "123");
 /// ```
@@ -96,7 +95,7 @@ use num::{CheckedDiv, CheckedMul};
 /// # Getting H:M:S.MS... Components
 ///
 /// ```rust
-/// # use embedded_time::{traits::*, duration::units::*};
+/// # use embedded_time::{prelude::*, duration::units::*};
 /// #
 /// let duration = 38_238_479_u32.microseconds();
 /// let hours = Hours::<u32>::try_convert_from(duration).unwrap();
@@ -113,7 +112,7 @@ use num::{CheckedDiv, CheckedMul};
 /// ## Examples
 ///
 /// ```rust
-/// # use embedded_time::traits::*;
+/// # use embedded_time::prelude::*;
 /// # use core::convert::TryFrom;
 /// #
 /// let core_duration = core::time::Duration::try_from(2_569_u32.milliseconds()).unwrap();
@@ -122,7 +121,7 @@ use num::{CheckedDiv, CheckedMul};
 /// ```
 ///
 /// ```rust
-/// # use embedded_time::traits::*;
+/// # use embedded_time::prelude::*;
 /// # use core::convert::TryInto;
 /// #
 /// let core_duration: core::time::Duration = 2_569_u32.milliseconds().try_into().unwrap();
@@ -137,7 +136,7 @@ use num::{CheckedDiv, CheckedMul};
 /// ## Examples
 ///
 /// ```rust
-/// # use embedded_time::{traits::*, duration::units::*};
+/// # use embedded_time::{prelude::*, duration::units::*};
 /// # use core::convert::TryFrom;
 /// #
 /// let core_duration = core::time::Duration::new(5, 730023852);
@@ -145,7 +144,7 @@ use num::{CheckedDiv, CheckedMul};
 /// ```
 ///
 /// ```rust
-/// # use embedded_time::{traits::*, duration::units::*};
+/// # use embedded_time::{prelude::*, duration::units::*};
 /// # use core::convert::TryInto;
 /// #
 /// let duration: Result<Milliseconds<u32>, _> = core::time::Duration::new(5, 730023852).try_into();
@@ -157,7 +156,7 @@ use num::{CheckedDiv, CheckedMul};
 /// [`ConversionError::ConversionFailure`] : The duration doesn't fit in the type specified
 ///
 /// ```rust
-/// # use embedded_time::{traits::*, duration::units::*, ConversionError};
+/// # use embedded_time::{prelude::*, duration::units::*, ConversionError};
 /// # use core::convert::{TryFrom, TryInto};
 /// #
 /// assert_eq!(
@@ -179,7 +178,7 @@ use num::{CheckedDiv, CheckedMul};
 /// ## Examples
 ///
 /// ```rust
-/// # use embedded_time::{traits::*, duration::units::*};
+/// # use embedded_time::{prelude::*, duration::units::*};
 /// #
 /// assert_eq!((Milliseconds(2_001_u32) - Seconds(1_u32)),
 ///     Milliseconds(1_001_u32));
@@ -193,7 +192,7 @@ use num::{CheckedDiv, CheckedMul};
 /// The same reason the integer operation would panic. Namely, if the result overflows the type.
 ///
 /// ```rust,should_panic
-/// # use embedded_time::{traits::*, duration::units::*};
+/// # use embedded_time::{prelude::*, duration::units::*};
 /// #
 /// let _ = Seconds(u32::MAX) + Seconds(1_u32);
 /// ```
@@ -201,7 +200,7 @@ use num::{CheckedDiv, CheckedMul};
 /// # Comparisons
 ///
 /// ```rust
-/// # use embedded_time::{traits::*, duration::units::*};
+/// # use embedded_time::{prelude::*, duration::units::*};
 /// #
 /// assert_eq!(Seconds(2_u32), Milliseconds(2_000_u32));
 /// assert_ne!(Seconds(2_u32), Milliseconds(2_001_u32));
@@ -213,7 +212,7 @@ use num::{CheckedDiv, CheckedMul};
 /// # Remainder
 ///
 /// ```rust
-/// # use embedded_time::{traits::*, duration::units::*};
+/// # use embedded_time::{prelude::*, duration::units::*};
 /// #
 /// assert_eq!(Minutes(62_u32) % Hours(1_u32), Minutes(2_u32));
 /// ```
@@ -297,7 +296,7 @@ pub trait Duration: Sized + Copy {
     /// [`ConversionError::Overflow`] : The conversion of the _scaling factor_ causes an overflow.
     ///
     /// ```rust
-    /// # use embedded_time::{duration::{Duration, units::*}, rate::units::*, ConversionError, traits::*};
+    /// # use embedded_time::{duration::{Duration, units::*}, rate::units::*, ConversionError, prelude::*};
     /// #
     /// assert_eq!(
     ///     Hours(u32::MAX).to_rate::<Megahertz<u32>>(),
@@ -310,7 +309,7 @@ pub trait Duration: Sized + Copy {
     /// [`ConversionError::DivByZero`] : The rate is `0`, therefore the reciprocal is undefined.
     ///
     /// ```rust
-    /// # use embedded_time::{duration::{Duration, units::*}, rate::units::*, ConversionError, traits::*};
+    /// # use embedded_time::{duration::{Duration, units::*}, rate::units::*, ConversionError, prelude::*};
     /// #
     /// assert_eq!(
     ///     Seconds(0_u32).to_rate::<Hertz<u32>>(),
@@ -577,14 +576,14 @@ pub mod units {
 
     /// Create time-based extensions from primitive numeric types.
     ///
-    /// This trait is anonomously re-exported in [`traits`](crate::traits) module
+    /// This trait is anonomously re-exported in [`crate::prelude`] module
     ///
     /// # Examples
     ///
     /// Basic construction of time-based values.
     ///
     /// ```rust
-    /// # use embedded_time::{traits::*, duration::units::*};
+    /// # use embedded_time::{prelude::*, duration::units::*};
     /// assert_eq!(5_u32.nanoseconds(), Nanoseconds(5_u32));
     /// assert_eq!(5_u32.microseconds(), Microseconds(5_u32));
     /// assert_eq!(5_u32.milliseconds(), Milliseconds(5_u32));

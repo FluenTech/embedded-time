@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use embedded_time::{duration::units::*, rate::units::*, traits::*};
+use embedded_time::{duration::units::*, prelude::*, rate::units::*};
 
 fn rem_duration_rate(c: &mut Criterion) {
     use core::time::Duration;
