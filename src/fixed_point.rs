@@ -22,7 +22,7 @@ pub trait FixedPoint: Sized + Copy + fmt::Display {
     /// Returns the integer value of the `FixedPoint`
     ///
     /// ```rust
-    /// # use embedded_time::{traits::*, rate::units::*};
+    /// # use embedded_time::{prelude::*, rate::units::*};
     /// #
     /// assert_eq!(Hertz(45_u32).integer(), &45_u32);
     /// ```
@@ -34,8 +34,8 @@ pub trait FixedPoint: Sized + Copy + fmt::Display {
     /// # Examples
     ///
     /// ```rust
-    /// use embedded_time::{Fraction, traits::*};
-    /// use embedded_time::rate::units::Hertz;
+    /// # use embedded_time::{Fraction, prelude::*, rate::units::*};
+    /// #
     /// assert_eq!(Hertz(2_u32).into_ticks(Fraction::new(1, 1_000)), Ok(2_000_u32));
     /// ```
     ///

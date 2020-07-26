@@ -27,7 +27,7 @@ pub trait TimeInt:
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{Fraction, traits::*};
+    /// # use embedded_time::{Fraction, prelude::*};
     /// #
     /// assert_eq!(8_u32.checked_mul_fraction(&Fraction::new(1,2)), Ok(4_u32));
     ///
@@ -57,7 +57,7 @@ pub trait TimeInt:
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{Fraction, traits::*};
+    /// # use embedded_time::{Fraction, prelude::*};
     /// #
     /// assert_eq!(8_u32.checked_div_fraction(&Fraction::new(1,2)), Ok(16_u32));
     ///

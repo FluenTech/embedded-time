@@ -3,7 +3,7 @@
 
 use core::convert::Infallible;
 use cortex_m_rt::entry;
-use embedded_time::{self as time, traits::*};
+use embedded_time::{self as time, prelude::*};
 use panic_halt as _;
 
 pub mod nrf52 {
