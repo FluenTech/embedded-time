@@ -6,7 +6,8 @@ use crate::{
     time_int::TimeInt,
     ConversionError, Fraction,
 };
-use core::{convert::TryFrom, prelude::v1::*};
+use core::{convert::TryFrom, mem::size_of, prelude::v1::*};
+use num::{CheckedDiv, CheckedMul};
 
 /// An unsigned, fixed-point rate type
 ///
@@ -78,6 +79,8 @@ pub trait Rate: Copy {
     ///
     /// (the rate is equal to the reciprocal of the duration)
     ///
+    /// # Examples
+    ///
     /// ```rust
     /// # use embedded_time::{duration::units::*, rate::{Rate, units::*}};
     /// #
@@ -86,28 +89,74 @@ pub trait Rate: Copy {
     ///     Ok(Kilohertz(500_u32))
     /// );
     /// ```
+    ///
+    /// # Errors
+    ///
+    /// Failure will only occur if the provided value does not fit in the selected destination type.
+    ///
+    /// ---
+    ///
+    /// [`ConversionError::Overflow`] : The conversion of the _scaling factor_ causes an overflow.
+    ///
+    /// ```rust
+    /// # use embedded_time::{duration::units::*, rate::units::*, ConversionError, traits::*};
+    /// #
+    /// assert_eq!(
+    ///     Megahertz::<u32>::try_from_duration(u32::MAX.hours()),
+    ///     Err(ConversionError::Overflow)
+    /// );
+    /// ```
+    ///
+    /// ---
+    ///
+    /// [`ConversionError::DivByZero`] : The rate is `0`, therefore the reciprocal is undefined.
+    ///
+    /// ```rust
+    /// # use embedded_time::{duration::units::*, rate::units::*, ConversionError, traits::*};
+    /// #
+    /// assert_eq!(
+    ///     Hertz::<u32>::try_from_duration(0_u32.seconds()),
+    ///     Err(ConversionError::DivByZero)
+    /// );
+    /// ```
     fn try_from_duration<Duration: duration::Duration>(
         duration: Duration,
     ) -> Result<Self, ConversionError>
     where
         Duration: FixedPoint,
-        u32: TryFrom<Duration::T>,
         Self: FixedPoint,
         Self::T: TryFrom<Duration::T>,
     {
-        let duration = duration.try_into_generic(Duration::SCALING_FACTOR)?;
-        fixed_point::from_ticks(
-            duration
-                .scaling_factor()
-                .checked_mul(&Self::SCALING_FACTOR)?
-                .recip()
-                .checked_div_integer(
-                    u32::try_from(*duration.integer())
-                        .map_err(|_| ConversionError::ConversionFailure)?,
-                )?
-                .to_integer(),
-            Self::SCALING_FACTOR,
-        )
+        let conversion_factor = Duration::SCALING_FACTOR
+            .checked_mul(&Self::SCALING_FACTOR)?
+            .recip();
+
+        if size_of::<Duration::T>() >= size_of::<Self::T>() {
+            fixed_point::from_ticks(
+                Duration::T::from(*conversion_factor.numerator())
+                    .checked_div(
+                        &duration
+                            .integer()
+                            .checked_mul(&Duration::T::from(*conversion_factor.denominator()))
+                            .ok_or(ConversionError::Overflow)?,
+                    )
+                    .ok_or(ConversionError::DivByZero)?,
+                Self::SCALING_FACTOR,
+            )
+        } else {
+            fixed_point::from_ticks(
+                Self::T::from(*conversion_factor.numerator())
+                    .checked_div(
+                        &Self::T::try_from(*duration.integer())
+                            .ok()
+                            .unwrap()
+                            .checked_mul(&Self::T::from(*conversion_factor.denominator()))
+                            .ok_or(ConversionError::Overflow)?,
+                    )
+                    .ok_or(ConversionError::DivByZero)?,
+                Self::SCALING_FACTOR,
+            )
+        }
     }
 
     // TODO: add try_into_duration
