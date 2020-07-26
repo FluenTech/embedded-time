@@ -178,7 +178,7 @@ pub trait Duration: Sized + Copy {
 ///
 /// The purpose of this type is to allow a simple `Duration` that can be defined at run-time. It
 /// does this by replacing the `const` _scaling factor_ with a struct field.
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct Generic<T> {
     integer: T,
     scaling_factor: Fraction,
@@ -225,7 +225,7 @@ pub mod units {
     macro_rules! impl_duration {
         ( $name:ident, ($numer:expr, $denom:expr) ) => {
             /// A duration unit type
-            #[derive(Copy, Clone, Debug, Eq, Ord)]
+            #[derive(Copy, Clone, Eq, Ord, Hash, Debug, Default)]
             pub struct $name<T: TimeInt = u32>(pub T);
 
             impl<T: TimeInt> $name<T> {
