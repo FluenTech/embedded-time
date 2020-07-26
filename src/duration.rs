@@ -6,7 +6,9 @@ use crate::{
     time_int::TimeInt,
     ConversionError, Fraction,
 };
+use core::mem::size_of;
 use core::{convert::TryFrom, prelude::v1::*};
+use num::{CheckedDiv, CheckedMul};
 
 /// An unsigned, fixed-point duration type
 ///
@@ -32,7 +34,7 @@ use core::{convert::TryFrom, prelude::v1::*};
 /// let milliseconds = Milliseconds::<u32>::try_convert_from(duration).unwrap() % Seconds(1_u32);
 /// // ...
 /// ```
-pub trait Duration: Copy {
+pub trait Duration: Sized + Copy {
     /// Construct a `Generic` `Duration` from an _named_ `Duration` (eg.
     /// [`Milliseconds`](units::Milliseconds))
     ///
@@ -115,22 +117,8 @@ pub trait Duration: Copy {
     /// # use embedded_time::{duration::{Duration, units::*}, rate::units::*, ConversionError, traits::*};
     /// #
     /// assert_eq!(
-    ///     Nanoseconds::<u32>::try_from_rate(u32::MAX.MHz()),
+    ///     Hours::<u32>::try_from_rate(u32::MAX.MHz()),
     ///     Err(ConversionError::Overflow)
-    /// );
-    /// ```
-    ///
-    /// ---
-    ///
-    /// [`ConversionError::ConversionFailure`] : The integer conversion to that of the destination
-    /// type fails.
-    ///
-    /// ```rust
-    /// # use embedded_time::{duration::{Duration, units::*}, rate::units::*, ConversionError, traits::*};
-    /// #
-    /// assert_eq!(
-    ///     Seconds::<u32>::try_from_rate((u32::MAX as u64 + 1).Hz()),
-    ///     Err(ConversionError::ConversionFailure)
     /// );
     /// ```
     ///
@@ -149,22 +137,39 @@ pub trait Duration: Copy {
     fn try_from_rate<Rate: rate::Rate>(rate: Rate) -> Result<Self, ConversionError>
     where
         Rate: FixedPoint,
-        u32: TryFrom<Rate::T>,
         Self: FixedPoint,
         Self::T: TryFrom<Rate::T>,
     {
-        let rate = rate.try_into_generic(Rate::SCALING_FACTOR)?;
-        fixed_point::from_ticks(
-            rate.scaling_factor()
-                .checked_mul(&Self::SCALING_FACTOR)?
-                .recip()
-                .checked_div_integer(
-                    u32::try_from(*rate.integer())
-                        .map_err(|_| ConversionError::ConversionFailure)?,
-                )?
-                .to_integer(),
-            Self::SCALING_FACTOR,
-        )
+        let conversion_factor = Rate::SCALING_FACTOR
+            .checked_mul(&Self::SCALING_FACTOR)?
+            .recip();
+
+        if size_of::<Rate::T>() >= size_of::<Self::T>() {
+            fixed_point::from_ticks(
+                Rate::T::from(*conversion_factor.numerator())
+                    .checked_div(
+                        &rate
+                            .integer()
+                            .checked_mul(&Rate::T::from(*conversion_factor.denominator()))
+                            .ok_or(ConversionError::Overflow)?,
+                    )
+                    .ok_or(ConversionError::DivByZero)?,
+                Self::SCALING_FACTOR,
+            )
+        } else {
+            fixed_point::from_ticks(
+                Self::T::from(*conversion_factor.numerator())
+                    .checked_div(
+                        &Self::T::try_from(*rate.integer())
+                            .ok()
+                            .unwrap()
+                            .checked_mul(&Self::T::from(*conversion_factor.denominator()))
+                            .ok_or(ConversionError::Overflow)?,
+                    )
+                    .ok_or(ConversionError::DivByZero)?,
+                Self::SCALING_FACTOR,
+            )
+        }
     }
 
     // TODO: add try_into_rate
