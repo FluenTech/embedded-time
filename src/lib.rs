@@ -54,7 +54,7 @@
 //!
 //! # Example Usage
 //! ```rust,no_run
-//! # use embedded_time::{prelude::*, duration::units::*, rate::units::*, Instant, Fraction};
+//! # use embedded_time::{Clock as _, duration::*, rate::*, Instant, Fraction};
 //! # use core::convert::TryFrom;
 //! # #[derive(Debug)]
 //! struct SomeClock;
@@ -107,22 +107,6 @@ pub use rate::Rate;
 pub use time_int::TimeInt;
 pub use timer::Timer;
 
-/// Public _traits_
-///
-/// ```rust,no_run
-/// use embedded_time::prelude::*;
-/// ```
-pub mod prelude {
-    // Rename traits to `_` to avoid any potential name conflicts.
-    pub use crate::clock::Clock as _;
-    pub use crate::duration::units::Extensions as _;
-    pub use crate::duration::Duration as _;
-    pub use crate::fixed_point::FixedPoint as _;
-    pub use crate::rate::units::Extensions as _;
-    pub use crate::rate::Rate as _;
-    pub use crate::time_int::TimeInt as _;
-}
-
 /// Crate errors
 #[non_exhaustive]
 #[derive(Debug, Eq, PartialEq)]
@@ -173,7 +157,7 @@ impl<E> From<ConversionError> for TimeError<E> {
 #[cfg(test)]
 #[allow(unused_imports)]
 mod tests {
-    use crate::{self as time, clock, duration::units::*, prelude::*, rate::units::*};
+    use crate::{self as time, clock, duration::*, rate::*, Clock as _};
     use core::{
         convert::{Infallible, TryFrom, TryInto},
         fmt::{self, Formatter},
