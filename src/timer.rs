@@ -1,5 +1,5 @@
 use crate::{
-    duration::{self, units::*, Duration},
+    duration::{self, *},
     fixed_point::FixedPoint,
     timer::param::*,
     ConversionError, Instant, TimeError,
@@ -201,8 +201,7 @@ mod test {
     use crate::{
         duration::{units::*, Duration},
         fixed_point::FixedPoint,
-        prelude::*,
-        Fraction, Instant,
+        Clock as _, Fraction, Instant,
     };
     use core::convert::Infallible;
     use crossbeam_utils::thread;

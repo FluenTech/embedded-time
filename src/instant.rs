@@ -15,7 +15,7 @@ use num::traits::{WrappingAdd, WrappingSub};
 /// Typically an `Instant` will be obtained from a [`Clock`](clock/trait.Clock.html)
 ///
 /// ```rust
-/// # use embedded_time::{Fraction, prelude::*, Instant};
+/// # use embedded_time::{Fraction,  Instant, Clock as _};
 /// # #[derive(Debug)]
 /// # struct SomeClock;
 /// # impl embedded_time::Clock for SomeClock {
@@ -59,10 +59,9 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{Fraction, duration::units::*, rate::units::*, Instant, ConversionError, duration};
+    /// # use embedded_time::{Clock as _, duration::*, Fraction, rate::*, Instant, ConversionError};
     /// # use core::convert::TryInto;
     /// # #[derive(Debug)]
-    /// #
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type T = u32;
@@ -109,7 +108,7 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{Fraction, duration::units::*, rate::units::*, Instant, ConversionError};
+    /// # use embedded_time::{Fraction, duration::*, rate::*, Instant, ConversionError};
     /// # #[derive(Debug)]
     /// #
     /// struct Clock;
@@ -169,7 +168,7 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{Fraction, duration::units::*, rate::units::*, Instant};
+    /// # use embedded_time::{Fraction, duration::*, rate::*, Instant};
     /// # #[derive(Debug)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
@@ -194,7 +193,7 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// clock
     ///
     /// ```rust
-    /// # use embedded_time::{Fraction, duration::units::*, rate::units::*, Instant, ConversionError};
+    /// # use embedded_time::{Fraction, duration::*, rate::*, Instant, ConversionError};
     /// # #[derive(Debug)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
@@ -228,7 +227,7 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{Fraction, duration::units::*, rate::units::*, Instant};
+    /// # use embedded_time::{Fraction, duration::*, rate::*, Instant};
     /// # #[derive(Debug)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
@@ -253,7 +252,7 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// clock
     ///
     /// ```rust
-    /// # use embedded_time::{Fraction, duration::units::*, rate::units::*, Instant, ConversionError};
+    /// # use embedded_time::{Fraction, duration::*, rate::*, Instant, ConversionError};
     /// # #[derive(Debug)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
@@ -303,7 +302,7 @@ impl<Clock: crate::Clock> PartialOrd for Instant<Clock> {
     /// Calculates the difference between two `Instant`s resulting in a [`Duration`]
     ///
     /// ```rust
-    /// # use embedded_time::{Fraction, duration::units::*, rate::units::*, Instant};
+    /// # use embedded_time::{Fraction, duration::*, rate::*, Instant};
     /// # #[derive(Debug)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
@@ -344,7 +343,7 @@ where
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{Fraction, duration::units::*, rate::units::*, Instant};
+    /// # use embedded_time::{Fraction, duration::*, rate::*, Instant};
     /// # #[derive(Debug)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
@@ -374,7 +373,7 @@ where
     /// the wrap-around period of the clock.
     ///
     /// ```rust,should_panic
-    /// # use embedded_time::{Fraction, duration::units::*, rate::units::*, Instant};
+    /// # use embedded_time::{Fraction, duration::*, rate::*, Instant};
     /// # #[derive(Debug)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
@@ -404,7 +403,7 @@ where
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{Fraction, duration::units::*, rate::units::*, Instant};
+    /// # use embedded_time::{Fraction, duration::*, rate::*, Instant};
     /// # #[derive(Debug)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
@@ -434,7 +433,7 @@ where
     /// the wrap-around period of the clock.
     ///
     /// ```rust,should_panic
-    /// # use embedded_time::{Fraction, duration::units::*, rate::units::*, Instant};
+    /// # use embedded_time::{Fraction, duration::*, rate::*, Instant};
     /// # #[derive(Debug)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {

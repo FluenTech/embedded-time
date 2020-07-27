@@ -7,7 +7,9 @@ use crate::{
     ConversionError, Fraction,
 };
 use core::{convert::TryFrom, mem::size_of, prelude::v1::*};
+pub use fixed_point::FixedPoint as _;
 use num::{CheckedDiv, CheckedMul};
+pub use units::*;
 
 /// An unsigned, fixed-point rate type
 ///
@@ -16,7 +18,7 @@ use num::{CheckedDiv, CheckedMul};
 /// # Constructing a rate
 ///
 /// ```rust
-/// # use embedded_time::{prelude::*, rate::units::*};
+/// # use embedded_time::{rate::*};
 /// #
 /// assert_eq!(45_u32.Hz(), Hertz(45_u32));
 /// ```
@@ -26,7 +28,7 @@ use num::{CheckedDiv, CheckedMul};
 /// ### Examples
 ///
 /// ```rust
-/// # use embedded_time::{Fraction, rate::units::*, rate::Generic};
+/// # use embedded_time::{Fraction, rate::*};
 /// # use core::convert::{TryFrom, TryInto};
 /// #
 /// assert_eq!(
@@ -50,7 +52,7 @@ use num::{CheckedDiv, CheckedMul};
 /// [`ConversionError::Overflow`] : The conversion of the _scaling factor_ causes an overflow.
 ///
 /// ```rust
-/// # use embedded_time::{Fraction, rate::units::*, rate::Generic, ConversionError};
+/// # use embedded_time::{Fraction, rate::*, ConversionError};
 /// # use core::convert::TryFrom;
 /// #
 /// assert_eq!(
@@ -65,7 +67,7 @@ use num::{CheckedDiv, CheckedMul};
 /// destination type fails.
 ///
 /// ```rust
-/// # use embedded_time::{Fraction, rate::units::*, rate::Generic, ConversionError};
+/// # use embedded_time::{Fraction, rate::*, rate::Generic, ConversionError};
 /// # use core::convert::TryFrom;
 /// #
 /// assert_eq!(
@@ -77,7 +79,7 @@ use num::{CheckedDiv, CheckedMul};
 /// # Get the integer part
 ///
 /// ```rust
-/// # use embedded_time::{prelude::*, rate::units::*};
+/// # use embedded_time::{rate::*};
 /// #
 /// assert_eq!(Hertz(45_u32).integer(), &45_u32);
 /// ```
@@ -87,7 +89,7 @@ use num::{CheckedDiv, CheckedMul};
 /// Just forwards the underlying integer to [`core::fmt::Display::fmt()`]
 ///
 /// ```rust
-/// # use embedded_time::{prelude::*, rate::units::*};
+/// # use embedded_time::{ rate::*};
 /// #
 /// assert_eq!(format!("{}", Hertz(123_u32)), "123");
 /// ```
@@ -99,7 +101,7 @@ use num::{CheckedDiv, CheckedMul};
 /// ## Examples
 ///
 /// ```rust
-/// # use embedded_time::{prelude::*, rate::units::*};
+/// # use embedded_time::{ rate::*};
 /// #
 /// assert_eq!((Hertz(2u32) - Hertz(1_u32)),
 ///     Hertz(1_u32));
@@ -113,7 +115,7 @@ use num::{CheckedDiv, CheckedMul};
 /// The same reason the integer operation would panic. Namely, if the result overflows the type.
 ///
 /// ```rust,should_panic
-/// # use embedded_time::{prelude::*, rate::units::*};
+/// # use embedded_time::{ rate::*};
 /// #
 /// let _ = Hertz(u32::MAX) + Hertz(1_u32);
 /// ```
@@ -121,7 +123,7 @@ use num::{CheckedDiv, CheckedMul};
 /// # Comparisons
 ///
 /// ```rust
-/// # use embedded_time::{prelude::*, rate::units::*};
+/// # use embedded_time::{ rate::*};
 /// #
 /// assert_eq!(Kilohertz(2_u32), Hertz(2_000_u32));
 /// assert_ne!(Kilohertz(2_u32), Hertz(2_001_u32));
@@ -133,7 +135,7 @@ use num::{CheckedDiv, CheckedMul};
 /// # Remainder
 ///
 /// ```rust
-/// # use embedded_time::{prelude::*, rate::units::*};
+/// # use embedded_time::{ rate::*};
 /// #
 /// assert_eq!(Hertz(2_037_u32) % Kilohertz(1_u32), Hertz(37_u32));
 /// ```
@@ -143,7 +145,7 @@ pub trait Rate: Sized + Copy {
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{Fraction, rate::units::*, rate::{Generic, Rate}};
+    /// # use embedded_time::{Fraction, rate::*, rate::{Generic, Rate}};
     /// # use core::convert::{TryFrom, TryInto};
     /// #
     /// assert_eq!(Hertz(2_u64).to_generic(Fraction::new(1,2_000)),
@@ -159,7 +161,7 @@ pub trait Rate: Sized + Copy {
     /// [`ConversionError::Overflow`] : The conversion of the _scaling factor_ causes an overflow.
     ///
     /// ```rust
-    /// # use embedded_time::{Fraction, rate::units::*, rate::{Rate, Generic}, ConversionError};
+    /// # use embedded_time::{Fraction, rate::*, rate::{Rate, Generic}, ConversionError};
     /// # use core::convert::TryFrom;
     /// #
     /// assert_eq!(Hertz(u32::MAX).to_generic::<u32>(Fraction::new(1, 2)),
@@ -172,7 +174,7 @@ pub trait Rate: Sized + Copy {
     /// type fails.
     ///
     /// ```rust
-    /// # use embedded_time::{Fraction, rate::units::*, rate::{Rate, Generic}, ConversionError};
+    /// # use embedded_time::{Fraction, rate::*, rate::{Rate, Generic}, ConversionError};
     /// # use core::convert::TryFrom;
     /// #
     /// assert_eq!(Hertz(u32::MAX as u64 + 1).to_generic::<u32>(Fraction::new(1, 1)),
@@ -199,7 +201,7 @@ pub trait Rate: Sized + Copy {
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{duration::units::*, rate::{Rate, units::*}};
+    /// # use embedded_time::{duration::*, rate::{Rate, units::*}};
     /// #
     /// assert_eq!(
     ///     Kilohertz(500_u32).to_duration(),
@@ -216,7 +218,7 @@ pub trait Rate: Sized + Copy {
     /// [`ConversionError::Overflow`] : The conversion of the _scaling factor_ causes an overflow.
     ///
     /// ```rust
-    /// # use embedded_time::{duration::units::*, rate::units::*, ConversionError, prelude::*};
+    /// # use embedded_time::{duration::*, rate::*, ConversionError};
     /// #
     /// assert_eq!(
     ///     Megahertz(u32::MAX).to_duration::<Hours<u32>>(),
@@ -229,7 +231,7 @@ pub trait Rate: Sized + Copy {
     /// [`ConversionError::DivByZero`] : The rate is `0`, therefore the reciprocal is undefined.
     ///
     /// ```rust
-    /// # use embedded_time::{duration::units::*, rate::units::*, ConversionError, prelude::*};
+    /// # use embedded_time::{duration::*, rate::*, ConversionError};
     /// #
     /// assert_eq!(
     ///     Hertz(0_u32).to_duration::<Seconds<u32>>(),
@@ -322,6 +324,7 @@ pub mod units {
         fmt::{self, Formatter},
         ops,
     };
+    pub use Extensions as _;
 
     macro_rules! impl_rate {
         ( $name:ident, ($numer:expr, $denom:expr), $desc:literal ) => {
@@ -461,12 +464,10 @@ pub mod units {
 
     /// Create time-based values from primitive and core numeric types.
     ///
-    /// This trait is anonomously re-exported in [`crate::prelude`]
-    ///
-    /// # Examples
     /// Basic construction of time-based values.
+    ///
     /// ```rust
-    /// # use embedded_time::{prelude::*, rate::units::*};
+    /// # use embedded_time::{rate::*};
     /// assert_eq!(5_u32.MHz(), Megahertz(5_u32));
     /// assert_eq!(5_u32.kHz(), Kilohertz(5_u32));
     /// assert_eq!(5_u32.Hz(), Hertz(5_u32));
@@ -585,13 +586,17 @@ pub mod units {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::{duration::units::*, prelude::*, rate::units::*};
+    use crate::{
+        duration::*,
+        rate::{self, *},
+        ConversionError, Fraction,
+    };
+    use core::convert::TryFrom;
 
     #[test]
     fn try_from_generic() {
         assert_eq!(
-            Hertz::try_from(Generic::new(246_u32, Fraction::new(1, 2))),
+            Hertz::try_from(rate::Generic::new(246_u32, Fraction::new(1, 2))),
             Ok(Hertz(123_u32))
         );
     }
@@ -600,7 +605,7 @@ mod tests {
     fn to_generic() {
         assert_eq!(
             Hertz(123_u32).to_generic(Fraction::new(1, 2)),
-            Ok(Generic::new(246_u32, Fraction::new(1, 2)))
+            Ok(rate::Generic::new(246_u32, Fraction::new(1, 2)))
         );
     }
 
@@ -614,7 +619,7 @@ mod tests {
 
     #[test]
     fn get_generic_integer() {
-        let generic = Generic::new(246_u32, Fraction::new(1, 2));
+        let generic = rate::Generic::new(246_u32, Fraction::new(1, 2));
         assert_eq!(generic.integer(), &246_u32);
     }
 
