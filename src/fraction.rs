@@ -177,6 +177,16 @@ impl Fraction {
             ))
         }
     }
+
+    /// Returns the integer multiple of the `Fraction`
+    pub(crate) fn integer_mul<T>(&self, integer: T) -> T
+    where
+        T: num::Integer + Copy,
+        u32: Into<T>,
+    {
+        (Ratio::new_raw((*self.numerator()).into(), (*self.denominator()).into()) * integer)
+            .to_integer()
+    }
 }
 
 impl ops::Mul for Fraction {
@@ -228,5 +238,15 @@ impl ops::Div for Fraction {
 impl Default for Fraction {
     fn default() -> Self {
         Self::new(1, 1)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::Fraction;
+
+    #[test]
+    fn mul_integer_by_fraction() {
+        assert_eq!(Fraction::new(3, 5).integer_mul(u32::MAX), u32::MAX / 5 * 3);
     }
 }
