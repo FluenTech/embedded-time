@@ -24,17 +24,6 @@ pub trait TimeInt:
     ///
     /// Returns truncated integer
     ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// # use embedded_time::{Fraction, prelude::*};
-    /// #
-    /// assert_eq!(8_u32.checked_mul_fraction(&Fraction::new(1,2)), Ok(4_u32));
-    ///
-    /// // the result is not rounded, but truncated (8×(1/3)=2.66)
-    /// assert_eq!(8_u32.checked_mul_fraction(&Fraction::new(1,3)), Ok(2_u32));
-    /// ```
-    ///
     /// # Errors
     ///
     /// [`ConversionError::Overflow`]
@@ -54,17 +43,6 @@ pub trait TimeInt:
     ///
     /// Returns truncated integer
     ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// # use embedded_time::{Fraction, prelude::*};
-    /// #
-    /// assert_eq!(8_u32.checked_div_fraction(&Fraction::new(1,2)), Ok(16_u32));
-    ///
-    /// // the result is not rounded, but truncated (8/3=2.66)
-    /// assert_eq!(8_u32.checked_div_fraction(&Fraction::new(3,1)), Ok(2_u32));
-    /// ```
-    ///
     /// # Errors
     ///
     /// [`ConversionError::Overflow`]
@@ -83,3 +61,24 @@ pub trait TimeInt:
 
 impl TimeInt for u32 {}
 impl TimeInt for u64 {}
+
+#[cfg(test)]
+mod tests {
+    use crate::{Fraction, TimeInt};
+
+    #[test]
+    fn checked_integer_mul_fraction() {
+        assert_eq!(8_u32.checked_mul_fraction(&Fraction::new(1, 2)), Ok(4_u32));
+
+        // the result is not rounded, but truncated (8×(1/3)=2.66)
+        assert_eq!(8_u32.checked_mul_fraction(&Fraction::new(1, 3)), Ok(2_u32));
+    }
+
+    #[test]
+    fn checked_integer_div_fraction() {
+        assert_eq!(8_u32.checked_div_fraction(&Fraction::new(1, 2)), Ok(16_u32));
+
+        // the result is not rounded, but truncated (8/3=2.66)
+        assert_eq!(8_u32.checked_div_fraction(&Fraction::new(3, 1)), Ok(2_u32));
+    }
+}
