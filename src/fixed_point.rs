@@ -256,3 +256,28 @@ where
         Ok(Dest::new(ticks))
     }
 }
+
+pub(crate) fn from_ticks_safe<SourceInt: TimeInt, Dest: FixedPoint>(
+    ticks: SourceInt,
+    scaling_factor: Fraction,
+) -> Dest
+where
+    Dest::T: From<SourceInt>,
+{
+    let ticks = Dest::T::from(ticks);
+
+    let ticks = if scaling_factor >= Fraction::new(1, 1)
+        || (scaling_factor < Fraction::new(1, 1) && Dest::SCALING_FACTOR > Fraction::new(1, 1))
+    {
+        // if the source's _scaling factor_ is > `1/1`, start by converting to a _scaling factor_
+        // of `1/1`, then convert to destination _scaling factor_.
+        Dest::SCALING_FACTOR.integer_div(scaling_factor.integer_mul(ticks))
+    } else {
+        // If the source scaling factor is <= 1, the relative ratio of the scaling factors are
+        // calculated first by dividing the source scaling factor by that of the
+        // dest. The source integer part is then multiplied by the result.
+        (scaling_factor / Dest::SCALING_FACTOR).integer_mul(ticks)
+    };
+
+    Dest::new(ticks)
+}
