@@ -187,6 +187,16 @@ impl Fraction {
         (Ratio::new_raw((*self.numerator()).into(), (*self.denominator()).into()) * integer)
             .to_integer()
     }
+
+    /// Returns the integer quotient of the `Fraction`
+    pub(crate) fn integer_div<T>(&self, integer: T) -> T
+    where
+        T: num::Integer + Copy,
+        u32: Into<T>,
+    {
+        (Ratio::new_raw((*self.numerator()).into(), (*self.denominator()).into()).recip() * integer)
+            .to_integer()
+    }
 }
 
 impl ops::Mul for Fraction {
@@ -208,7 +218,7 @@ impl ops::Mul for Fraction {
     /// result overflows the type.
     // TODO: add example
     fn mul(self, rhs: Self) -> Self::Output {
-        self.checked_mul(&rhs).unwrap()
+        Self(self.0 * rhs.0)
     }
 }
 
@@ -231,7 +241,7 @@ impl ops::Div for Fraction {
     /// result overflows the type.
     // TODO: add example
     fn div(self, rhs: Self) -> Self::Output {
-        self.checked_div(&rhs).unwrap()
+        Self(self.0 / rhs.0)
     }
 }
 
