@@ -530,8 +530,8 @@ pub mod units {
             impl<T: TimeInt> TryFrom<$name<T>> for core::time::Duration {
                 type Error = ConversionError;
 
-                fn try_from(duration: $name<T>) -> Result<Self, Self::Error> {
-                    let seconds = Seconds::<u64>::try_convert_from(duration)?;
+                fn try_from(duration: $name<u32>) -> Result<Self, Self::Error> {
+                    let seconds: Seconds<u64> = duration.into();
                     Ok(Self::from_secs(*seconds.integer()))
                 }
             }
@@ -576,6 +576,65 @@ pub mod units {
     impl_duration![Milliseconds, (1, 1_000), from_millis, as_millis];
     impl_duration![Microseconds, (1, 1_000_000), from_micros, as_micros];
     impl_duration![Nanoseconds, (1, 1_000_000_000), from_nanos, as_nanos];
+
+    macro_rules! impl_from_smaller {
+        ($name:ident) => {
+            impl From<$name<u32>> for $name<u64>
+            {
+                fn from(value: $name<u32>) -> Self {
+                    Self::new(u64::from(*value.integer()))
+                }
+            }
+        };
+        ($big:ident, $($small:ident),+) => {
+            $(
+                impl<SourceInt: TimeInt, DestInt: TimeInt> From<$small<SourceInt>> for $big<DestInt>
+                where
+                    DestInt: From<SourceInt>,
+                {
+                    fn from(small: $small<SourceInt>) -> Self {
+                        fixed_point::from_ticks_safe(*small.integer(), $small::<SourceInt>::SCALING_FACTOR)
+                    }
+                }
+            )+
+            impl_from_smaller![$big];
+            impl_from_smaller![$($small),+];
+        };
+    }
+
+    impl_from_smaller![
+        Hours,
+        Minutes,
+        Seconds,
+        Milliseconds,
+        Microseconds,
+        Nanoseconds
+    ];
+
+    macro_rules! impl_from_bigger {
+        ($small:ident) => {};
+        ($small:ident, $($big:ident),+) => {
+            $(
+                impl From<$big<u32>> for $small<u64>
+                {
+                    fn from(big: $big<u32>) -> Self {
+                        fixed_point::from_ticks_safe(*big.integer(), $big::<u32>::SCALING_FACTOR)
+                    }
+                }
+            )+
+
+            impl_from_bigger![$($big),+];
+        };
+    }
+
+    impl_from_bigger![
+        Nanoseconds,
+        Microseconds,
+        Milliseconds,
+        Seconds,
+        Minutes,
+        Hours
+    ];
 
     /// Create time-based extensions from primitive numeric types.
     ///
@@ -625,120 +684,4 @@ pub mod units {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{duration, duration::*, rate::*};
-    use core::convert::TryInto;
-
-    #[test]
-    fn try_from_generic() {
-        assert_eq!(
-            Seconds::try_from(duration::Generic::new(246_u32, Fraction::new(1, 2))),
-            Ok(Seconds(123_u32))
-        );
-    }
-
-    #[test]
-    fn to_generic() {
-        assert_eq!(
-            Seconds(123_u32).to_generic(Fraction::new(1, 2)),
-            Ok(duration::Generic::new(246_u32, Fraction::new(1, 2)))
-        );
-    }
-
-    #[test]
-    fn try_into_generic_err() {
-        assert_eq!(
-            Seconds(u32::MAX).to_generic::<u32>(Fraction::new(1, 2)),
-            Err(ConversionError::Overflow)
-        );
-    }
-
-    #[test]
-    fn get_generic_integer() {
-        let generic = duration::Generic::new(246_u32, Fraction::new(1, 2));
-        assert_eq!(generic.integer(), &246_u32);
-    }
-
-    #[test]
-    fn check_for_overflows() {
-        let mut time = 1_u64;
-        time *= 60;
-        assert_eq!(Minutes(time), Hours(1_u32));
-        time *= 60;
-        assert_eq!(Seconds(time), Hours(1_u32));
-        time *= 1000;
-        assert_eq!(Milliseconds(time), Hours(1_u32));
-        time *= 1000;
-        assert_eq!(Microseconds(time), Hours(1_u32));
-        time *= 1000;
-        assert_eq!(Nanoseconds(time), Hours(1_u32));
-    }
-
-    #[test]
-    fn remainder() {
-        assert_eq!(Minutes(62_u32) % Hours(1_u32), Minutes(2_u32));
-        assert_eq!(Minutes(62_u32) % Milliseconds(1_u32), Minutes(0_u32));
-        assert_eq!(Minutes(62_u32) % Minutes(60_u32), Minutes(2_u32));
-    }
-
-    #[test]
-    fn convert_to_rate() {
-        assert_eq!(Milliseconds(500_u32).to_rate(), Ok(Hertz(2_u32)));
-
-        assert_eq!(Microseconds(500_u32).to_rate(), Ok(Kilohertz(2_u32)));
-    }
-
-    #[test]
-    fn convert_from_core_duration() {
-        let core_duration = core::time::Duration::from_nanos(5_025_678_901_234);
-        assert_eq!(
-            core_duration.try_into(),
-            Ok(Nanoseconds::<u64>(5_025_678_901_234))
-        );
-        assert_eq!(
-            core_duration.try_into(),
-            Ok(Microseconds::<u64>(5_025_678_901))
-        );
-        assert_eq!(core_duration.try_into(), Ok(Milliseconds::<u32>(5_025_678)));
-        assert_eq!(core_duration.try_into(), Ok(Seconds::<u32>(5_025)));
-        assert_eq!(core_duration.try_into(), Ok(Minutes::<u32>(83)));
-        assert_eq!(core_duration.try_into(), Ok(Hours::<u32>(1)));
-    }
-
-    #[test]
-    fn convert_to_core_duration() {
-        assert_eq!(
-            Nanoseconds(123_u32).try_into(),
-            Ok(core::time::Duration::from_nanos(123))
-        );
-        assert_eq!(
-            Microseconds(123_u32).try_into(),
-            Ok(core::time::Duration::from_micros(123))
-        );
-        assert_eq!(
-            Milliseconds(123_u32).try_into(),
-            Ok(core::time::Duration::from_millis(123))
-        );
-        assert_eq!(
-            Seconds(123_u32).try_into(),
-            Ok(core::time::Duration::from_secs(123))
-        );
-        assert_eq!(
-            Minutes(123_u32).try_into(),
-            Ok(core::time::Duration::from_secs(123 * 60))
-        );
-        assert_eq!(
-            Hours(123_u32).try_into(),
-            Ok(core::time::Duration::from_secs(123 * 3600))
-        );
-    }
-
-    #[test]
-    fn duration_scaling() {
-        assert_eq!(1_u32.nanoseconds(), 1_u32.nanoseconds());
-        assert_eq!(1_u32.microseconds(), 1_000_u32.nanoseconds());
-        assert_eq!(1_u32.milliseconds(), 1_000_000_u32.nanoseconds());
-        assert_eq!(1_u32.seconds(), 1_000_000_000_u32.nanoseconds());
-        assert_eq!(1_u32.minutes(), 60_000_000_000_u64.nanoseconds());
-        assert_eq!(1_u32.hours(), 3_600_000_000_000_u64.nanoseconds());
-    }
 }

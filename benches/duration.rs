@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
-use embedded_time::{duration::*, rate::*, Fraction};
+use embedded_time::{duration::*, rate::*};
 use std::mem::size_of;
 
 fn duration_vs_core_duration(c: &mut Criterion) {
@@ -33,27 +33,24 @@ fn duration_vs_core_duration(c: &mut Criterion) {
     group.finish();
 }
 
-fn try_from_rate(c: &mut Criterion) {
-    let mut group = c.benchmark_group("try_from_rate");
+fn conversions(c: &mut Criterion) {
+    let mut group = c.benchmark_group("conversions");
 
     let rate = 500_u32.Hz();
     group.bench_with_input(
-        BenchmarkId::new("Milliseconds<u32> from Hertz<u32>", rate),
+        BenchmarkId::new("Hertz<u32>::to_duration::<Milliseconds<u32>>()", rate),
         &rate,
         |b, &_size| {
-            b.iter(|| Milliseconds::<u32>::try_from_rate(rate));
+            b.iter(|| rate.to_duration::<Milliseconds<u32>>());
         },
     );
 
-    group.finish();
-}
-
-fn try_convert_from(c: &mut Criterion) {
-    let mut group = c.benchmark_group("try_convert_from");
-
     let duration = 500_u32.seconds();
     group.bench_with_input(
-        BenchmarkId::new("Nanoseconds<u64>_from_Seconds<u32>", duration),
+        BenchmarkId::new(
+            "Nanoseconds<u64>::try_convert_from::<Seconds<u32>>()",
+            duration,
+        ),
         &duration,
         |b, &_size| {
             b.iter(|| Nanoseconds::<u64>::try_convert_from(duration));
@@ -62,7 +59,10 @@ fn try_convert_from(c: &mut Criterion) {
 
     let duration = 500_u32.minutes();
     group.bench_with_input(
-        BenchmarkId::new("Nanoseconds<u64>_from_Minutes<u32>", duration),
+        BenchmarkId::new(
+            "Nanoseconds<u64>::try_convert_from::<Minutes<u32>>()",
+            duration,
+        ),
         &duration,
         |b, &_size| {
             b.iter(|| Nanoseconds::<u64>::try_convert_from(duration));
@@ -71,7 +71,10 @@ fn try_convert_from(c: &mut Criterion) {
 
     let duration = 500_u32.nanoseconds();
     group.bench_with_input(
-        BenchmarkId::new("Seconds<u64>_from_Nanoseconds<u32>", duration),
+        BenchmarkId::new(
+            "Seconds<u64>::try_convert_from::<Nanoseconds<u32>>()",
+            duration,
+        ),
         &duration,
         |b, &_size| {
             b.iter(|| Seconds::<u64>::try_convert_from(duration));
@@ -80,29 +83,39 @@ fn try_convert_from(c: &mut Criterion) {
 
     let duration = 500_u32.nanoseconds();
     group.bench_with_input(
-        BenchmarkId::new("Minutes<u64>_from_Nanoseconds<u32>", duration),
+        BenchmarkId::new(
+            "Minutes<u64>::try_convert_from::<Nanoseconds<u32>>()",
+            duration,
+        ),
         &duration,
         |b, &_size| {
             b.iter(|| Minutes::<u64>::try_convert_from(duration));
         },
     );
 
-    let duration = 500_u64.nanoseconds();
+    let duration = 500_u32.milliseconds();
     group.bench_with_input(
-        BenchmarkId::new("Seconds<u32>_from_Nanoseconds<u64>", duration),
+        BenchmarkId::new(
+            "Seconds<u32>::try_convert_from::<Milliseconds<u32>>()",
+            duration,
+        ),
         &duration,
         |b, &_size| {
             b.iter(|| Seconds::<u32>::try_convert_from(duration));
         },
     );
 
+    let duration = 500_u32.milliseconds();
+    group.bench_with_input(
+        BenchmarkId::new("Seconds<u32>::from::<Milliseconds<u32>>()", duration),
+        &duration,
+        |b, &_size| {
+            b.iter(|| Seconds::<u32>::from(duration));
+        },
+    );
+
     group.finish();
 }
 
-criterion_group!(
-    benches,
-    duration_vs_core_duration,
-    try_convert_from,
-    try_from_rate
-);
+criterion_group!(benches, duration_vs_core_duration, conversions);
 criterion_main!(benches);
