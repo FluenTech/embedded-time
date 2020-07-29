@@ -1,5 +1,5 @@
 use crate::{ConversionError, Fraction};
-use core::{convert::TryFrom, convert::TryInto, fmt};
+use core::{fmt, ops};
 
 /// The core inner-type trait for time-related types
 pub trait TimeInt:
@@ -13,10 +13,8 @@ pub trait TimeInt:
     + num::CheckedMul
     + num::CheckedDiv
     + From<u32>
-    + TryInto<u32>
-    + TryFrom<u64>
-    + Into<u64>
-    + TryFrom<u128>
+    + ops::Mul<Fraction, Output = Self>
+    + ops::Div<Fraction, Output = Self>
     + fmt::Display
     + fmt::Debug
 {
@@ -57,10 +55,46 @@ pub trait TimeInt:
         )
         .ok_or(ConversionError::DivByZero)
     }
+
+    // /// Panicky integer × [`Fraction`] = integer
+    // ///
+    // /// Returns truncated integer
+    // fn mul_fraction(&self, fraction: &Fraction) -> Self {
+    //     fraction.integer_mul(*self)
+    //     // *self / (*fraction.denominator()).into() * (*fraction.numerator()).into()
+    // }
+    //
+    // /// Panicky integer / [`Fraction`] = integer
+    // ///
+    // /// Returns truncated integer
+    // fn div_fraction(&self, fraction: &Fraction) -> Self {
+    //     *self * (*fraction.denominator()).into() / (*fraction.numerator()).into()
+    // }
 }
 
 impl TimeInt for u32 {}
 impl TimeInt for u64 {}
+
+pub trait Widen {
+    type Output;
+    fn widen(&self) -> Self::Output;
+}
+
+impl Widen for u32 {
+    type Output = u64;
+
+    fn widen(&self) -> Self::Output {
+        self.clone().into()
+    }
+}
+
+impl Widen for u64 {
+    type Output = u128;
+
+    fn widen(&self) -> Self::Output {
+        self.clone().into()
+    }
+}
 
 #[cfg(test)]
 mod tests {
