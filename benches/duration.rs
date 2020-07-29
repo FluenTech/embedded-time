@@ -1,5 +1,6 @@
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use embedded_time::{duration::*, rate::*};
+use std::convert::TryFrom;
 use std::mem::size_of;
 
 fn duration_vs_core_duration(c: &mut Criterion) {
@@ -47,70 +48,70 @@ fn conversions(c: &mut Criterion) {
 
     let duration = 500_u32.seconds();
     group.bench_with_input(
-        BenchmarkId::new(
-            "Nanoseconds<u64>::try_convert_from::<Seconds<u32>>()",
-            duration,
-        ),
+        BenchmarkId::new("Nanoseconds<u32>::try_from::<Seconds<u32>>()", duration),
         &duration,
         |b, &_size| {
-            b.iter(|| Nanoseconds::<u64>::try_convert_from(duration));
-        },
-    );
-
-    let duration = 500_u32.minutes();
-    group.bench_with_input(
-        BenchmarkId::new(
-            "Nanoseconds<u64>::try_convert_from::<Minutes<u32>>()",
-            duration,
-        ),
-        &duration,
-        |b, &_size| {
-            b.iter(|| Nanoseconds::<u64>::try_convert_from(duration));
-        },
-    );
-
-    let duration = 500_u32.nanoseconds();
-    group.bench_with_input(
-        BenchmarkId::new(
-            "Seconds<u64>::try_convert_from::<Nanoseconds<u32>>()",
-            duration,
-        ),
-        &duration,
-        |b, &_size| {
-            b.iter(|| Seconds::<u64>::try_convert_from(duration));
-        },
-    );
-
-    let duration = 500_u32.nanoseconds();
-    group.bench_with_input(
-        BenchmarkId::new(
-            "Minutes<u64>::try_convert_from::<Nanoseconds<u32>>()",
-            duration,
-        ),
-        &duration,
-        |b, &_size| {
-            b.iter(|| Minutes::<u64>::try_convert_from(duration));
+            b.iter(|| Nanoseconds::<u32>::try_from(duration));
         },
     );
 
     let duration = 500_u32.milliseconds();
     group.bench_with_input(
         BenchmarkId::new(
-            "Seconds<u32>::try_convert_from::<Milliseconds<u32>>()",
+            "Nanoseconds<u32>::try_from::<Milliseconds<u32>>()",
             duration,
         ),
         &duration,
         |b, &_size| {
-            b.iter(|| Seconds::<u32>::try_convert_from(duration));
+            b.iter(|| Nanoseconds::<u32>::try_from(duration));
         },
     );
 
-    let duration = 500_u32.milliseconds();
+    let duration = 500_u64.nanoseconds();
     group.bench_with_input(
-        BenchmarkId::new("Seconds<u32>::from::<Milliseconds<u32>>()", duration),
+        BenchmarkId::new("Seconds<u32>::try_from::<Nanoseconds<u64>>()", duration),
+        &duration,
+        |b, &_size| {
+            b.iter(|| Seconds::<u32>::try_from(duration));
+        },
+    );
+
+    let duration = 500_u64.nanoseconds();
+    group.bench_with_input(
+        BenchmarkId::new(
+            "Seconds<u32>::try_from::<Nanoseconds<u64>>() (unwrap)",
+            duration,
+        ),
+        &duration,
+        |b, &_size| {
+            b.iter(|| Seconds::<u32>::try_from(duration).unwrap());
+        },
+    );
+
+    let duration = 500_u32.nanoseconds();
+    group.bench_with_input(
+        BenchmarkId::new("Seconds<u64>::from::<Nanoseconds<u32>>()", duration),
+        &duration,
+        |b, &_size| {
+            b.iter(|| Seconds::<u64>::from(duration));
+        },
+    );
+
+    let duration = 500_u32.nanoseconds();
+    group.bench_with_input(
+        BenchmarkId::new("Seconds<u32>::from::<Nanoseconds<u32>>()", duration),
         &duration,
         |b, &_size| {
             b.iter(|| Seconds::<u32>::from(duration));
+        },
+    );
+
+    let duration = 500_u32.nanoseconds();
+    group.bench_with_input(
+        BenchmarkId::new("Milliseconds<u32>::from::<Nanoseconds<u32>>()", duration),
+        &duration,
+        |b, &_size| {
+            b.iter(|| Milliseconds::<u32>::from(duration));
         },
     );
 

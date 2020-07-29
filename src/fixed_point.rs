@@ -1,6 +1,6 @@
 //! Fixed-point values
 use crate::{fraction::Fraction, time_int::TimeInt, ConversionError};
-use core::{convert::TryFrom, fmt, mem::size_of, prelude::v1::*};
+use core::{convert::TryFrom, fmt, mem::size_of, ops, prelude::v1::*};
 use num::Bounded;
 
 /// Fixed-point value type
@@ -202,6 +202,7 @@ pub trait FixedPoint: Sized + Copy + fmt::Display {
 /// [`ConversionError::Overflow`] : The conversion of the _scaling factor_ causes an overflow.
 /// [`ConversionError::ConversionFailure`] : The integer conversion to that of the destination
 /// type fails.
+// TODO: Move back into FixedPoint?
 pub(crate) fn from_ticks<SourceInt: TimeInt, Dest: FixedPoint>(
     ticks: SourceInt,
     scaling_factor: Fraction,
@@ -263,21 +264,28 @@ pub(crate) fn from_ticks_safe<SourceInt: TimeInt, Dest: FixedPoint>(
 ) -> Dest
 where
     Dest::T: From<SourceInt>,
+    Dest::T: ops::Mul<Fraction, Output = Dest::T> + ops::Div<Fraction, Output = Dest::T>,
 {
     let ticks = Dest::T::from(ticks);
 
-    let ticks = if scaling_factor >= Fraction::new(1, 1)
-        || (scaling_factor < Fraction::new(1, 1) && Dest::SCALING_FACTOR > Fraction::new(1, 1))
+    let ticks = if (scaling_factor >= Fraction::new(1, 1)
+        && Dest::SCALING_FACTOR <= Fraction::new(1, 1))
+        || (scaling_factor <= Fraction::new(1, 1) && Dest::SCALING_FACTOR >= Fraction::new(1, 1))
     {
         // if the source's _scaling factor_ is > `1/1`, start by converting to a _scaling factor_
         // of `1/1`, then convert to destination _scaling factor_.
-        Dest::SCALING_FACTOR.integer_div(scaling_factor.integer_mul(ticks))
+        (ticks * scaling_factor) / Dest::SCALING_FACTOR
     } else {
         // If the source scaling factor is <= 1, the relative ratio of the scaling factors are
         // calculated first by dividing the source scaling factor by that of the
         // dest. The source integer part is then multiplied by the result.
-        (scaling_factor / Dest::SCALING_FACTOR).integer_mul(ticks)
+        ticks * (scaling_factor / Dest::SCALING_FACTOR)
     };
 
     Dest::new(ticks)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
 }
