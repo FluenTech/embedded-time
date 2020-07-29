@@ -1,5 +1,6 @@
 //! Fractional/Rational values
 use crate::ConversionError;
+use core::convert::TryInto;
 use core::ops;
 use num::{rational::Ratio, CheckedDiv, CheckedMul, Zero};
 
@@ -177,25 +178,104 @@ impl Fraction {
             ))
         }
     }
+}
 
-    /// Returns the integer multiple of the `Fraction`
-    pub(crate) fn integer_mul<T>(&self, integer: T) -> T
-    where
-        T: num::Integer + Copy,
-        u32: Into<T>,
-    {
-        (Ratio::new_raw((*self.numerator()).into(), (*self.denominator()).into()) * integer)
-            .to_integer()
+impl ops::Mul<Fraction> for u32 {
+    type Output = Self;
+
+    /// Panicky u32 × `Fraction` = u32
+    fn mul(self, rhs: Fraction) -> Self::Output {
+        if rhs.numerator() == &1 {
+            (rhs.0 * self).to_integer()
+        } else {
+            let integer: u64 = self.into();
+            (Ratio::<u64>::new_raw((*rhs.numerator()).into(), (*rhs.denominator()).into())
+                * integer)
+                .to_integer()
+                .try_into()
+                .ok()
+                .unwrap()
+        }
     }
+}
 
-    /// Returns the integer quotient of the `Fraction`
-    pub(crate) fn integer_div<T>(&self, integer: T) -> T
-    where
-        T: num::Integer + Copy,
-        u32: Into<T>,
-    {
-        (Ratio::new_raw((*self.numerator()).into(), (*self.denominator()).into()).recip() * integer)
-            .to_integer()
+impl ops::Div<Fraction> for u32 {
+    type Output = Self;
+
+    /// Panicky u32 / `Fraction` = u32
+    #[allow(clippy::suspicious_arithmetic_impl)]
+    fn div(self, rhs: Fraction) -> Self::Output {
+        if rhs.denominator() == &1 {
+            (rhs.0.recip() * self).to_integer()
+        } else {
+            let integer: u64 = self.into();
+            (Ratio::<u64>::new_raw((*rhs.denominator()).into(), (*rhs.numerator()).into())
+                * integer)
+                .to_integer()
+                .try_into()
+                .ok()
+                .unwrap()
+        }
+    }
+}
+
+impl ops::Mul<Fraction> for u64 {
+    type Output = Self;
+
+    /// Panicky u64 × `Fraction` = u64
+    fn mul(self, rhs: Fraction) -> Self::Output {
+        if rhs.numerator() == &1 {
+            (Ratio::new_raw((*rhs.numerator()).into(), (*rhs.denominator()).into()) * self)
+                .to_integer()
+        } else {
+            let integer: u128 = self.into();
+            (Ratio::<u128>::new_raw((*rhs.numerator()).into(), (*rhs.denominator()).into())
+                * integer)
+                .to_integer()
+                .try_into()
+                .ok()
+                .unwrap()
+        }
+    }
+}
+
+impl ops::Div<Fraction> for u64 {
+    type Output = Self;
+
+    /// Panicky u64 / `Fraction` = u64
+    #[allow(clippy::suspicious_arithmetic_impl)]
+    fn div(self, rhs: Fraction) -> Self::Output {
+        if rhs.denominator() == &1 {
+            (Ratio::new_raw((*rhs.denominator()).into(), (*rhs.numerator()).into()) * self)
+                .to_integer()
+        } else {
+            let integer: u128 = self.into();
+            (Ratio::<u128>::new_raw((*rhs.denominator()).into(), (*rhs.numerator()).into())
+                * integer)
+                .to_integer()
+                .try_into()
+                .ok()
+                .unwrap()
+        }
+    }
+}
+
+impl ops::Mul<Fraction> for u128 {
+    type Output = Self;
+
+    /// Panicky u128 × `Fraction` = u128
+    fn mul(self, rhs: Fraction) -> Self::Output {
+        (Ratio::new_raw((*rhs.numerator()).into(), (*rhs.denominator()).into()) * self).to_integer()
+    }
+}
+
+impl ops::Div<Fraction> for u128 {
+    type Output = Self;
+
+    /// Panicky u128 / `Fraction` = u128
+    #[allow(clippy::suspicious_arithmetic_impl)]
+    fn div(self, rhs: Fraction) -> Self::Output {
+        (Ratio::new_raw((*rhs.denominator()).into(), (*rhs.numerator()).into()) * self).to_integer()
     }
 }
 
@@ -254,6 +334,11 @@ impl Default for Fraction {
 #[cfg(test)]
 mod tests {
     use crate::Fraction;
+
+    #[test]
+    fn mul_integer_by_fraction() {
+        assert_eq!(u32::MAX * Fraction::new(3, 5), u32::MAX / 5 * 3);
+    }
 
     #[test]
     fn mul_integer_by_fraction() {

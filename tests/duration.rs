@@ -2,10 +2,82 @@ use core::convert::{TryFrom, TryInto};
 use embedded_time::{duration, duration::*, rate::*, ConversionError, Fraction};
 
 #[test]
+fn construction() {
+    assert_eq!(<Seconds>::new(5), Seconds(5_u32));
+    assert_eq!(Seconds::new(5_u32), Seconds(5_u32));
+
+    assert_eq!(5_u32.nanoseconds(), Nanoseconds(5_u32));
+    assert_eq!(5_u32.microseconds(), Microseconds(5_u32));
+    assert_eq!(5_u32.milliseconds(), Milliseconds(5_u32));
+    assert_eq!(5_u32.seconds(), Seconds(5_u32));
+    assert_eq!(5_u32.minutes(), Minutes(5_u32));
+    assert_eq!(5_u32.hours(), Hours(5_u32));
+}
+
+#[test]
+fn comparison() {
+    // even though the value of 5 seconds cannot be expressed as Nanoseconds<u32>, it behaves as
+    // expected.
+    assert_ne!(Seconds(5_u32), Nanoseconds(u32::MAX));
+    assert_ne!(Seconds(5_u32), Nanoseconds(u32::MAX as u64));
+    assert_ne!(Seconds(5_u64), Nanoseconds(u32::MAX));
+    assert_ne!(Seconds(5_u64), Nanoseconds(u32::MAX as u64));
+
+    assert_ne!(Nanoseconds(u32::MAX), Seconds(5_u32));
+    assert_ne!(Nanoseconds(u32::MAX as u64), Seconds(5_u32));
+    assert_ne!(Nanoseconds(u32::MAX), Seconds(5_u64));
+    assert_ne!(Nanoseconds(u32::MAX as u64), Seconds(5_u64));
+
+    assert!(Seconds(5_u32) > Nanoseconds(u32::MAX));
+    assert!(Nanoseconds(u32::MAX) < Seconds(5_u32));
+
+    assert!(Seconds(5_u32) < Nanoseconds(u64::MAX));
+    assert!(Nanoseconds(u64::MAX) > Seconds(5_u32));
+
+    assert!(Seconds(5_u64) > Nanoseconds(u32::MAX));
+    assert!(Nanoseconds(u32::MAX) < Seconds(5_u64));
+
+    assert!(Seconds(5_u64) < Nanoseconds(u64::MAX));
+    assert!(Nanoseconds(u64::MAX) > Seconds(5_u64));
+}
+
+#[test]
+fn try_convert_from() {
+    assert_eq!(
+        Hours::<u32>::try_convert_from(Nanoseconds(u32::MAX)),
+        Ok(Hours(0_u32))
+    );
+
+    assert_eq!(
+        Milliseconds::<u32>::try_convert_from(Nanoseconds(u32::MAX)),
+        Ok(Milliseconds(4_294_u32))
+    );
+}
+
+#[test]
 fn try_from_generic() {
     assert_eq!(
         Seconds::try_from(duration::Generic::new(246_u32, Fraction::new(1, 2))),
         Ok(Seconds(123_u32))
+    );
+
+    let seconds: Result<Seconds<u32>, _> =
+        duration::Generic::new(246_u32, Fraction::new(1, 2)).try_into();
+    assert_eq!(seconds, Ok(Seconds(123_u32)));
+
+    // Overflow
+    assert_eq!(
+        Seconds::<u32>::try_from(duration::Generic::new(u32::MAX, Fraction::new(10, 1))),
+        Err(ConversionError::Overflow)
+    );
+
+    // ConversionFailure (type)
+    assert_eq!(
+        Seconds::<u32>::try_from(duration::Generic::new(
+            u32::MAX as u64 + 1,
+            Fraction::new(1, 1)
+        )),
+        Err(ConversionError::ConversionFailure)
     );
 }
 
@@ -41,6 +113,16 @@ fn convert_to_rate() {
     assert_eq!(Milliseconds(500_u32).to_rate(), Ok(Hertz(2_u32)));
 
     assert_eq!(Microseconds(500_u32).to_rate(), Ok(Kilohertz(2_u32)));
+
+    // Errors
+    assert_eq!(
+        Hours(u32::MAX).to_rate::<Megahertz<u32>>(),
+        Err(ConversionError::Overflow)
+    );
+    assert_eq!(
+        Seconds(0_u32).to_rate::<Hertz<u32>>(),
+        Err(ConversionError::DivByZero)
+    );
 }
 
 #[test]
@@ -94,8 +176,8 @@ fn duration_scaling() {
     assert_eq!(1_u32.microseconds(), 1_000_u32.nanoseconds());
     assert_eq!(1_u32.milliseconds(), 1_000_000_u32.nanoseconds());
     assert_eq!(1_u32.seconds(), 1_000_000_000_u32.nanoseconds());
-    assert_eq!(1_u32.minutes(), 60_000_000_000_u64.nanoseconds());
-    assert_eq!(1_u32.hours(), 3_600_000_000_000_u64.nanoseconds());
+    assert_eq!(1_u64.minutes(), 60_000_000_000_u64.nanoseconds());
+    assert_eq!(1_u64.hours(), 3_600_000_000_000_u64.nanoseconds());
 }
 
 mod convert_up {
@@ -104,7 +186,7 @@ mod convert_up {
     #[test]
     fn into_hours() {
         // From
-        assert_eq!(Hours::<u32>::from(Minutes(62_u32)), Hours(1_u32));
+        assert_eq!(Hours::<u32>::from(Minutes(u32::MAX)), Hours(u32::MAX / 60));
         assert_eq!(Hours::<u32>::from(Seconds(3_601_u32)), Hours(1_u32));
         assert_eq!(
             Hours::<u32>::from(Milliseconds(3_600_001_u32)),
@@ -150,7 +232,7 @@ mod convert_up {
         );
         assert_eq!(
             Minutes::<u64>::from(Nanoseconds(3_600_000_000_001_u64)),
-            Minutes(60_u32)
+            Minutes(60_u64)
         );
 
         // Into
@@ -398,6 +480,28 @@ mod convert_down {
         let nanoseconds: Nanoseconds<u64> = Microseconds(3_600_000_000_u32).into();
         assert_eq!(nanoseconds, Nanoseconds(3_600_000_000_000_u64));
     }
+}
+
+#[test]
+fn try_from() {
+    assert_eq!(
+        Hours::<u32>::try_from(Nanoseconds(u32::MAX as u64)),
+        Ok(Hours(0_u32))
+    );
+
+    assert_eq!(
+        Milliseconds::<u32>::try_from(Seconds(2_u32)),
+        Ok(Milliseconds(2_000_u32))
+    );
+
+    assert_eq!(
+        Milliseconds::<u32>::try_from(Nanoseconds(u64::MAX)),
+        Err(ConversionError::ConversionFailure)
+    );
+    assert_eq!(
+        Milliseconds::<u32>::try_from(Seconds(u64::MAX)),
+        Err(ConversionError::Overflow)
+    );
 }
 
 #[test]

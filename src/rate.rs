@@ -3,7 +3,7 @@
 use crate::{
     duration,
     fixed_point::{self, FixedPoint},
-    time_int::TimeInt,
+    time_int::{TimeInt, Widen},
     ConversionError, Fraction,
 };
 use core::{convert::TryFrom, mem::size_of, prelude::v1::*};
@@ -20,12 +20,58 @@ pub use units::*;
 /// ```rust
 /// # use embedded_time::{rate::*};
 /// #
-/// assert_eq!(45_u32.Hz(), Hertz(45_u32));
+/// let _ = <Kilohertz>::new(5);
+/// let _ = Kilohertz(5_u32);
+/// let _ = 5_u32.kHz();
 /// ```
 ///
-/// ## From a [`Generic`] `Rate`
+/// # Get the integer part
 ///
-/// ### Examples
+/// ```rust
+/// # use embedded_time::{rate::*};
+/// #
+/// assert_eq!(Hertz(45_u32).integer(), &45_u32);
+/// ```
+///
+/// # Formatting
+///
+/// Just forwards the underlying integer to [`core::fmt::Display::fmt()`]
+///
+/// ```rust
+/// # use embedded_time::{ rate::*};
+/// #
+/// assert_eq!(format!("{}", Hertz(123_u32)), "123");
+/// ```
+///
+/// # Converting between `Rate`s
+///
+/// Many intra-rate conversions can be done using `From`/`Into`:
+///
+/// ```rust
+/// # use embedded_time::rate::*;
+/// #
+/// let hertz = 23_000_u32.Hz();
+/// assert_eq!(hertz.integer(), &23_000_u32);
+///
+/// let kilohertz: Kilohertz<u32> = hertz.into();
+/// assert_eq!(kilohertz.integer(), &23_u32);
+/// ```
+///
+/// Others require the use of `TryFrom`/`TryInto`:
+///
+/// ```rust
+/// # use embedded_time::rate::*;
+/// # use std::convert::TryInto;
+/// let kilohertz = 23_u32.kHz();
+/// assert_eq!(kilohertz.integer(), &23_u32);
+///
+/// let hertz: Result<Hertz<u32>, _> = kilohertz.try_into();
+/// assert_eq!(hertz.unwrap().integer(), &23_000_u32);
+/// ```
+///
+/// # Converting from a [`Generic`] `Rate`
+///
+/// ## Examples
 ///
 /// ```rust
 /// # use embedded_time::{Fraction, rate::*};
@@ -43,7 +89,7 @@ pub use units::*;
 /// );
 /// ```
 ///
-/// ### Errors
+/// ## Errors
 ///
 /// Failure will only occur if the provided value does not fit in the selected destination type.
 ///
@@ -67,7 +113,7 @@ pub use units::*;
 /// destination type fails.
 ///
 /// ```rust
-/// # use embedded_time::{Fraction, rate::*, rate::Generic, ConversionError};
+/// # use embedded_time::{Fraction, rate::*, ConversionError};
 /// # use core::convert::TryFrom;
 /// #
 /// assert_eq!(
@@ -76,22 +122,13 @@ pub use units::*;
 /// );
 /// ```
 ///
-/// # Get the integer part
+/// # Converting to a [`Generic`] `Rate`
 ///
 /// ```rust
 /// # use embedded_time::{rate::*};
 /// #
-/// assert_eq!(Hertz(45_u32).integer(), &45_u32);
-/// ```
-///
-/// # Formatting
-///
-/// Just forwards the underlying integer to [`core::fmt::Display::fmt()`]
-///
-/// ```rust
-/// # use embedded_time::{ rate::*};
-/// #
-/// assert_eq!(format!("{}", Hertz(123_u32)), "123");
+/// let generic_rate = Generic::<u32>::from(5_u32.Hz());
+/// let generic_rate: Generic<u32> = 5_u32.Hz().into();
 /// ```
 ///
 /// # Add/Sub
@@ -103,11 +140,11 @@ pub use units::*;
 /// ```rust
 /// # use embedded_time::{ rate::*};
 /// #
-/// assert_eq!((Hertz(2u32) - Hertz(1_u32)),
-///     Hertz(1_u32));
+/// assert_eq!((Hertz(2_001_u32) - 1_u32.kHz()),
+///     Hertz(1_001_u32));
 ///
-/// assert_eq!((Hertz(1_u32) + Hertz(1_u32)),
-///     Hertz(2_u32));
+/// assert_eq!((Hertz(1_u32) + 1_u32.kHz()),
+///     Hertz(1_001_u32));
 /// ```
 ///
 /// ## Panics
@@ -140,12 +177,12 @@ pub use units::*;
 /// assert_eq!(Hertz(2_037_u32) % Kilohertz(1_u32), Hertz(37_u32));
 /// ```
 pub trait Rate: Sized + Copy {
-    /// Construct a `Generic` `Rate` from an _named_ `Rate`
+    /// Construct a `Generic` `Rate` from a _named_ `Rate` (eg. [`Kilohertz`])
     ///
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{Fraction, rate::*, rate::{Generic, Rate}};
+    /// # use embedded_time::{Fraction, rate::*};
     /// # use core::convert::{TryFrom, TryInto};
     /// #
     /// assert_eq!(Hertz(2_u64).to_generic(Fraction::new(1,2_000)),
@@ -161,7 +198,7 @@ pub trait Rate: Sized + Copy {
     /// [`ConversionError::Overflow`] : The conversion of the _scaling factor_ causes an overflow.
     ///
     /// ```rust
-    /// # use embedded_time::{Fraction, rate::*, rate::{Rate, Generic}, ConversionError};
+    /// # use embedded_time::{Fraction, rate::*, ConversionError};
     /// # use core::convert::TryFrom;
     /// #
     /// assert_eq!(Hertz(u32::MAX).to_generic::<u32>(Fraction::new(1, 2)),
@@ -174,7 +211,7 @@ pub trait Rate: Sized + Copy {
     /// type fails.
     ///
     /// ```rust
-    /// # use embedded_time::{Fraction, rate::*, rate::{Rate, Generic}, ConversionError};
+    /// # use embedded_time::{Fraction, rate::*, ConversionError};
     /// # use core::convert::TryFrom;
     /// #
     /// assert_eq!(Hertz(u32::MAX as u64 + 1).to_generic::<u32>(Fraction::new(1, 1)),
@@ -201,7 +238,7 @@ pub trait Rate: Sized + Copy {
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{duration::*, rate::{Rate, units::*}};
+    /// # use embedded_time::{duration::*, rate::*};
     /// #
     /// assert_eq!(
     ///     Kilohertz(500_u32).to_duration(),
@@ -278,10 +315,10 @@ pub trait Rate: Sized + Copy {
 }
 
 /// The `Generic` `Rate` type allows arbitrary _scaling factor_s to be used without having to impl
-/// FixedPoint.
+/// `FixedPoint`.
 ///
 /// The purpose of this type is to allow a simple `Rate` that can be defined at run-time. It does
-/// this by replacing the `const` _scaling factor_ with a field.
+/// this by replacing the `const` _scaling factor_ with a struct field.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct Generic<T> {
     integer: T,
@@ -297,12 +334,12 @@ impl<T> Generic<T> {
         }
     }
 
-    /// Returns the _integer_ value
+    /// Returns the _integer_ part
     pub const fn integer(&self) -> &T {
         &self.integer
     }
 
-    /// Returns the _scaling factor_ [`Fraction`] value
+    /// Returns the _scaling factor_ [`Fraction`] part
     pub const fn scaling_factor(&self) -> &Fraction {
         &self.scaling_factor
     }
@@ -320,6 +357,7 @@ pub mod units {
         ConversionError,
     };
     use core::{
+        cmp,
         convert::TryFrom,
         fmt::{self, Formatter},
         ops,
@@ -329,11 +367,11 @@ pub mod units {
     macro_rules! impl_rate {
         ( $name:ident, ($numer:expr, $denom:expr), $desc:literal ) => {
             #[doc = $desc]
-            #[derive(Copy, Clone, Eq, Ord, Hash, Debug, Default)]
+            #[derive(Copy, Clone, Eq, Hash, Debug, Default)]
             pub struct $name<T: TimeInt = u32>(pub T);
 
             impl<T: TimeInt> $name<T> {
-                /// See [Constructing a rate](../trait.Rate.html#constructing_a_rate)
+                /// See [Constructing a rate](../trait.Rate.html#constructing-a-rate)
                 pub fn new(value: T) -> Self {
                     Self(value)
                 }
@@ -355,6 +393,7 @@ pub mod units {
             }
 
             impl<T: TimeInt> fmt::Display for $name<T> {
+                /// See [Formatting](../trait.Rate.html#formatting)
                 fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
                     fmt::Display::fmt(&self.0, f)
                 }
@@ -367,6 +406,7 @@ pub mod units {
             {
                 type Output = Self;
 
+                /// See [Add/Sub](../trait.Rate.html#addsub)
                 fn add(self, rhs: Rhs) -> Self::Output {
                     <Self as FixedPoint>::add(self, rhs)
                 }
@@ -379,6 +419,7 @@ pub mod units {
             {
                 type Output = Self;
 
+                /// See [Add/Sub](../trait.Rate.html#addsub)
                 fn sub(self, rhs: Rhs) -> Self::Output {
                     <Self as FixedPoint>::sub(self, rhs)
                 }
@@ -391,30 +432,9 @@ pub mod units {
             {
                 type Output = Self;
 
+                /// See [Remainder](../trait.Rate.html#remainder)
                 fn rem(self, rhs: Rhs) -> Self::Output {
                     <Self as FixedPoint>::rem(self, rhs)
-                }
-            }
-
-            impl<T: TimeInt, Rhs: Rate> PartialEq<Rhs> for $name<T>
-            where
-                T: TryFrom<Rhs::T>,
-                Rhs: FixedPoint,
-                Rhs::T: TryFrom<T>,
-            {
-                fn eq(&self, rhs: &Rhs) -> bool {
-                    <Self as FixedPoint>::eq(self, rhs)
-                }
-            }
-
-            impl<T: TimeInt, Rhs: Rate> PartialOrd<Rhs> for $name<T>
-            where
-                T: TryFrom<Rhs::T>,
-                Rhs: FixedPoint,
-                Rhs::T: TryFrom<T>,
-            {
-                fn partial_cmp(&self, rhs: &Rhs) -> Option<core::cmp::Ordering> {
-                    <Self as FixedPoint>::partial_cmp(self, rhs)
                 }
             }
 
@@ -425,56 +445,337 @@ pub mod units {
             {
                 type Error = ConversionError;
 
-                /// See [Constructing a rate > From a Generic
-                /// Rate](../trait.Rate.html#from-a-generic-rate)
+                /// See [Converting from a `Generic` `Rate`](../trait.Rate.html#converting-from-a-generic-rate)
                 fn try_from(generic_rate: Generic<SourceInt>) -> Result<Self, Self::Error> {
                     fixed_point::from_ticks(generic_rate.integer, generic_rate.scaling_factor)
                 }
             }
 
             impl<T: TimeInt> From<$name<T>> for Generic<T> {
-                // TODO: documentation
+                /// See [Converting to a `Generic`
+                /// `Rate`](../trait.Rate.html#converting-to-a-generic-rate)
                 fn from(rate: $name<T>) -> Self {
                     Self::new(*rate.integer(), $name::<T>::SCALING_FACTOR)
                 }
             }
         };
     }
+    impl_rate![Mebihertz, (1_048_576, 1), "Hertz × 1,048,576"];
     impl_rate![Megahertz, (1_000_000, 1), "Hertz × 1,000,000"];
+    impl_rate![Kibihertz, (1_024, 1), "Hertz × 1,024"];
     impl_rate![Kilohertz, (1_000, 1), "Hertz × 1,000"];
     impl_rate![Hertz, (1, 1), "Hertz"];
-
-    impl_rate![MebibytesPerSecond, (1_048_576, 1), "Bytes/s × 1,048,576"];
-    impl_rate![MegabytesPerSecond, (1_000_000, 1), "Bytes/s × 1,000,000"];
-    impl_rate![KibibytesPerSecond, (1_024, 1), "Bytes/s × 1,024"];
-    impl_rate![KiloBytesPerSecond, (1_000, 1), "Bytes/s × 1,000"];
-    impl_rate![BytesPerSecond, (1, 1), "Bytes/s"];
-
+    impl_rate![
+        MebibytesPerSecond,
+        (1_048_576 * 8, 1),
+        "Bytes/s × 1,048,576"
+    ];
+    impl_rate![
+        MegabytesPerSecond,
+        (1_000_000 * 8, 1),
+        "Bytes/s × 1,000,000"
+    ];
+    impl_rate![KibibytesPerSecond, (1_024 * 8, 1), "Bytes/s × 1,024"];
+    impl_rate![KilobytesPerSecond, (1_000 * 8, 1), "Bytes/s × 1,000"];
+    impl_rate![BytesPerSecond, (8, 1), "Bytes/s"];
     impl_rate![MebibitsPerSecond, (1_048_576, 1), "Bits/s × 1,048,576"];
     impl_rate![MegabitsPerSecond, (1_000_000, 1), "Bits/s × 1,000,000"];
     impl_rate![KibibitsPerSecond, (1_024, 1), "Bits/s × 1,024"];
     impl_rate![KilobitsPerSecond, (1_000, 1), "Bits/s × 1,000"];
     impl_rate![BitsPerSecond, (1, 1), "Bits/s"];
-
     impl_rate![Mebibaud, (1_048_576, 1), "Baud × 1,048,576"];
     impl_rate![Megabaud, (1_000_000, 1), "Baud × 1,000,000"];
     impl_rate![Kibibaud, (1_024, 1), "Baud × 1,024"];
     impl_rate![Kilobaud, (1_000, 1), "Baud × 1,000"];
     impl_rate![Baud, (1, 1), "Baud"];
 
-    /// Create time-based values from primitive and core numeric types.
-    ///
-    /// Basic construction of time-based values.
+    macro_rules! impl_comparisons {
+        ($name:ident) => {
+            impl<T: TimeInt, RhsInt: TimeInt> cmp::PartialEq<$name<RhsInt>> for $name<T>
+            where
+                T: TryFrom<RhsInt>,
+            {
+                /// See [Comparisons](../trait.Rate.html#comparisons)
+                fn eq(&self, rhs: &$name<RhsInt>) -> bool {
+                    match T::try_from(*rhs.integer()) {
+                        Ok(rhs_value) => *self.integer() == rhs_value,
+                        Err(_) => false
+                    }
+                }
+            }
+
+            impl<T: TimeInt, RhsInt: TimeInt> PartialOrd<$name<RhsInt>> for $name<T>
+            where
+                T: TryFrom<RhsInt>,
+            {
+                /// See [Comparisons](../trait.Rate.html#comparisons)
+                fn partial_cmp(&self, rhs: &$name<RhsInt>) -> Option<core::cmp::Ordering> {
+                    match T::try_from(*rhs.integer()) {
+                        Ok(rhs_integer) => Some(self.integer().cmp(&rhs_integer)),
+                        Err(_) => Some(core::cmp::Ordering::Less),
+                    }
+                }
+            }
+        };
+        ($big:ident, $($small:ident),+) => {
+
+            impl_comparisons![$big];
+
+            $(
+                impl<T: TimeInt, RhsInt: TimeInt> cmp::PartialEq<$small<RhsInt>> for $big<T>
+                where
+                    $small<RhsInt>: PartialEq<$big<T>>,
+                    T: Widen,
+                    RhsInt: Widen,
+                    <RhsInt as Widen>::Output: TryFrom<<T as Widen>::Output>,
+                {
+                    /// See [Comparisons](../trait.Rate.html#comparisons)
+                    fn eq(&self, rhs: &$small<RhsInt>) -> bool {
+                        <$small::<RhsInt> as PartialEq<$big<T>>>::eq(rhs, self)
+                    }
+                }
+
+                impl<T: TimeInt, RhsInt: TimeInt> cmp::PartialEq<$big<RhsInt>> for $small<T>
+                where
+                    T: Widen,
+                    <T as Widen>::Output: ops::Mul<Fraction>,
+                    <<T as Widen>::Output as ops::Mul<Fraction>>::Output: PartialEq + TryFrom<<<RhsInt as Widen>::Output as ops::Mul<Fraction>>::Output>,
+                    RhsInt: Widen,
+                    <RhsInt as Widen>::Output: ops::Mul<Fraction>,
+                {
+                    /// See [Comparisons](../trait.Rate.html#comparisons)
+                    fn eq(&self, rhs: &$big<RhsInt>) -> bool {
+                        let lhs_value = self.integer().widen() * Self::SCALING_FACTOR;
+                        let rhs_value = rhs.integer().widen() * $big::<RhsInt>::SCALING_FACTOR;
+                        match <<T as Widen>::Output as ops::Mul<Fraction>>::Output::try_from(rhs_value) {
+                            Ok(rhs_value) => lhs_value == rhs_value,
+                            Err(_) => false
+                        }
+                    }
+                }
+
+                impl<T: TimeInt, RhsInt: TimeInt> PartialOrd<$small<RhsInt>> for $big<T>
+                where
+                    T: Widen,
+                    <T as Widen>::Output: ops::Mul<Fraction>,
+                    <<T as Widen>::Output as ops::Mul<Fraction>>::Output: Ord + TryFrom<<<RhsInt as Widen>::Output as ops::Mul<Fraction>>::Output>,
+                    RhsInt: Widen,
+                    <RhsInt as Widen>::Output: ops::Mul<Fraction> + TryFrom<<T as Widen>::Output> + TryFrom<<<T as Widen>::Output as ops::Mul<Fraction>>::Output>,
+                    <<RhsInt as Widen>::Output as ops::Mul<Fraction>>::Output: PartialEq + TryFrom<<<T as Widen>::Output as ops::Mul<Fraction>>::Output>,
+                {
+                    /// See [Comparisons](../trait.Rate.html#comparisons)
+                    fn partial_cmp(&self, rhs: &$small<RhsInt>) -> Option<core::cmp::Ordering> {
+                        let lhs_value = self.integer().widen() * Self::SCALING_FACTOR;
+                        let rhs_value = rhs.integer().widen() * $small::<RhsInt>::SCALING_FACTOR;
+                         match <<T as Widen>::Output as ops::Mul<Fraction>>::Output::try_from(rhs_value) {
+                            Ok(rhs_value) => Some(lhs_value.cmp(&rhs_value)),
+                            Err(_) => Some(core::cmp::Ordering::Less),
+                        }
+
+                    }
+                }
+
+                impl<T: TimeInt, RhsInt: TimeInt> PartialOrd<$big<RhsInt>> for $small<T>
+                where
+                    T: Widen,
+                    <T as Widen>::Output: ops::Mul<Fraction>,
+                    <<T as Widen>::Output as ops::Mul<Fraction>>::Output: Ord + PartialEq + TryFrom<<<RhsInt as Widen>::Output as ops::Mul<Fraction>>::Output>,
+                    RhsInt: Widen,
+                    <RhsInt as Widen>::Output: ops::Mul<Fraction>,
+                {
+                    /// See [Comparisons](../trait.Rate.html#comparisons)
+                    fn partial_cmp(&self, rhs: &$big<RhsInt>) -> Option<core::cmp::Ordering> {
+                        let lhs_value = self.integer().widen() * Self::SCALING_FACTOR;
+                        let rhs_value = rhs.integer().widen() * $big::<RhsInt>::SCALING_FACTOR;
+                        match <<T as Widen>::Output as ops::Mul<Fraction>>::Output::try_from(rhs_value) {
+                            Ok(rhs_value) => Some(lhs_value.cmp(&rhs_value)),
+                            Err(_) => Some(core::cmp::Ordering::Less),
+                        }
+                    }
+                }
+            )+
+            impl_comparisons![$($small),+];
+        };
+    }
+    impl_comparisons![Mebihertz, Megahertz, Kibihertz, Kilohertz, Hertz];
+    impl_comparisons![
+        MebibytesPerSecond,
+        MegabytesPerSecond,
+        MebibitsPerSecond,
+        MegabitsPerSecond,
+        KibibytesPerSecond,
+        KilobytesPerSecond,
+        KibibitsPerSecond,
+        KilobitsPerSecond,
+        BytesPerSecond,
+        BitsPerSecond
+    ];
+    impl_comparisons![Mebibaud, Megabaud, Kibibaud, Kilobaud, Baud];
+
+    macro_rules! impl_from {
+        ($name:ident) => {
+            impl From<$name<u32>> for $name<u64> {
+                /// See [Converting between `Rate`s](../trait.Rate.html#converting-between-rates)
+                fn from(source: $name<u32>) -> Self {
+                    Self::new(u64::from(*source.integer()))
+                }
+            }
+
+            impl TryFrom<$name<u64>> for $name<u32> {
+                type Error = ConversionError;
+
+                /// See [Converting between `Rate`s](../trait.Rate.html#converting-between-rates)
+                fn try_from(source: $name<u64>) -> Result<Self, Self::Error> {
+                    fixed_point::from_ticks(*source.integer(), $name::<u64>::SCALING_FACTOR)
+                }
+            }
+        };
+    }
+    impl_from![Mebihertz];
+    impl_from![Megahertz];
+    impl_from![Kibihertz];
+    impl_from![Kilohertz];
+    impl_from![Hertz];
+    impl_from![MebibytesPerSecond];
+    impl_from![MegabytesPerSecond];
+    impl_from![KibibytesPerSecond];
+    impl_from![KilobytesPerSecond];
+    impl_from![BytesPerSecond];
+    impl_from![MebibitsPerSecond];
+    impl_from![MegabitsPerSecond];
+    impl_from![KibibitsPerSecond];
+    impl_from![KilobitsPerSecond];
+    impl_from![BitsPerSecond];
+    impl_from![Mebibaud];
+    impl_from![Megabaud];
+    impl_from![Kibibaud];
+    impl_from![Kilobaud];
+    impl_from![Baud];
+
+    macro_rules! impl_from_smaller {
+        ($name:ident) => {};
+        ($big:ident, $($small:ident),+) => {
+            $(
+                impl<T: TimeInt> From<$small<T>> for $big<T>
+                {
+                    /// See [Converting between `Rate`s](../trait.Rate.html#converting-between-rates)
+                    fn from(small: $small<T>) -> Self {
+                        fixed_point::from_ticks_safe(*small.integer(), $small::<T>::SCALING_FACTOR)
+                    }
+                }
+
+                impl From<$small<u32>> for $big<u64>
+                {
+                    /// See [Converting between `Rate`s](../trait.Rate.html#converting-between-rates)
+                    fn from(small: $small<u32>) -> Self {
+                        fixed_point::from_ticks_safe(*small.integer(), $small::<u32>::SCALING_FACTOR)
+                    }
+                }
+
+                impl TryFrom<$small<u64>> for $big<u32>
+                {
+                    type Error = ConversionError;
+
+                    /// See [Converting between `Rate`s](../trait.Rate.html#converting-between-rates)
+                    fn try_from(small: $small<u64>) -> Result<Self, Self::Error> {
+                        fixed_point::from_ticks(
+                            *small.integer(),
+                            $small::<u64>::SCALING_FACTOR,
+                        )
+                    }
+                }
+            )+
+
+            impl_from_smaller![$($small),+];
+        };
+
+    }
+    impl_from_smaller![Mebihertz, Megahertz, Kibihertz, Kilohertz, Hertz];
+    impl_from_smaller![
+        MebibytesPerSecond,
+        MegabytesPerSecond,
+        MebibitsPerSecond,
+        MegabitsPerSecond,
+        KibibytesPerSecond,
+        KilobytesPerSecond,
+        KibibitsPerSecond,
+        KilobitsPerSecond,
+        BytesPerSecond,
+        BitsPerSecond
+    ];
+    impl_from_smaller![Mebibaud, Megabaud, Kibibaud, Kilobaud, Baud];
+
+    macro_rules! impl_from_bigger {
+        ($small:ident) => {};
+        ($small:ident, $($big:ident),+) => {
+            $(
+                impl From<$big<u32>> for $small<u64>
+                {
+                   /// See [Converting between `Rate`s](../trait.Rate.html#converting-between-rates)
+                    fn from(big: $big<u32>) -> Self {
+                        fixed_point::from_ticks_safe(*big.integer(), $big::<u32>::SCALING_FACTOR)
+                    }
+                }
+
+                impl<T: TimeInt> TryFrom<$big<T>> for $small<T>
+                {
+                    type Error = ConversionError;
+
+                    /// See [Converting between `Rate`s](../trait.Rate.html#converting-between-rates)
+                    fn try_from(big: $big<T>) -> Result<Self, Self::Error> {
+                        fixed_point::from_ticks(
+                            *big.integer(),
+                            $big::<T>::SCALING_FACTOR,
+                        )
+                    }
+                }
+
+                impl TryFrom<$big<u64>> for $small<u32>
+                {
+                    type Error = ConversionError;
+
+                    /// See [Converting between `Rate`s](../trait.Rate.html#converting-between-rates)
+                    fn try_from(big: $big<u64>) -> Result<Self, Self::Error> {
+                        fixed_point::from_ticks(
+                            *big.integer(),
+                            $big::<u64>::SCALING_FACTOR,
+                        )
+                    }
+                }
+            )+
+
+            impl_from_bigger![$($big),+];
+        };
+    }
+
+    impl_from_bigger![Hertz, Kilohertz, Kibihertz, Megahertz, Mebihertz];
+    impl_from_bigger![
+        BitsPerSecond,
+        BytesPerSecond,
+        KilobitsPerSecond,
+        KibibitsPerSecond,
+        KilobytesPerSecond,
+        KibibytesPerSecond,
+        MegabitsPerSecond,
+        MebibitsPerSecond,
+        MegabytesPerSecond,
+        MebibytesPerSecond
+    ];
+    impl_from_bigger![Baud, Kilobaud, Kibibaud, Megabaud, Mebibaud];
+
+    /// Create rate-based extensions from primitive numeric types.
     ///
     /// ```rust
     /// # use embedded_time::{rate::*};
+    /// assert_eq!(5_u32.MiHz(), Mebihertz(5_u32));
     /// assert_eq!(5_u32.MHz(), Megahertz(5_u32));
+    /// assert_eq!(5_u32.KiHz(), Kibihertz(5_u32));
     /// assert_eq!(5_u32.kHz(), Kilohertz(5_u32));
     /// assert_eq!(5_u32.Hz(), Hertz(5_u32));
     /// assert_eq!(5_u32.MiBps(), MebibytesPerSecond(5_u32));
     /// assert_eq!(5_u32.MBps(), MegabytesPerSecond(5_u32));
     /// assert_eq!(5_u32.KiBps(), KibibytesPerSecond(5_u32));
-    /// assert_eq!(5_u32.kBps(), KiloBytesPerSecond(5_u32));
+    /// assert_eq!(5_u32.kBps(), KilobytesPerSecond(5_u32));
     /// assert_eq!(5_u32.Bps(), BytesPerSecond(5_u32));
     /// assert_eq!(5_u32.Mibps(), MebibitsPerSecond(5_u32));
     /// assert_eq!(5_u32.Mbps(), MegabitsPerSecond(5_u32));
@@ -489,9 +790,19 @@ pub mod units {
     /// ```
     #[allow(non_snake_case)]
     pub trait Extensions: TimeInt {
+        /// mebihertz
+        fn MiHz(self) -> Mebihertz<Self> {
+            Mebihertz::new(self)
+        }
+
         /// megahertz
         fn MHz(self) -> Megahertz<Self> {
             Megahertz::new(self)
+        }
+
+        /// kibihertz
+        fn KiHz(self) -> Kibihertz<Self> {
+            Kibihertz::new(self)
         }
 
         /// kilohertz
@@ -520,8 +831,8 @@ pub mod units {
         }
 
         /// kiloBytes per second
-        fn kBps(self) -> KiloBytesPerSecond<Self> {
-            KiloBytesPerSecond::new(self)
+        fn kBps(self) -> KilobytesPerSecond<Self> {
+            KilobytesPerSecond::new(self)
         }
 
         /// bytes per second
@@ -586,95 +897,5 @@ pub mod units {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        duration::*,
-        rate::{self, *},
-        ConversionError, Fraction,
-    };
-    use core::convert::TryFrom;
-
-    #[test]
-    fn try_from_generic() {
-        assert_eq!(
-            Hertz::try_from(rate::Generic::new(246_u32, Fraction::new(1, 2))),
-            Ok(Hertz(123_u32))
-        );
-    }
-
-    #[test]
-    fn to_generic() {
-        assert_eq!(
-            Hertz(123_u32).to_generic(Fraction::new(1, 2)),
-            Ok(rate::Generic::new(246_u32, Fraction::new(1, 2)))
-        );
-    }
-
-    #[test]
-    fn try_into_generic_err() {
-        assert_eq!(
-            Hertz(u32::MAX).to_generic::<u32>(Fraction::new(1, 2)),
-            Err(ConversionError::Overflow)
-        );
-    }
-
-    #[test]
-    fn get_generic_integer() {
-        let generic = rate::Generic::new(246_u32, Fraction::new(1, 2));
-        assert_eq!(generic.integer(), &246_u32);
-    }
-
-    #[test]
-    fn check_for_overflows() {
-        let mut time = 1_u32;
-        time *= 60;
-        assert_eq!(Hertz(time), Hertz(60_u32));
-    }
-
-    #[test]
-    fn remainder() {
-        assert_eq!(Hertz(456_u32) % Hertz(100_u32), Hertz(56_u32));
-        assert_eq!(Hertz(2_003_u32) % Kilohertz(1_u32), Hertz(3_u32));
-        assert_eq!(Kilohertz(40_u32) % Hertz(100_u32), Kilohertz(0_u32));
-    }
-
-    #[test]
-    fn convert_to_duration() {
-        assert_eq!(Hertz(500_u32).to_duration(), Ok(Milliseconds(2_u32)));
-
-        assert_eq!(Kilohertz(500_u32).to_duration(), Ok(Microseconds(2_u32)));
-    }
-
-    #[test]
-    fn frequency_scaling() {
-        assert_eq!(1_u32.Hz(), 1_u32.Hz());
-        assert_eq!(1_u32.kHz(), 1_000_u32.Hz());
-        assert_eq!(1_u32.MHz(), 1_000_000_u32.Hz());
-    }
-
-    #[test]
-    fn bytes_per_second_scaling() {
-        assert_eq!(1_u32.Bps(), 1_u32.Bps());
-        assert_eq!(1_u32.kBps(), 1_000_u32.Bps());
-        assert_eq!(1_u32.KiBps(), 1_024_u32.Bps());
-        assert_eq!(1_u32.MBps(), 1_000_000_u32.Bps());
-        assert_eq!(1_u32.MiBps(), 1_048_576_u32.Bps());
-    }
-
-    #[test]
-    fn bits_per_second_scaling() {
-        assert_eq!(1_u32.bps(), 1_u32.bps());
-        assert_eq!(1_u32.kbps(), 1_000_u32.bps());
-        assert_eq!(1_u32.Kibps(), 1_024_u32.bps());
-        assert_eq!(1_u32.Mbps(), 1_000_000_u32.bps());
-        assert_eq!(1_u32.Mibps(), 1_048_576_u32.bps());
-    }
-
-    #[test]
-    fn baud_scaling() {
-        assert_eq!(1_u32.Bd(), 1_u32.Bd());
-        assert_eq!(1_u32.kBd(), 1_000_u32.Bd());
-        assert_eq!(1_u32.KiBd(), 1_024_u32.Bd());
-        assert_eq!(1_u32.MBd(), 1_000_000_u32.Bd());
-        assert_eq!(1_u32.MiBd(), 1_048_576_u32.Bd());
-    }
+    use super::*;
 }
