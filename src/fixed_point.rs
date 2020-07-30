@@ -8,6 +8,7 @@ use num::Bounded;
 /// QX.32 where X: bit-width of `T`
 pub trait FixedPoint: Sized + Copy + fmt::Display {
     /// The _integer_ (magnitude) type
+    #[doc(hidden)]
     type T: TimeInt;
 
     /// The fractional _scaling factor_
@@ -17,6 +18,7 @@ pub trait FixedPoint: Sized + Copy + fmt::Display {
     ///
     /// It only exists to allow FixedPoint methods with default definitions to create a
     /// new fixed-point type
+    #[doc(hidden)]
     fn new(value: Self::T) -> Self;
 
     /// Returns the integer value of the `FixedPoint`
@@ -46,6 +48,7 @@ pub trait FixedPoint: Sized + Copy + fmt::Display {
     /// [`ConversionError::Overflow`] : The conversion of the _scaling factor_ causes an overflow.
     /// [`ConversionError::ConversionFailure`] : The _integer_ type cast to that of the destination
     /// fails.
+    #[doc(hidden)]
     fn into_ticks<T: TimeInt>(self, fraction: Fraction) -> Result<T, ConversionError>
     where
         Self::T: TimeInt,
@@ -117,6 +120,7 @@ pub trait FixedPoint: Sized + Copy + fmt::Display {
     }
 
     /// Panicky addition
+    #[doc(hidden)]
     fn add<Rhs: FixedPoint>(self, rhs: Rhs) -> Self
     where
         Self::T: TryFrom<Rhs::T>,
@@ -125,6 +129,7 @@ pub trait FixedPoint: Sized + Copy + fmt::Display {
     }
 
     /// Panicky subtraction
+    #[doc(hidden)]
     fn sub<Rhs: FixedPoint>(self, rhs: Rhs) -> Self
     where
         Self::T: TryFrom<Rhs::T>,
@@ -133,6 +138,7 @@ pub trait FixedPoint: Sized + Copy + fmt::Display {
     }
 
     /// Panicky remainder
+    #[doc(hidden)]
     fn rem<Rhs: FixedPoint>(self, rhs: Rhs) -> Self
     where
         Self::T: TryFrom<Rhs::T>,
@@ -147,6 +153,7 @@ pub trait FixedPoint: Sized + Copy + fmt::Display {
     }
 
     /// Panicky equality
+    #[doc(hidden)]
     fn eq<Rhs: FixedPoint>(&self, rhs: &Rhs) -> bool
     where
         Self::T: TryFrom<Rhs::T>,
@@ -160,6 +167,7 @@ pub trait FixedPoint: Sized + Copy + fmt::Display {
     }
 
     /// Panicky comparison
+    #[doc(hidden)]
     fn partial_cmp<Rhs: FixedPoint>(&self, rhs: &Rhs) -> Option<core::cmp::Ordering>
     where
         Self::T: TryFrom<Rhs::T>,
@@ -181,13 +189,11 @@ pub trait FixedPoint: Sized + Copy + fmt::Display {
     }
 
     /// Returns the minimum integer value
-    #[must_use]
     fn min_value() -> Self::T {
         Self::T::min_value()
     }
 
     /// Returns the maximum integer value
-    #[must_use]
     fn max_value() -> Self::T {
         Self::T::max_value()
     }
@@ -203,6 +209,7 @@ pub trait FixedPoint: Sized + Copy + fmt::Display {
 /// [`ConversionError::ConversionFailure`] : The integer conversion to that of the destination
 /// type fails.
 // TODO: Move back into FixedPoint?
+#[doc(hidden)]
 pub(crate) fn from_ticks<SourceInt: TimeInt, Dest: FixedPoint>(
     ticks: SourceInt,
     scaling_factor: Fraction,
@@ -258,6 +265,7 @@ where
     }
 }
 
+#[doc(hidden)]
 pub(crate) fn from_ticks_safe<SourceInt: TimeInt, Dest: FixedPoint>(
     ticks: SourceInt,
     scaling_factor: Fraction,

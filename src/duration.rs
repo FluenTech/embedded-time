@@ -18,12 +18,161 @@ pub use units::*;
 /// # Constructing a duration
 ///
 /// ```rust
-/// # use embedded_time::{ duration::*};
+/// # use embedded_time::{duration::*};
 /// #
-/// assert_eq!(23_u32.milliseconds(), Milliseconds(23_u32));
+/// let _ = <Milliseconds>::new(5);
+/// let _ = Milliseconds(5_u32);
+/// let _ = 5_u32.milliseconds();
 /// ```
 ///
-/// ## From a [`Generic`] `Duration`
+/// # Get the integer part
+///
+/// ```rust
+/// # use embedded_time::{ duration::*};
+/// #
+/// assert_eq!(Milliseconds(23_u32).integer(), &23_u32);
+/// ```
+///
+/// # Formatting
+///
+/// Just forwards the underlying integer to [`core::fmt::Display::fmt()`]
+///
+/// ```rust
+/// # use embedded_time::{ duration::*};
+/// #
+/// assert_eq!(format!("{}", Seconds(123_u32)), "123");
+/// ```
+///
+/// # Getting H:M:S.MS... Components
+///
+/// ```rust
+/// # use embedded_time::{ duration::*};
+/// #
+/// let duration = 38_238_479_u32.microseconds();
+/// let hours = Hours::<u32>::try_convert_from(duration).unwrap();
+/// let minutes = Minutes::<u32>::try_convert_from(duration).unwrap() % Hours(1_u32);
+/// let seconds = Seconds::<u32>::try_convert_from(duration).unwrap() % Minutes(1_u32);
+/// let milliseconds = Milliseconds::<u32>::try_convert_from(duration).unwrap() % Seconds(1_u32);
+/// // ...
+/// ```
+///
+/// # Converting between `Durations`
+///
+/// Many intra-duration conversions can be done using `From`/`Into`:
+///
+/// ```rust
+/// # use embedded_time::duration::*;
+/// #
+/// let milliseconds = 23_000_u32.milliseconds();
+/// assert_eq!(milliseconds.integer(), &23_000_u32);
+///
+/// let seconds: Seconds<u32> = milliseconds.into();
+/// assert_eq!(seconds.integer(), &23_u32);
+/// ```
+///
+/// Others require the use of `TryFrom`/`TryInto`:
+///
+/// ```rust
+/// # use embedded_time::duration::*;
+/// # use std::convert::TryInto;
+/// let seconds = 23_u32.seconds();
+/// assert_eq!(seconds.integer(), &23_u32);
+///
+/// let milliseconds: Result<Milliseconds<u32>, _> = seconds.try_into();
+/// assert_eq!(milliseconds.unwrap().integer(), &23_000_u32);
+/// ```
+///
+/// # Converting between `Duration`s
+///
+/// Many intra-duration conversions can be done using `From`/`Into`:
+///
+/// ```rust
+/// # use embedded_time::duration::*;
+/// #
+/// let milliseconds = 23_000_u32.milliseconds();
+/// assert_eq!(milliseconds.integer(), &23_000_u32);
+///
+/// let seconds: Seconds<u32> = milliseconds.into();
+/// assert_eq!(seconds.integer(), &23_u32);
+/// ```
+///
+/// Others require the use of `TryFrom`/`TryInto`:
+///
+/// ```rust
+/// # use embedded_time::duration::*;
+/// # use std::convert::TryInto;
+/// let seconds = 23_u32.seconds();
+/// assert_eq!(seconds.integer(), &23_u32);
+///
+/// let milliseconds: Result<Milliseconds<u32>, _> = seconds.try_into();
+/// assert_eq!(milliseconds.unwrap().integer(), &23_000_u32);
+/// ```
+///
+/// # Converting to `core` types
+///
+/// ([`core::time::Duration`])
+///
+/// ```rust
+/// # use embedded_time::duration::*;
+/// # use core::convert::TryFrom;
+/// #
+/// let core_duration = core::time::Duration::try_from(2_569_u32.milliseconds()).unwrap();
+/// assert_eq!(core_duration.as_secs(), 2);
+/// assert_eq!(core_duration.subsec_nanos(), 569_000_000);
+/// ```
+///
+/// ```rust
+/// # use embedded_time::duration::*;
+/// # use core::convert::TryInto;
+/// #
+/// let core_duration: core::time::Duration = 2_569_u32.milliseconds().try_into().unwrap();
+/// assert_eq!(core_duration.as_secs(), 2);
+/// assert_eq!(core_duration.subsec_nanos(), 569_000_000);
+/// ```
+///
+/// # Converting from `core` types
+///
+/// ([`core::time::Duration`])
+///
+/// ## Examples
+///
+/// ```rust
+/// # use embedded_time::{ duration::*};
+/// # use core::convert::TryFrom;
+/// #
+/// let core_duration = core::time::Duration::new(5, 730_023_852);
+/// assert_eq!(Milliseconds::<u32>::try_from(core_duration), Ok(5_730.milliseconds()));
+/// ```
+///
+/// ```rust
+/// # use embedded_time::{ duration::*};
+/// # use core::convert::TryInto;
+/// #
+/// let duration: Result<Milliseconds<u32>, _> = core::time::Duration::new(5, 730023852).try_into();
+/// assert_eq!(duration, Ok(5_730.milliseconds()));
+/// ```
+///
+/// ## Errors
+///
+/// [`ConversionError::ConversionFailure`] : The duration doesn't fit in the type specified
+///
+/// ```rust
+/// # use embedded_time::{ duration::*, ConversionError};
+/// # use core::convert::{TryFrom, TryInto};
+/// #
+/// assert_eq!(
+///     Milliseconds::<u32>::try_from(
+///         core::time::Duration::from_millis((u32::MAX as u64) + 1)
+///     ),
+///     Err(ConversionError::ConversionFailure)
+/// );
+///
+/// let duration: Result<Milliseconds<u32>, _> =
+///     core::time::Duration::from_millis((u32::MAX as u64) + 1).try_into();
+/// assert_eq!(duration, Err(ConversionError::ConversionFailure));
+/// ```
+///
+/// ## Converting from a [`Generic`] `Duration`
 ///
 /// ### Examples
 ///
@@ -31,16 +180,11 @@ pub use units::*;
 /// # use embedded_time::{Fraction, duration::*, duration::Generic};
 /// # use core::convert::{TryFrom, TryInto};
 /// #
-/// assert_eq!(
-///     Seconds::<u64>::try_from(Generic::new(2_000_u32, Fraction::new(1, 1_000))),
-///     Ok(Seconds(2_u64))
-/// );
+/// # let generic_duration = Generic::new(2_000_u32, Fraction::new(1, 1_000));
+/// // Generic duration returned from an [`Instant`] method: `generic_duration`
 ///
-/// // TryInto also works
-/// assert_eq!(
-///     Generic::new(2_000_u64, Fraction::new(1,1_000)).try_into(),
-///     Ok(Seconds(2_u64))
-/// );
+/// let secs = Seconds::<u64>::try_from(generic_duration);
+/// let secs: Result<Seconds<u64>, _> = generic_duration.try_into();
 /// ```
 ///
 /// ### Errors
@@ -76,181 +220,11 @@ pub use units::*;
 /// );
 /// ```
 ///
-/// # Get the integer part
-///
-/// ```rust
-/// # use embedded_time::{ duration::*};
-/// #
-/// assert_eq!(Milliseconds(23_u32).integer(), &23_u32);
-/// ```
-///
-/// # Formatting
-///
-/// Just forwards the underlying integer to [`core::fmt::Display::fmt()`]
-///
-/// ```rust
-/// # use embedded_time::{ duration::*};
-/// #
-/// assert_eq!(format!("{}", Seconds(123_u32)), "123");
-/// ```
-///
-/// # Getting H:M:S.MS... Components
-///
-/// ```rust
-/// # use embedded_time::{ duration::*};
-/// #
-/// let duration = 38_238_479_u32.microseconds();
-/// let hours = Hours::<u32>::try_convert_from(duration).unwrap();
-/// let minutes = Minutes::<u32>::try_convert_from(duration).unwrap() % Hours(1_u32);
-/// let seconds = Seconds::<u32>::try_convert_from(duration).unwrap() % Minutes(1_u32);
-/// let milliseconds = Milliseconds::<u32>::try_convert_from(duration).unwrap() % Seconds(1_u32);
-/// // ...
-/// ```
-///
-/// # Converting between `Duration`s
-///
-/// Many intra-duration conversions can be done using `From`/`Into`:
-///
-/// ```rust
-/// # use embedded_time::duration::*;
-/// #
-/// let milliseconds = 23_000_u32.milliseconds();
-/// assert_eq!(milliseconds.integer(), &23_000_u32);
-///
-/// let seconds: Seconds<u32> = milliseconds.into();
-/// assert_eq!(seconds.integer(), &23_u32);
-/// ```
-///
-/// Others require the use of `TryFrom`/`TryInto`:
-///
-/// ```rust
-/// # use embedded_time::duration::*;
-/// # use std::convert::TryInto;
-/// let seconds = 23_u32.seconds();
-/// assert_eq!(seconds.integer(), &23_u32);
-///
-/// let milliseconds: Result<Milliseconds<u32>, _> = seconds.try_into();
-/// assert_eq!(milliseconds.unwrap().integer(), &23_000_u32);
-/// ```
-///
-/// # Converting to `core` types
-///
-/// [`core::time::Duration`]
-///
-/// ## Examples
-///
-/// ```rust
-/// # use embedded_time::duration::*;
-/// # use core::convert::TryFrom;
-/// #
-/// let core_duration = core::time::Duration::try_from(2_569_u32.milliseconds()).unwrap();
-/// assert_eq!(core_duration.as_secs(), 2);
-/// assert_eq!(core_duration.subsec_nanos(), 569_000_000);
-/// ```
-///
-/// ```rust
-/// # use embedded_time::duration::*;
-/// # use core::convert::TryInto;
-/// #
-/// let core_duration: core::time::Duration = 2_569_u32.milliseconds().try_into().unwrap();
-/// assert_eq!(core_duration.as_secs(), 2);
-/// assert_eq!(core_duration.subsec_nanos(), 569_000_000);
-/// ```
-///
-/// # Converting from `core` types
-///
-/// [`core::time::Duration`]
-///
-/// ## Examples
-///
-/// ```rust
-/// # use embedded_time::{ duration::*};
-/// # use core::convert::TryFrom;
-/// #
-/// let core_duration = core::time::Duration::new(5, 730023852);
-/// assert_eq!(Milliseconds::<u32>::try_from(core_duration), Ok(5_730.milliseconds()));
-/// ```
-///
-/// ```rust
-/// # use embedded_time::{ duration::*};
-/// # use core::convert::TryInto;
-/// #
-/// let duration: Result<Milliseconds<u32>, _> = core::time::Duration::new(5, 730023852).try_into();
-/// assert_eq!(duration, Ok(5_730.milliseconds()));
-/// ```
-///
-/// ## Errors
-///
-/// [`ConversionError::ConversionFailure`] : The duration doesn't fit in the type specified
-///
-/// ```rust
-/// # use embedded_time::{ duration::*, ConversionError};
-/// # use core::convert::{TryFrom, TryInto};
-/// #
-/// assert_eq!(
-///     Milliseconds::<u32>::try_from(
-///         core::time::Duration::from_millis((u32::MAX as u64) + 1)
-///     ),
-///     Err(ConversionError::ConversionFailure)
-/// );
-///
-/// let duration: Result<Milliseconds<u32>, _> =
-///     core::time::Duration::from_millis((u32::MAX as u64) + 1).try_into();
-/// assert_eq!(duration, Err(ConversionError::ConversionFailure));
-/// ```
-///
-/// # Converting from a [`Generic`] `Duration`
-///
-/// ## Examples
+/// ## Converting to a [`Generic`] `Duration`
 ///
 /// ```rust
 /// # use embedded_time::{Fraction, duration::*, duration::Generic};
 /// # use core::convert::{TryFrom, TryInto};
-/// #
-/// # let generic_duration = Generic::new(2_000_u32, Fraction::new(1, 1_000));
-/// // Generic duration returned from an [`Instant`] method: `generic_duration`
-///
-/// let secs = Seconds::<u64>::try_from(generic_duration);
-/// let secs: Result<Seconds<u64>, _> = generic_duration.try_into();
-/// ```
-///
-/// ## Errors
-///
-/// Failure will only occur if the provided value does not fit in the selected destination type.
-///
-/// ---
-///
-/// [`ConversionError::Overflow`] : The conversion of the _scaling factor_ causes an overflow.
-///
-/// ```rust
-/// # use embedded_time::{Fraction, duration::*, duration::Generic, ConversionError};
-/// # use core::convert::TryFrom;
-/// #
-/// assert_eq!(
-///     Seconds::<u32>::try_from(Generic::new(u32::MAX, Fraction::new(10,1))),
-///     Err(ConversionError::Overflow)
-/// );
-/// ```
-///
-/// ---
-///
-/// [`ConversionError::ConversionFailure`] : The _integer_ conversion to that of the
-/// destination type fails.
-///
-/// ```rust
-/// # use embedded_time::{Fraction, duration::*, ConversionError};
-/// # use core::convert::TryFrom;
-/// #
-/// assert_eq!(
-///     Seconds::<u32>::try_from(Generic::new(u32::MAX as u64 + 1, Fraction::new(1,1))),
-///     Err(ConversionError::ConversionFailure)
-/// );
-/// ```
-///
-/// # Converting to a [`Generic`] `Duration`
-///
-/// ```rust
-/// # use embedded_time::{duration::*};
 /// #
 /// let generic_duration = Generic::<u32>::from(5_u32.seconds());
 /// let generic_duration: Generic<u32> = 5_u32.seconds().into();
@@ -497,7 +471,7 @@ pub mod units {
             pub struct $name<T: TimeInt = u32>(pub T);
 
             impl<T: TimeInt> $name<T> {
-                /// See [Constructing a duration](../trait.Duration.html#constructing_a_duration)
+                /// See [Constructing a duration](../trait.Duration.html#constructing-a-duration)
                 pub fn new(value: T) -> Self {
                     Self(value)
                 }
@@ -519,6 +493,7 @@ pub mod units {
             }
 
             impl<T: TimeInt> fmt::Display for $name<T> {
+                /// See [Formatting](../trait.Duration.html#formatting)
                 fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
                     fmt::Display::fmt(&self.0, f)
                 }
@@ -527,10 +502,11 @@ pub mod units {
             impl<T: TimeInt, Rhs: Duration> ops::Add<Rhs> for $name<T>
             where
                 Rhs: FixedPoint,
-                T: TryFrom<Rhs::T>,
+                T: TryFrom<Rhs::T> + From<u32>,
             {
                 type Output = Self;
 
+                /// See [Add/Sub](../trait.Duration.html#addsub)
                 fn add(self, rhs: Rhs) -> Self::Output {
                     <Self as FixedPoint>::add(self, rhs)
                 }
@@ -543,6 +519,7 @@ pub mod units {
             {
                 type Output = Self;
 
+                /// See [Add/Sub](../trait.Duration.html#addsub)
                 fn sub(self, rhs: Rhs) -> Self::Output {
                     <Self as FixedPoint>::sub(self, rhs)
                 }
@@ -555,6 +532,7 @@ pub mod units {
             {
                 type Output = Self;
 
+                /// See [Remainder](../trait.Duration.html#remainder)
                 fn rem(self, rhs: Rhs) -> Self::Output {
                     <Self as FixedPoint>::rem(self, rhs)
                 }
@@ -567,8 +545,8 @@ pub mod units {
             {
                 type Error = ConversionError;
 
-                /// See [Constructing a duration > From a Generic
-                /// Duration](../trait.Duration.html#from-a-generic-duration)
+                /// See [Converting from a `Generic`
+                /// `Duration`](../trait.Duration.html#converting-from-a-generic-duration)
                 fn try_from(generic_duration: Generic<SourceInt>) -> Result<Self, Self::Error> {
                     fixed_point::from_ticks(
                         generic_duration.integer,
@@ -578,7 +556,8 @@ pub mod units {
             }
 
             impl<T: TimeInt> From<$name<T>> for Generic<T> {
-                // TODO: documentation
+                /// See [Converting to a `Generic`
+                /// `Duration`](../trait.Duration.html#converting-to-a-generic-duration)
                 fn from(duration: $name<T>) -> Self {
                     Self::new(*duration.integer(), $name::<T>::SCALING_FACTOR)
                 }
@@ -663,6 +642,7 @@ pub mod units {
             where
                 T: TryFrom<RhsInt>,
             {
+                /// See [Comparisons](../trait.Duration.html#comparisons)
                 fn eq(&self, rhs: &$name<RhsInt>) -> bool {
                     match T::try_from(*rhs.integer()) {
                         Ok(rhs_integer) => *self.integer() == rhs_integer,
@@ -687,6 +667,7 @@ pub mod units {
                 where
                     $small<RhsInt>: TryFrom<Self>,
                 {
+                    /// See [Comparisons](../trait.Duration.html#comparisons)
                     fn eq(&self, rhs: &$small<RhsInt>) -> bool {
                         match $small::<RhsInt>::try_from(*self) {
                             Ok(lhs) => lhs.integer() == rhs.integer(),
@@ -716,6 +697,7 @@ pub mod units {
                 where
                     Self: TryFrom<$big<RhsInt>>,
                 {
+                    /// See [Comparisons](../trait.Duration.html#comparisons)
                     fn eq(&self, rhs: &$big<RhsInt>) -> bool {
                         match Self::try_from(*rhs) {
                             Ok(rhs) => self.integer() == rhs.integer(),
@@ -744,6 +726,7 @@ pub mod units {
             where
                 T: TryFrom<RhsInt>,
             {
+                /// See [Comparisons](../trait.Duration.html#comparisons)
                 fn partial_cmp(&self, rhs: &$name<RhsInt>) -> Option<core::cmp::Ordering> {
                     match T::try_from(*rhs.integer()) {
                         Ok(rhs_integer) => Some(self.integer().cmp(&rhs_integer)),
@@ -768,6 +751,7 @@ pub mod units {
                 where
                     $small<RhsInt>: TryFrom<Self>,
                 {
+                    /// See [Comparisons](../trait.Duration.html#comparisons)
                     fn partial_cmp(&self, rhs: &$small<RhsInt>) -> Option<core::cmp::Ordering> {
                         match $small::<RhsInt>::try_from(*self) {
                             Ok(lhs) => Some(lhs.integer().cmp(rhs.integer())),
@@ -797,6 +781,7 @@ pub mod units {
                 where
                     Self: TryFrom<$big<RhsInt>>,
                 {
+                    /// See [Comparisons](../trait.Duration.html#comparisons)
                     fn partial_cmp(&self, rhs: &$big<RhsInt>) -> Option<core::cmp::Ordering> {
                         match Self::try_from(*rhs) {
                         Ok(rhs) => Some(self.integer().cmp(rhs.integer())),
