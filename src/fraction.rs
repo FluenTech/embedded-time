@@ -284,14 +284,6 @@ impl ops::Mul for Fraction {
 
     /// Panicky `Fraction` × `Fraction` = `Fraction`
     ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// # use embedded_time::Fraction;
-    /// assert_eq!(Fraction::new(1000, 1) * Fraction::new(5,5),
-    ///     Fraction::new(5_000, 5));
-    /// ```
-    ///
     /// # Panics
     ///
     /// The same reason the integer operation would panic. Namely, if the
@@ -306,14 +298,6 @@ impl ops::Div for Fraction {
     type Output = Self;
 
     /// Panicky `Fraction` / `Fraction` = `Fraction`
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// # use embedded_time::Fraction;
-    /// assert_eq!(Fraction::new(1000, 1) / Fraction::new(10, 1_000),
-    ///     Fraction::new(1_000_000, 10));
-    /// ```
     ///
     /// # Panics
     ///
@@ -341,7 +325,16 @@ mod tests {
     }
 
     #[test]
-    fn mul_integer_by_fraction() {
-        assert_eq!(Fraction::new(3, 5).integer_mul(u32::MAX), u32::MAX / 5 * 3);
+    fn fraction_mul_fraction() {
+        let product = Fraction::new(1_000, 1) * Fraction::new(5, 5);
+        assert_eq!(*product.numerator(), 1_000_u32);
+        assert_eq!(*product.denominator(), 1_u32);
+    }
+
+    #[test]
+    fn fraction_div_fraction() {
+        let product = Fraction::new(1_000, 1) / Fraction::new(10, 1_000);
+        assert_eq!(*product.numerator(), 100_000_u32);
+        assert_eq!(*product.denominator(), 1_u32);
     }
 }
