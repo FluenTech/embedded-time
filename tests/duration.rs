@@ -42,19 +42,6 @@ fn comparison() {
 }
 
 #[test]
-fn try_convert_from() {
-    assert_eq!(
-        Hours::<u32>::try_convert_from(Nanoseconds(u32::MAX)),
-        Ok(Hours(0_u32))
-    );
-
-    assert_eq!(
-        Milliseconds::<u32>::try_convert_from(Nanoseconds(u32::MAX)),
-        Ok(Milliseconds(4_294_u32))
-    );
-}
-
-#[test]
 fn try_from_generic() {
     assert_eq!(
         Seconds::try_from(duration::Generic::new(246_u32, Fraction::new(1, 2))),
@@ -180,7 +167,7 @@ fn duration_scaling() {
     assert_eq!(1_u64.hours(), 3_600_000_000_000_u64.nanoseconds());
 }
 
-mod convert_up {
+mod into_bigger {
     use super::*;
 
     #[test]
@@ -352,7 +339,7 @@ fn promote_integer() {
     assert_eq!(nanoseconds, Nanoseconds(500_u64));
 }
 
-mod convert_down {
+mod into_smaller {
     use super::*;
 
     #[test]
@@ -483,17 +470,7 @@ mod convert_down {
 }
 
 #[test]
-fn try_from() {
-    assert_eq!(
-        Hours::<u32>::try_from(Nanoseconds(u32::MAX as u64)),
-        Ok(Hours(0_u32))
-    );
-
-    assert_eq!(
-        Milliseconds::<u32>::try_from(Seconds(2_u32)),
-        Ok(Milliseconds(2_000_u32))
-    );
-
+fn error_try_from() {
     assert_eq!(
         Milliseconds::<u32>::try_from(Nanoseconds(u64::MAX)),
         Err(ConversionError::ConversionFailure)
@@ -502,19 +479,4 @@ fn try_from() {
         Milliseconds::<u32>::try_from(Seconds(u64::MAX)),
         Err(ConversionError::Overflow)
     );
-}
-
-#[test]
-fn check_for_overflows() {
-    let mut time = 1_u64;
-    time *= 60;
-    assert_eq!(Minutes(time), Hours(1_u32));
-    time *= 60;
-    assert_eq!(Seconds(time), Hours(1_u32));
-    time *= 1000;
-    assert_eq!(Milliseconds(time), Hours(1_u32));
-    time *= 1000;
-    assert_eq!(Microseconds(time), Hours(1_u32));
-    time *= 1000;
-    assert_eq!(Nanoseconds(time), Hours(1_u32));
 }

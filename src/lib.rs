@@ -267,12 +267,12 @@ mod tests {
             let duration = Milliseconds::<u64>::try_from(self.0.duration_since_epoch())
                 .map_err(|_| fmt::Error {})?;
 
-            let hours = Hours::<u32>::try_convert_from(duration).map_err(|_| fmt::Error {})?;
-            let minutes = Minutes::<u32>::try_convert_from(duration).map_err(|_| fmt::Error {})?
-                % Hours(1_u32);
-            let seconds = Seconds::<u32>::try_convert_from(duration).map_err(|_| fmt::Error {})?
-                % Minutes(1_u32);
-            let milliseconds = Milliseconds::<u32>::try_convert_from(duration)
+            let hours = Hours::<u32>::try_from(duration).map_err(|_| fmt::Error {})?;
+            let minutes =
+                Minutes::<u32>::try_from(duration).map_err(|_| fmt::Error {})? % Hours(1_u32);
+            let seconds =
+                Seconds::<u32>::try_from(duration).map_err(|_| fmt::Error {})? % Minutes(1_u32);
+            let milliseconds = Milliseconds::<u32>::try_from(duration)
                 .map_err(|_| fmt::Error {})?
                 % Seconds(1_u32);
 

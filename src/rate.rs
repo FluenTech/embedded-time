@@ -402,7 +402,7 @@ pub mod units {
             impl<T: TimeInt, Rhs: Rate> ops::Add<Rhs> for $name<T>
             where
                 Rhs: FixedPoint,
-                T: TryFrom<Rhs::T>,
+                Self: TryFrom<Rhs>,
             {
                 type Output = Self;
 
@@ -414,7 +414,7 @@ pub mod units {
 
             impl<T: TimeInt, Rhs: Rate> ops::Sub<Rhs> for $name<T>
             where
-                T: TryFrom<Rhs::T>,
+                Self: TryFrom<Rhs>,
                 Rhs: FixedPoint,
             {
                 type Output = Self;
@@ -427,7 +427,7 @@ pub mod units {
 
             impl<T: TimeInt, Rhs: Rate> ops::Rem<Rhs> for $name<T>
             where
-                T: TryFrom<Rhs::T>,
+                Self: TryFrom<Rhs>,
                 Rhs: FixedPoint,
             {
                 type Output = Self;
