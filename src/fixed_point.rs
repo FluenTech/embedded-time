@@ -83,67 +83,31 @@ pub trait FixedPoint: Sized + Copy + fmt::Display {
         }
     }
 
-    /// Attempt to convert from one duration type to another
-    ///
-    /// The integer type and/or the _scaling factor_ may be changed.
-    ///
-    /// # Errors
-    ///
-    /// Failure will only occur if the provided value does not fit in the selected destination type.
-    ///
-    /// [`ConversionError::Overflow`] - The conversion of the _scaling factor_ causes an overflow.
-    /// [`ConversionError::ConversionFailure`] - The integer type cast to that of the destination
-    /// type fails.
-    fn try_convert_from<Source: FixedPoint>(source: Source) -> Result<Self, ConversionError>
-    where
-        Self::T: TryFrom<Source::T>,
-    {
-        from_ticks(*source.integer(), Source::SCALING_FACTOR)
-    }
-
-    /// The reciprocal of [`FixedPoint::try_convert_from()`]
-    ///
-    /// The _integer_ type and/or the _scaling factor_ may be changed.
-    ///
-    /// # Errors
-    ///
-    /// Failure will only occur if the provided value does not fit in the selected destination type.
-    ///
-    /// [`ConversionError::Overflow`] - The conversion of the _scaling factor_ causes an overflow.
-    /// [`ConversionError::ConversionFailure`] - The integer type cast to that of the destination
-    /// type fails.
-    fn try_convert_into<Dest: FixedPoint>(self) -> Result<Dest, ConversionError>
-    where
-        Dest::T: TryFrom<Self::T>,
-    {
-        Dest::try_convert_from(self)
-    }
-
     /// Panicky addition
     #[doc(hidden)]
     fn add<Rhs: FixedPoint>(self, rhs: Rhs) -> Self
     where
-        Self::T: TryFrom<Rhs::T>,
+        Self: TryFrom<Rhs>,
     {
-        Self::new(*self.integer() + *Self::try_convert_from(rhs).unwrap().integer())
+        Self::new(*self.integer() + *Self::try_from(rhs).ok().unwrap().integer())
     }
 
     /// Panicky subtraction
     #[doc(hidden)]
     fn sub<Rhs: FixedPoint>(self, rhs: Rhs) -> Self
     where
-        Self::T: TryFrom<Rhs::T>,
+        Self: TryFrom<Rhs>,
     {
-        Self::new(*self.integer() - *Self::try_convert_from(rhs).unwrap().integer())
+        Self::new(*self.integer() - *Self::try_from(rhs).ok().unwrap().integer())
     }
 
     /// Panicky remainder
     #[doc(hidden)]
     fn rem<Rhs: FixedPoint>(self, rhs: Rhs) -> Self
     where
-        Self::T: TryFrom<Rhs::T>,
+        Self: TryFrom<Rhs>,
     {
-        let rhs = *Self::try_convert_from(rhs).unwrap().integer();
+        let rhs = *Self::try_from(rhs).ok().unwrap().integer();
 
         if rhs > Self::T::from(0) {
             Self::new(*self.integer() % rhs)
@@ -156,13 +120,13 @@ pub trait FixedPoint: Sized + Copy + fmt::Display {
     #[doc(hidden)]
     fn eq<Rhs: FixedPoint>(&self, rhs: &Rhs) -> bool
     where
-        Self::T: TryFrom<Rhs::T>,
-        Rhs::T: TryFrom<Self::T>,
+        Self: TryFrom<Rhs>,
+        Rhs: TryFrom<Self>,
     {
         if Self::SCALING_FACTOR < Rhs::SCALING_FACTOR {
-            self.integer() == Self::try_convert_from(*rhs).unwrap().integer()
+            self.integer() == Self::try_from(*rhs).ok().unwrap().integer()
         } else {
-            Rhs::try_convert_from(*self).unwrap().integer() == rhs.integer()
+            Rhs::try_from(*self).ok().unwrap().integer() == rhs.integer()
         }
     }
 
@@ -170,17 +134,18 @@ pub trait FixedPoint: Sized + Copy + fmt::Display {
     #[doc(hidden)]
     fn partial_cmp<Rhs: FixedPoint>(&self, rhs: &Rhs) -> Option<core::cmp::Ordering>
     where
-        Self::T: TryFrom<Rhs::T>,
-        Rhs::T: TryFrom<Self::T>,
+        Self: TryFrom<Rhs>,
+        Rhs: TryFrom<Self>,
     {
         if Self::SCALING_FACTOR < Rhs::SCALING_FACTOR {
             Some(
                 self.integer()
-                    .cmp(&Self::try_convert_from(*rhs).unwrap().integer()),
+                    .cmp(&Self::try_from(*rhs).ok().unwrap().integer()),
             )
         } else {
             Some(
-                Rhs::try_convert_from(*self)
+                Rhs::try_from(*self)
+                    .ok()
                     .unwrap()
                     .integer()
                     .cmp(&rhs.integer()),
