@@ -332,6 +332,7 @@ mod test {
     fn add_to_ticks<Dur: Duration>(duration: Dur)
     where
         Dur: FixedPoint,
+        u64: From<Dur::T>,
     {
         let ticks = TICKS.load(Ordering::SeqCst);
         let ticks = ticks
