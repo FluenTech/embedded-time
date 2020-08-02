@@ -132,6 +132,7 @@ fn main() -> ! {
         &mut led4.degrade(),
         &clock,
     )
+    .ok()
     .unwrap();
 
     loop {}
@@ -155,8 +156,10 @@ where
         clock
             .new_timer(250_u32.milliseconds())
             .start()
+            .ok()
             .unwrap()
             .wait()
+            .ok()
             .unwrap();
 
         led1.set_high()?;
@@ -166,8 +169,10 @@ where
         clock
             .new_timer(250_u32.milliseconds())
             .start()
+            .ok()
             .unwrap()
             .wait()
+            .ok()
             .unwrap();
     }
 }
