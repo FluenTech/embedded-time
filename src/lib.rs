@@ -209,7 +209,6 @@ mod tests {
     fn get_time<Clock: time::Clock>(clock: &Clock)
     where
         u32: TryFrom<Clock::T>,
-        Clock::T: TryFrom<u32>,
     {
         assert_eq!(
             clock
@@ -262,6 +261,7 @@ mod tests {
     impl<Clock> fmt::Display for Timestamp<Clock>
     where
         Clock: time::Clock,
+        u64: From<Clock::T>,
     {
         fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
             let duration = Milliseconds::<u64>::try_from(self.0.duration_since_epoch())
