@@ -124,7 +124,7 @@ impl<Type, Clock: crate::Clock, Dur: Duration> Timer<'_, Type, Running, Clock, D
         match self.expiration.duration_since(&self.clock.try_now()?) {
             Ok(duration) => Ok(Dur::try_from(duration)?),
             Err(error) if error == ConversionError::NegDuration => {
-                Ok(0.seconds().try_convert_into().unwrap())
+                Ok(Dur::new(Dur::T::from(0_u32)))
             }
             Err(error) => Err(error.into()),
         }
