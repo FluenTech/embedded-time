@@ -118,33 +118,6 @@ impl Fraction {
         ))
     }
 
-    /// Checked `Fraction` × integer = `Fraction`
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// # use embedded_time::{Fraction, ConversionError};
-    /// #
-    /// assert_eq!(Fraction::new(1000, 1).checked_mul_integer(5_u32),
-    ///     Ok(Fraction::new(5_000, 1)));
-    ///
-    /// assert_eq!(Fraction::new(u32::MAX, 1).checked_mul_integer(2_u32),
-    ///     Err(ConversionError::Overflow));
-    /// ```
-    ///
-    /// # Errors
-    ///
-    /// [`ConversionError::Overflow`]
-    // TODO: add example
-    /// [`ConversionError::DivByZero`]
-    // TODO: add example
-    pub fn checked_mul_integer(&self, multiplier: u32) -> Result<Self, ConversionError> {
-        Ok(Self(
-            Ratio::checked_mul(&self.0, &Ratio::from_integer(multiplier))
-                .ok_or(ConversionError::Overflow)?,
-        ))
-    }
-
     /// Checked `Fraction` / integer = `Fraction`
     ///
     /// # Examples
@@ -314,25 +287,4 @@ impl Default for Fraction {
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::fraction::Fraction;
-
-    #[test]
-    fn mul_integer_by_fraction() {
-        assert_eq!(u32::MAX * Fraction::new(3, 5), u32::MAX / 5 * 3);
-    }
-
-    #[test]
-    fn fraction_mul_fraction() {
-        let product = Fraction::new(1_000, 1) * Fraction::new(5, 5);
-        assert_eq!(*product.numerator(), 1_000_u32);
-        assert_eq!(*product.denominator(), 1_u32);
-    }
-
-    #[test]
-    fn fraction_div_fraction() {
-        let product = Fraction::new(1_000, 1) / Fraction::new(10, 1_000);
-        assert_eq!(*product.numerator(), 100_000_u32);
-        assert_eq!(*product.denominator(), 1_u32);
-    }
-}
+mod tests {}
