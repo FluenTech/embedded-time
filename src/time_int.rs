@@ -56,21 +56,6 @@ pub trait TimeInt:
         )
         .ok_or(ConversionError::DivByZero)
     }
-
-    // /// Panicky integer × [`Fraction`] = integer
-    // ///
-    // /// Returns truncated integer
-    // fn mul_fraction(&self, fraction: &Fraction) -> Self {
-    //     fraction.integer_mul(*self)
-    //     // *self / (*fraction.denominator()).into() * (*fraction.numerator()).into()
-    // }
-    //
-    // /// Panicky integer / [`Fraction`] = integer
-    // ///
-    // /// Returns truncated integer
-    // fn div_fraction(&self, fraction: &Fraction) -> Self {
-    //     *self * (*fraction.denominator()).into() / (*fraction.numerator()).into()
-    // }
 }
 
 #[doc(hidden)]

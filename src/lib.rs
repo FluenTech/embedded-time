@@ -38,6 +38,7 @@
 //! [`Rate`]: rate::Rate
 //! [`Hertz`]: rate::units::Hertz
 //! [`BitsPerSecond`]: rate::units::BitsPerSecond
+//! [`KibibytesPerSecond`]: rate::units::KibibytesPerSecond
 //! [`Baud`]: rate::units::Baud
 //! [`Duration`]: duration::Duration
 //! [`Duration::integer()`]: duration/trait.Duration.html#tymethod.integer
@@ -66,37 +67,6 @@
 //! - [`time`](https://docs.rs/time/latest/time) (Specifically the [`time::NumbericalDuration`](https://docs.rs/time/latest/time/trait.NumericalDuration.html)
 //!   implementations for primitive integers)
 //!
-//! # Example Usage
-//! ```rust,no_run
-//! # use embedded_time::{Clock as _, duration::*, rate::*, Instant, fraction::Fraction};
-//! # use core::convert::TryFrom;
-//! # #[derive(Debug)]
-//! struct SomeClock;
-//! impl embedded_time::Clock for SomeClock {
-//!     type T = u64;
-//!     type ImplError = ();
-//!     const SCALING_FACTOR: Fraction = Fraction::new(1, 16_000_000);
-//!
-//!     fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {
-//!         // ...
-//! #         unimplemented!()
-//!     }
-//! }
-//!
-//! let mut clock = SomeClock;
-//! let instant1 = clock.try_now().unwrap();
-//! // ...
-//! let instant2 = clock.try_now().unwrap();
-//! assert!(instant1 < instant2);    // instant1 is *before* instant2
-//!
-//! // duration is the difference between the instants
-//! let duration = instant2.duration_since(&instant1);
-//! assert!(duration.is_ok());
-//!
-//! // convert to _named_ duration
-//! let duration = Microseconds::<u64>::try_from(duration.unwrap());
-//! assert_eq!(instant1 + duration.unwrap(), instant2);
-//! ```
 
 #![deny(unsafe_code)]
 #![cfg_attr(not(test), no_std)]
@@ -164,141 +134,4 @@ impl<E> From<ConversionError> for TimeError<E> {
 }
 
 #[cfg(test)]
-#[allow(unused_imports)]
-mod tests {
-    use crate::{self as time, clock, duration::*, rate::*, Clock as _};
-    use core::{
-        convert::{Infallible, TryFrom, TryInto},
-        fmt::{self, Formatter},
-    };
-
-    struct MockClock64;
-    impl time::Clock for MockClock64 {
-        type T = u64;
-        type ImplError = Infallible;
-        const SCALING_FACTOR: time::fraction::Fraction =
-            <time::fraction::Fraction>::new(1, 64_000_000);
-
-        fn try_now(&self) -> Result<time::Instant<Self>, time::clock::Error<Self::ImplError>> {
-            Ok(time::Instant::new(128_000_000))
-        }
-    }
-
-    #[derive(Debug)]
-    struct MockClock32;
-
-    impl time::Clock for MockClock32 {
-        type T = u32;
-        type ImplError = Infallible;
-        const SCALING_FACTOR: time::fraction::Fraction =
-            <time::fraction::Fraction>::new(1, 16_000_000);
-
-        fn try_now(&self) -> Result<time::Instant<Self>, time::clock::Error<Self::ImplError>> {
-            Ok(time::Instant::new(32_000_000))
-        }
-    }
-
-    #[non_exhaustive]
-    #[derive(Debug, Eq, PartialEq)]
-    pub enum ClockImplError {
-        NotStarted,
-    }
-
-    #[derive(Debug)]
-    struct BadClock;
-
-    impl time::Clock for BadClock {
-        type T = u32;
-        type ImplError = ClockImplError;
-        const SCALING_FACTOR: time::fraction::Fraction =
-            <time::fraction::Fraction>::new(1, 16_000_000);
-
-        fn try_now(&self) -> Result<time::Instant<Self>, time::clock::Error<Self::ImplError>> {
-            Err(time::clock::Error::Other(ClockImplError::NotStarted))
-        }
-    }
-
-    fn get_time<Clock: time::Clock>(clock: &Clock)
-    where
-        u32: TryFrom<Clock::T>,
-    {
-        assert_eq!(
-            clock
-                .try_now()
-                .ok()
-                .unwrap()
-                .duration_since_epoch()
-                .try_into(),
-            Ok(Seconds(2_u32))
-        );
-    }
-
-    #[test]
-    fn common_types() {
-        let then = MockClock32.try_now().unwrap();
-        let now = MockClock32.try_now().unwrap();
-
-        let clock64 = MockClock64 {};
-        let clock32 = MockClock32 {};
-
-        get_time(&clock64);
-        get_time(&clock32);
-
-        let then = then - Seconds(1_u32);
-        assert_ne!(then, now);
-        assert!(then < now);
-    }
-
-    #[test]
-    fn clock_error() {
-        assert_eq!(
-            BadClock.try_now(),
-            Err(time::clock::Error::Other(ClockImplError::NotStarted))
-        );
-    }
-
-    struct Timestamp<Clock>(time::Instant<Clock>)
-    where
-        Clock: time::Clock;
-
-    impl<Clock> Timestamp<Clock>
-    where
-        Clock: time::Clock,
-    {
-        pub fn new(instant: time::Instant<Clock>) -> Self {
-            Timestamp(instant)
-        }
-    }
-
-    impl<Clock> fmt::Display for Timestamp<Clock>
-    where
-        Clock: time::Clock,
-        u64: From<Clock::T>,
-    {
-        fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-            let duration = Milliseconds::<u64>::try_from(self.0.duration_since_epoch())
-                .map_err(|_| fmt::Error {})?;
-
-            let hours = Hours::<u32>::try_from(duration).map_err(|_| fmt::Error {})?;
-            let minutes =
-                Minutes::<u32>::try_from(duration).map_err(|_| fmt::Error {})? % Hours(1_u32);
-            let seconds =
-                Seconds::<u32>::try_from(duration).map_err(|_| fmt::Error {})? % Minutes(1_u32);
-            let milliseconds = Milliseconds::<u32>::try_from(duration)
-                .map_err(|_| fmt::Error {})?
-                % Seconds(1_u32);
-
-            f.write_fmt(format_args!(
-                "{}:{:02}:{:02}.{:03}",
-                hours, minutes, seconds, milliseconds
-            ))
-        }
-    }
-
-    #[test]
-    fn format() {
-        let timestamp = Timestamp::new(time::Instant::<MockClock64>::new(321_643_392_000));
-        let formatted_timestamp = timestamp.to_string();
-        assert_eq!(formatted_timestamp, "1:23:45.678");
-    }
-}
+mod tests {}
