@@ -36,7 +36,7 @@ pub trait FixedPoint: Sized + Copy + fmt::Display {
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{Fraction,  rate::*};
+    /// # use embedded_time::{fraction::Fraction,  rate::*};
     /// #
     /// assert_eq!(Hertz(2_u32).into_ticks(Fraction::new(1, 1_000)), Ok(2_000_u32));
     /// ```

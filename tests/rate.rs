@@ -1,7 +1,12 @@
 #![allow(non_snake_case)]
 
 use core::convert::{TryFrom, TryInto};
-use embedded_time::{duration::*, rate, rate::*, ConversionError, Fraction};
+use embedded_time::{
+    duration::*,
+    fraction::Fraction,
+    rate::{self, *},
+    ConversionError,
+};
 
 #[test]
 fn construction() {

@@ -1,4 +1,4 @@
-use crate::{ConversionError, Fraction};
+use crate::{fraction::Fraction, ConversionError};
 use core::{fmt, ops};
 
 /// The core inner-type trait for time-related types
@@ -98,7 +98,7 @@ impl Widen for u64 {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Fraction, TimeInt};
+    use crate::{fraction::Fraction, time_int::TimeInt};
 
     #[test]
     fn checked_integer_mul_fraction() {

@@ -201,7 +201,8 @@ mod test {
     use crate::{
         duration::{units::*, Duration},
         fixed_point::FixedPoint,
-        Clock as _, Fraction, Instant,
+        fraction::Fraction,
+        Clock as _, Instant,
     };
     use core::convert::Infallible;
     use crossbeam_utils::thread;

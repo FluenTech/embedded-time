@@ -2,9 +2,10 @@
 
 use crate::{
     fixed_point::{self, FixedPoint},
+    fraction::Fraction,
     rate,
     time_int::TimeInt,
-    ConversionError, Fraction,
+    ConversionError,
 };
 use core::{convert::TryFrom, mem::size_of, prelude::v1::*};
 pub use fixed_point::FixedPoint as _;
@@ -178,7 +179,7 @@ pub use units::*;
 /// ### Examples
 ///
 /// ```rust
-/// # use embedded_time::{Fraction, duration::*, duration::Generic};
+/// # use embedded_time::{fraction::Fraction, duration::*, duration::Generic};
 /// # use core::convert::{TryFrom, TryInto};
 /// #
 /// # let generic_duration = Generic::new(2_000_u32, Fraction::new(1, 1_000));
@@ -197,7 +198,7 @@ pub use units::*;
 /// [`ConversionError::Overflow`] : The conversion of the _scaling factor_ causes an overflow.
 ///
 /// ```rust
-/// # use embedded_time::{Fraction, duration::*, duration::Generic, ConversionError};
+/// # use embedded_time::{fraction::Fraction, duration::*, duration::Generic, ConversionError};
 /// # use core::convert::TryFrom;
 /// #
 /// assert_eq!(
@@ -212,7 +213,7 @@ pub use units::*;
 /// destination type fails.
 ///
 /// ```rust
-/// # use embedded_time::{Fraction, duration::*, duration::Generic, ConversionError};
+/// # use embedded_time::{fraction::Fraction, duration::*, duration::Generic, ConversionError};
 /// # use core::convert::TryFrom;
 /// #
 /// assert_eq!(
@@ -224,7 +225,7 @@ pub use units::*;
 /// ## Converting to a [`Generic`] `Duration`
 ///
 /// ```rust
-/// # use embedded_time::{Fraction, duration::*, duration::Generic};
+/// # use embedded_time::{fraction::Fraction, duration::*, duration::Generic};
 /// # use core::convert::{TryFrom, TryInto};
 /// #
 /// let generic_duration = Generic::<u32>::from(5_u32.seconds());
@@ -283,7 +284,7 @@ pub trait Duration: Sized + Copy {
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{Fraction, duration::*};
+    /// # use embedded_time::{fraction::Fraction, duration::*};
     /// # use core::convert::{TryFrom, TryInto};
     /// #
     /// assert_eq!(Seconds(2_u64).to_generic(Fraction::new(1, 2_000)),
@@ -299,7 +300,7 @@ pub trait Duration: Sized + Copy {
     /// [`ConversionError::Overflow`] : The conversion of the _scaling factor_ causes an overflow.
     ///
     /// ```rust
-    /// # use embedded_time::{Fraction, duration::*, ConversionError};
+    /// # use embedded_time::{fraction::Fraction, duration::*, ConversionError};
     /// # use core::convert::TryFrom;
     /// #
     /// assert_eq!(Seconds(u32::MAX).to_generic::<u32>(Fraction::new(1, 2)),
@@ -312,7 +313,7 @@ pub trait Duration: Sized + Copy {
     /// type fails.
     ///
     /// ```rust
-    /// # use embedded_time::{Fraction, duration::*, ConversionError};
+    /// # use embedded_time::{fraction::Fraction, duration::*, ConversionError};
     /// # use core::convert::TryFrom;
     /// #
     /// assert_eq!(Seconds(u32::MAX as u64 + 1).to_generic::<u32>(Fraction::new(1, 1)),

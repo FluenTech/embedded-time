@@ -1,5 +1,5 @@
 use core::convert::{TryFrom, TryInto};
-use embedded_time::{duration, duration::*, rate::*, ConversionError, Fraction};
+use embedded_time::{duration, duration::*, fraction::Fraction, rate::*, ConversionError};
 
 #[test]
 fn construction() {

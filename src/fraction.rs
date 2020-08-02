@@ -75,7 +75,7 @@ impl Fraction {
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{Fraction, ConversionError};
+    /// # use embedded_time::{fraction::Fraction, ConversionError};
     /// #
     /// assert_eq!(Fraction::new(1000, 1).checked_mul(&Fraction::new(5,5)),
     ///     Ok(Fraction::new(5_000, 5)));
@@ -99,7 +99,7 @@ impl Fraction {
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{Fraction, ConversionError};
+    /// # use embedded_time::{fraction::Fraction, ConversionError};
     /// #
     /// assert_eq!(Fraction::new(1000, 1).checked_div(&Fraction::new(10, 1000)),
     ///     Ok(Fraction::new(1_000_000, 10)));
@@ -150,7 +150,7 @@ impl Fraction {
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{Fraction, ConversionError};
+    /// # use embedded_time::{fraction::Fraction, ConversionError};
     /// #
     /// assert_eq!(Fraction::new(1000, 1).checked_div_integer(5_u32),
     ///     Ok(Fraction::new(200, 1)));
@@ -317,7 +317,7 @@ impl Default for Fraction {
 
 #[cfg(test)]
 mod tests {
-    use crate::Fraction;
+    use crate::fraction::Fraction;
 
     #[test]
     fn mul_integer_by_fraction() {
