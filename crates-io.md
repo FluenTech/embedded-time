@@ -51,12 +51,18 @@ _(the size of `core` duration type is 12 B)_
 
 ## Rate Types
 
+### Frequency
 | Units             | Extension |
 | :---------------- | :-------- |
+| Mebihertz         | MiHz      |
 | Megahertz         | MHz       |
+| Kibihertz         | KiHz      |
 | Kilohertz         | kHz       |
 | Hertz             | Hz        |
-|                   |           |
+
+### Data Rate
+| Units             | Extension |
+| :---------------- | :-------- |
 | MebibytePerSecond | MiBps     |
 | MegabytePerSecond | MBps      |
 | KibibytePerSecond | KiBps     |
@@ -68,12 +74,17 @@ _(the size of `core` duration type is 12 B)_
 | KibibitPerSecond  | Kibps     |
 | KilobitPerSecond  | kbps      |
 | BitPerSecond      | bps       |
-|                   |           |
+
+### Symbol Rate
+| Units             | Extension |
+| :---------------- | :-------- |
 | Mebibaud          | MiBd      |
 | Megabaud          | MBd       |
 | Kibibaud          | KiBd      |
 | Kilobaud          | kBd       |
 | Baud              | Bd        |
+
+- Conversion from/to all other rate types within the same class (frequency, data rate, etc.). This includes conversions such as MBps (megabytes per second) --> Kibps (kibibits per second).
 
 - Conversion from `Duration` types
 

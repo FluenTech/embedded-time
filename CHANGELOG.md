@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+### Added
+
+- `From` implementations for infallible intra-rate and intra-duration conversions
+- Implementations of common traits to types
+- More frequency types: mebihertz (MiHz) and kibihertz(KiHz)
+
+### Changed
+
+- Fallible intra-rate and intra-duration conversions use `try_from()`/`try_into()` rather than the `try_convert_` methods
+- Replaced `try_into_generic()` with `to_generic()`
+- Replaced `try_from_`(duration/rate) with `to_duration()` and `to_rate()`
+
+### Removed
+
+- trait module
+  - duration- and/or rate-specific functionality can be imported separately by using duration::* and rate::*
 
 [unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.8.1...HEAD
 

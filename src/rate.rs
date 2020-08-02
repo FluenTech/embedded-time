@@ -8,8 +8,10 @@ use crate::{
     ConversionError,
 };
 use core::{convert::TryFrom, mem::size_of, prelude::v1::*};
+#[doc(hidden)]
 pub use fixed_point::FixedPoint as _;
 use num::{CheckedDiv, CheckedMul};
+#[doc(inline)]
 pub use units::*;
 
 /// An unsigned, fixed-point rate type
@@ -39,7 +41,7 @@ pub use units::*;
 /// Just forwards the underlying integer to [`core::fmt::Display::fmt()`]
 ///
 /// ```rust
-/// # use embedded_time::{ rate::*};
+/// # use embedded_time::{rate::*};
 /// #
 /// assert_eq!(format!("{}", Hertz(123_u32)), "123");
 /// ```
@@ -139,7 +141,7 @@ pub use units::*;
 /// ## Examples
 ///
 /// ```rust
-/// # use embedded_time::{ rate::*};
+/// # use embedded_time::{rate::*};
 /// #
 /// assert_eq!((Hertz(2_001_u32) - 1_u32.kHz()),
 ///     Hertz(1_001_u32));
@@ -153,7 +155,7 @@ pub use units::*;
 /// The same reason the integer operation would panic. Namely, if the result overflows the type.
 ///
 /// ```rust,should_panic
-/// # use embedded_time::{ rate::*};
+/// # use embedded_time::{rate::*};
 /// #
 /// let _ = Hertz(u32::MAX) + Hertz(1_u32);
 /// ```
@@ -161,7 +163,7 @@ pub use units::*;
 /// # Comparisons
 ///
 /// ```rust
-/// # use embedded_time::{ rate::*};
+/// # use embedded_time::{rate::*};
 /// #
 /// assert_eq!(Kilohertz(2_u32), Hertz(2_000_u32));
 /// assert_ne!(Kilohertz(2_u32), Hertz(2_001_u32));
@@ -173,7 +175,7 @@ pub use units::*;
 /// # Remainder
 ///
 /// ```rust
-/// # use embedded_time::{ rate::*};
+/// # use embedded_time::{rate::*};
 /// #
 /// assert_eq!(Hertz(2_037_u32) % Kilohertz(1_u32), Hertz(37_u32));
 /// ```
@@ -349,6 +351,7 @@ impl<T> Generic<T> {
 impl<T: TimeInt> Rate for Generic<T> {}
 
 /// Rate-type units
+#[doc(hidden)]
 pub mod units {
     use super::*;
     use crate::{
@@ -363,6 +366,7 @@ pub mod units {
         fmt::{self, Formatter},
         ops,
     };
+    #[doc(hidden)]
     pub use Extensions as _;
 
     macro_rules! impl_rate {

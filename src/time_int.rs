@@ -2,6 +2,7 @@ use crate::{fraction::Fraction, ConversionError};
 use core::{fmt, ops};
 
 /// The core inner-type trait for time-related types
+#[doc(hidden)]
 pub trait TimeInt:
     Copy
     + num::Integer
@@ -72,14 +73,18 @@ pub trait TimeInt:
     // }
 }
 
+#[doc(hidden)]
 impl TimeInt for u32 {}
+#[doc(hidden)]
 impl TimeInt for u64 {}
 
+#[doc(hidden)]
 pub trait Widen {
     type Output;
     fn widen(&self) -> Self::Output;
 }
 
+#[doc(hidden)]
 impl Widen for u32 {
     type Output = u64;
 
@@ -88,6 +93,7 @@ impl Widen for u32 {
     }
 }
 
+#[doc(hidden)]
 impl Widen for u64 {
     type Output = u128;
 
