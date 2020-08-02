@@ -75,7 +75,7 @@
 
 pub mod clock;
 pub mod duration;
-mod fixed_point;
+pub mod fixed_point;
 pub mod fraction;
 mod instant;
 pub mod rate;
