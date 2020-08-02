@@ -38,7 +38,7 @@ impl SysClock {
 impl time::Clock for SysClock {
     type T = u64;
     type ImplError = Infallible;
-    const SCALING_FACTOR: time::Fraction = <time::Fraction>::new(1, 16_000_000);
+    const SCALING_FACTOR: time::fraction::Fraction = <time::fraction::Fraction>::new(1, 16_000_000);
 
     fn try_now(&self) -> Result<time::Instant<Self>, time::clock::Error<Self::ImplError>> {
         self.capture_task.tasks_trigger[0].write(|write| unsafe { write.bits(1) });
@@ -202,7 +202,7 @@ where
 }
 
 mod duration {
-    use super::time::{duration, duration::*, rate::*, ConversionError, Fraction};
+    use super::time::{duration, duration::*, fraction::Fraction, rate::*, ConversionError};
     use core::convert::{TryFrom, TryInto};
 
     pub fn construction() {
@@ -381,8 +381,9 @@ mod duration {
 mod rate {
     use super::time::{
         duration::{Microseconds, Milliseconds},
+        fraction::Fraction,
         rate::{self, *},
-        ConversionError, Fraction,
+        ConversionError,
     };
     use core::convert::TryFrom;
 

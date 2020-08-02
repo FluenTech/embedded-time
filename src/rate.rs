@@ -3,8 +3,9 @@
 use crate::{
     duration,
     fixed_point::{self, FixedPoint},
+    fraction::Fraction,
     time_int::{TimeInt, Widen},
-    ConversionError, Fraction,
+    ConversionError,
 };
 use core::{convert::TryFrom, mem::size_of, prelude::v1::*};
 pub use fixed_point::FixedPoint as _;
@@ -74,7 +75,7 @@ pub use units::*;
 /// ## Examples
 ///
 /// ```rust
-/// # use embedded_time::{Fraction, rate::*};
+/// # use embedded_time::{fraction::Fraction, rate::*};
 /// # use core::convert::{TryFrom, TryInto};
 /// #
 /// assert_eq!(
@@ -98,7 +99,7 @@ pub use units::*;
 /// [`ConversionError::Overflow`] : The conversion of the _scaling factor_ causes an overflow.
 ///
 /// ```rust
-/// # use embedded_time::{Fraction, rate::*, ConversionError};
+/// # use embedded_time::{fraction::Fraction, rate::*, ConversionError};
 /// # use core::convert::TryFrom;
 /// #
 /// assert_eq!(
@@ -113,7 +114,7 @@ pub use units::*;
 /// destination type fails.
 ///
 /// ```rust
-/// # use embedded_time::{Fraction, rate::*, ConversionError};
+/// # use embedded_time::{fraction::Fraction, rate::*, ConversionError};
 /// # use core::convert::TryFrom;
 /// #
 /// assert_eq!(
@@ -182,7 +183,7 @@ pub trait Rate: Sized + Copy {
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{Fraction, rate::*};
+    /// # use embedded_time::{fraction::Fraction, rate::*};
     /// # use core::convert::{TryFrom, TryInto};
     /// #
     /// assert_eq!(Hertz(2_u64).to_generic(Fraction::new(1,2_000)),
@@ -198,7 +199,7 @@ pub trait Rate: Sized + Copy {
     /// [`ConversionError::Overflow`] : The conversion of the _scaling factor_ causes an overflow.
     ///
     /// ```rust
-    /// # use embedded_time::{Fraction, rate::*, ConversionError};
+    /// # use embedded_time::{fraction::Fraction, rate::*, ConversionError};
     /// # use core::convert::TryFrom;
     /// #
     /// assert_eq!(Hertz(u32::MAX).to_generic::<u32>(Fraction::new(1, 2)),
@@ -211,7 +212,7 @@ pub trait Rate: Sized + Copy {
     /// type fails.
     ///
     /// ```rust
-    /// # use embedded_time::{Fraction, rate::*, ConversionError};
+    /// # use embedded_time::{fraction::Fraction, rate::*, ConversionError};
     /// # use core::convert::TryFrom;
     /// #
     /// assert_eq!(Hertz(u32::MAX as u64 + 1).to_generic::<u32>(Fraction::new(1, 1)),
