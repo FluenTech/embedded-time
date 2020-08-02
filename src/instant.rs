@@ -160,6 +160,7 @@ impl<Clock: crate::Clock> Instant<Clock> {
         self.duration_since(&Self {
             ticks: Clock::T::from(0),
         })
+        .ok()
         .unwrap()
     }
 
@@ -387,7 +388,7 @@ where
     /// Instant::<Clock>::new(0) + Milliseconds(u32::MAX/2 + 1);
     /// ```
     fn add(self, rhs: Dur) -> Self::Output {
-        self.checked_add_duration(rhs).unwrap()
+        self.checked_add_duration(rhs).ok().unwrap()
     }
 }
 
@@ -447,7 +448,7 @@ where
     /// Instant::<Clock>::new(u32::MAX) - Milliseconds(u32::MAX/2 + 1);
     /// ```
     fn sub(self, rhs: Dur) -> Self::Output {
-        self.checked_sub_duration(rhs).unwrap()
+        self.checked_sub_duration(rhs).ok().unwrap()
     }
 }
 
