@@ -165,6 +165,12 @@ fn duration_scaling() {
     assert_eq!(1_u32.seconds(), 1_000_000_000_u32.nanoseconds());
     assert_eq!(1_u64.minutes(), 60_000_000_000_u64.nanoseconds());
     assert_eq!(1_u64.hours(), 3_600_000_000_000_u64.nanoseconds());
+
+    assert_eq!(1_000_u32.nanoseconds(), 1_u32.microseconds());
+    assert_eq!(1_000_000_u32.nanoseconds(), 1_u32.milliseconds());
+    assert_eq!(1_000_000_000_u32.nanoseconds(), 1_u32.seconds());
+    assert_eq!(60_000_000_000_u64.nanoseconds(), 1_u64.minutes());
+    assert_eq!(3_600_000_000_000_u64.nanoseconds(), 1_u64.hours());
 }
 
 mod into_bigger {
@@ -298,7 +304,7 @@ mod into_bigger {
 }
 
 #[test]
-fn promote_integer() {
+fn widen_integer() {
     assert_eq!(Hours::<u64>::from(Hours(500_u32)), Hours(500_u64));
 
     let hours: Hours<u64> = Hours(500_u32).into();
