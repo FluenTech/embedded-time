@@ -288,7 +288,6 @@ impl ops::Mul for Fraction {
     ///
     /// The same reason the integer operation would panic. Namely, if the
     /// result overflows the type.
-    // TODO: add example
     fn mul(self, rhs: Self) -> Self::Output {
         Self(self.0 * rhs.0)
     }
@@ -303,7 +302,6 @@ impl ops::Div for Fraction {
     ///
     /// The same reason the integer operation would panic. Namely, if the
     /// result overflows the type.
-    // TODO: add example
     fn div(self, rhs: Self) -> Self::Output {
         Self(self.0 / rhs.0)
     }
