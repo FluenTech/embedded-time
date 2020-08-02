@@ -7,7 +7,7 @@
 //!
 //! The approach taken is similar to the C++ `chrono` library. [`Duration`]s and [`Rate`]s are
 //! fixed-point values as in they are comprised of _integer_ and _scaling factor_ values.
-//! The _scaling factor_ is a `const` [`Fraction`]. One benefit of this structure is that it avoids
+//! The _scaling factor_ is a `const` [`Fraction`](fraction::Fraction). One benefit of this structure is that it avoids
 //! unnecessary arithmetic. For example, if the [`Duration`] type is
 //! [`Milliseconds`], a call to the [`Duration::integer()`] method simply returns the _integer_
 //! part directly which in the case is the number of milliseconds represented by the [`Duration`].
@@ -54,7 +54,7 @@
 //!
 //! # Example Usage
 //! ```rust,no_run
-//! # use embedded_time::{Clock as _, duration::*, rate::*, Instant, Fraction};
+//! # use embedded_time::{Clock as _, duration::*, rate::*, Instant, fraction::Fraction};
 //! # use core::convert::TryFrom;
 //! # #[derive(Debug)]
 //! struct SomeClock;
@@ -92,19 +92,14 @@
 pub mod clock;
 pub mod duration;
 mod fixed_point;
-mod fraction;
+pub mod fraction;
 mod instant;
 pub mod rate;
 mod time_int;
 mod timer;
 
 pub use clock::Clock;
-pub use duration::Duration;
-pub use fixed_point::FixedPoint;
-pub use fraction::Fraction;
 pub use instant::Instant;
-pub use rate::Rate;
-pub use time_int::TimeInt;
 pub use timer::Timer;
 
 /// Crate errors
@@ -167,7 +162,8 @@ mod tests {
     impl time::Clock for MockClock64 {
         type T = u64;
         type ImplError = Infallible;
-        const SCALING_FACTOR: time::Fraction = <time::Fraction>::new(1, 64_000_000);
+        const SCALING_FACTOR: time::fraction::Fraction =
+            <time::fraction::Fraction>::new(1, 64_000_000);
 
         fn try_now(&self) -> Result<time::Instant<Self>, time::clock::Error<Self::ImplError>> {
             Ok(time::Instant::new(128_000_000))
@@ -180,7 +176,8 @@ mod tests {
     impl time::Clock for MockClock32 {
         type T = u32;
         type ImplError = Infallible;
-        const SCALING_FACTOR: time::Fraction = <time::Fraction>::new(1, 16_000_000);
+        const SCALING_FACTOR: time::fraction::Fraction =
+            <time::fraction::Fraction>::new(1, 16_000_000);
 
         fn try_now(&self) -> Result<time::Instant<Self>, time::clock::Error<Self::ImplError>> {
             Ok(time::Instant::new(32_000_000))
@@ -199,7 +196,8 @@ mod tests {
     impl time::Clock for BadClock {
         type T = u32;
         type ImplError = ClockImplError;
-        const SCALING_FACTOR: time::Fraction = <time::Fraction>::new(1, 16_000_000);
+        const SCALING_FACTOR: time::fraction::Fraction =
+            <time::fraction::Fraction>::new(1, 16_000_000);
 
         fn try_now(&self) -> Result<time::Instant<Self>, time::clock::Error<Self::ImplError>> {
             Err(time::clock::Error::Other(ClockImplError::NotStarted))
