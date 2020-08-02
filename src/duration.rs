@@ -8,8 +8,10 @@ use crate::{
     ConversionError,
 };
 use core::{convert::TryFrom, mem::size_of, prelude::v1::*};
+#[doc(hidden)]
 pub use fixed_point::FixedPoint as _;
 use num::{CheckedDiv, CheckedMul};
+#[doc(inline)]
 pub use units::*;
 
 /// An unsigned, fixed-point duration type
@@ -416,7 +418,7 @@ pub trait Duration: Sized + Copy {
     }
 }
 
-/// The `Generic` `Duration` type allows arbitrary _scaling factor_s to be used without having to
+/// The `Generic` `Duration` type allows an arbitrary _scaling factor_ to be used without having to
 /// impl `FixedPoint`.
 ///
 /// The purpose of this type is to allow a simple `Duration` that can be defined at run-time. It
@@ -450,6 +452,7 @@ impl<T> Generic<T> {
 impl<T: TimeInt> Duration for Generic<T> {}
 
 /// Duration units
+#[doc(hidden)]
 pub mod units {
     use super::*;
     use crate::{
@@ -464,6 +467,7 @@ pub mod units {
         fmt::{self, Formatter},
         ops,
     };
+    #[doc(hidden)]
     pub use Extensions as _;
 
     macro_rules! impl_duration {
@@ -980,6 +984,7 @@ pub mod units {
     }
 
     impl Extensions for u32 {}
+
     impl Extensions for u64 {}
 }
 

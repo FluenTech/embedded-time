@@ -8,7 +8,6 @@ use num::Bounded;
 /// QX.32 where X: bit-width of `T`
 pub trait FixedPoint: Sized + Copy + fmt::Display {
     /// The _integer_ (magnitude) type
-    #[doc(hidden)]
     type T: TimeInt;
 
     /// The fractional _scaling factor_

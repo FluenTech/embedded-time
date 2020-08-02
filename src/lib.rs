@@ -5,17 +5,31 @@
 //! Additionally, an implementation of software timers is provided that work seemlessly with all
 //! the types in this crate.
 //!
+//! # Imports
+//!
+//! The suggested use statements are as follows depending on what is needed:
+//!
+//! ```rust
+//! use embedded_time::duration::*;    // imports all duration-related types and traits
+//! use embedded_time::rate::*;        // imports all rate-related types and traits
+//! use embedded_time::clock;           
+//! use embedded_time::Instant;         
+//! use embedded_time::Timer;
+//! ```
+//!
+//! # Details
+//!
 //! The approach taken is similar to the C++ `chrono` library. [`Duration`]s and [`Rate`]s are
 //! fixed-point values as in they are comprised of _integer_ and _scaling factor_ values.
-//! The _scaling factor_ is a `const` [`Fraction`](fraction::Fraction). One benefit of this structure is that it avoids
-//! unnecessary arithmetic. For example, if the [`Duration`] type is
+//! The _scaling factor_ is a `const` [`Fraction`](fraction::Fraction). One benefit of this
+//! structure is that it avoids unnecessary arithmetic. For example, if the [`Duration`] type is
 //! [`Milliseconds`], a call to the [`Duration::integer()`] method simply returns the _integer_
 //! part directly which in the case is the number of milliseconds represented by the [`Duration`].
 //! Conversion arithmetic is only performed when explicitly converting between time units (eg.
 //! [`Milliseconds`] --> [`Seconds`]).
 //!
 //! In addition, a wide range of rate-type types are available including [`Hertz`],
-//! [`BitsPerSecond`], [`Baud`], etc.
+//! [`BitsPerSecond`], [`KibibytesPerSecond`], [`Baud`], etc.
 //!
 //! A [`Duration`] type can be converted to a [`Rate`] type and vica-versa.
 //!
