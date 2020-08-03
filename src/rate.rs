@@ -16,7 +16,7 @@ pub use units::*;
 
 /// An unsigned, fixed-point rate type
 ///
-/// Each implementation defines an _integer_ type and a [`Fraction`] _scaling factor_.
+/// Each implementation defines an _integer_ type and a _scaling factor_ [`Fraction`].
 ///
 /// # Constructing a rate
 ///
@@ -188,8 +188,10 @@ pub trait Rate: Sized + Copy {
     /// # use embedded_time::{fraction::Fraction, rate::*};
     /// # use core::convert::{TryFrom, TryInto};
     /// #
-    /// assert_eq!(Hertz(2_u64).to_generic(Fraction::new(1,2_000)),
-    ///     Ok(Generic::new(4_000_u32, Fraction::new(1,2_000))));
+    /// assert_eq!(
+    ///     Hertz(2_u64).to_generic(Fraction::new(1,2_000)),
+    ///     Ok(Generic::new(4_000_u32, Fraction::new(1,2_000)))
+    /// );
     /// ```
     ///
     /// # Errors
@@ -204,8 +206,10 @@ pub trait Rate: Sized + Copy {
     /// # use embedded_time::{fraction::Fraction, rate::*, ConversionError};
     /// # use core::convert::TryFrom;
     /// #
-    /// assert_eq!(Hertz(u32::MAX).to_generic::<u32>(Fraction::new(1, 2)),
-    ///     Err(ConversionError::Overflow));
+    /// assert_eq!(
+    ///     Hertz(u32::MAX).to_generic::<u32>(Fraction::new(1, 2)),
+    ///     Err(ConversionError::Overflow)
+    /// );
     /// ```
     ///
     /// ---
@@ -217,8 +221,10 @@ pub trait Rate: Sized + Copy {
     /// # use embedded_time::{fraction::Fraction, rate::*, ConversionError};
     /// # use core::convert::TryFrom;
     /// #
-    /// assert_eq!(Hertz(u32::MAX as u64 + 1).to_generic::<u32>(Fraction::new(1, 1)),
-    ///     Err(ConversionError::ConversionFailure));
+    /// assert_eq!(
+    ///     Hertz(u32::MAX as u64 + 1).to_generic::<u32>(Fraction::new(1, 1)),
+    ///     Err(ConversionError::ConversionFailure)
+    /// );
     /// ```
     fn to_generic<DestInt: TimeInt>(
         self,
@@ -376,7 +382,7 @@ pub mod units {
             pub struct $name<T: TimeInt = u32>(pub T);
 
             impl<T: TimeInt> $name<T> {
-                /// See [Constructing a rate](../trait.Rate.html#constructing-a-rate)
+                /// See [Constructing a rate](trait.Rate.html#constructing-a-rate)
                 pub fn new(value: T) -> Self {
                     Self(value)
                 }
@@ -388,17 +394,19 @@ pub mod units {
                 type T = T;
                 const SCALING_FACTOR: Fraction = Fraction::new($numer, $denom);
 
+                /// See [Constructing a rate](trait.Rate.html#constructing-a-rate)
                 fn new(value: Self::T) -> Self {
                     Self(value)
                 }
 
+                /// See [Get the integer part](trait.Rate.html#get-the-integer-part)
                 fn integer(&self) -> &Self::T {
                     &self.0
                 }
             }
 
             impl<T: TimeInt> fmt::Display for $name<T> {
-                /// See [Formatting](../trait.Rate.html#formatting)
+                /// See [Formatting](trait.Rate.html#formatting)
                 fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
                     fmt::Display::fmt(&self.0, f)
                 }
@@ -411,7 +419,7 @@ pub mod units {
             {
                 type Output = Self;
 
-                /// See [Add/Sub](../trait.Rate.html#addsub)
+                /// See [Add/Sub](trait.Rate.html#addsub)
                 fn add(self, rhs: Rhs) -> Self::Output {
                     <Self as FixedPoint>::add(self, rhs)
                 }
@@ -424,7 +432,7 @@ pub mod units {
             {
                 type Output = Self;
 
-                /// See [Add/Sub](../trait.Rate.html#addsub)
+                /// See [Add/Sub](trait.Rate.html#addsub)
                 fn sub(self, rhs: Rhs) -> Self::Output {
                     <Self as FixedPoint>::sub(self, rhs)
                 }
@@ -437,7 +445,7 @@ pub mod units {
             {
                 type Output = Self;
 
-                /// See [Remainder](../trait.Rate.html#remainder)
+                /// See [Remainder](trait.Rate.html#remainder)
                 fn rem(self, rhs: Rhs) -> Self::Output {
                     <Self as FixedPoint>::rem(self, rhs)
                 }
@@ -450,7 +458,7 @@ pub mod units {
             {
                 type Error = ConversionError;
 
-                /// See [Converting from a `Generic` `Rate`](../trait.Rate.html#converting-from-a-generic-rate)
+                /// See [Converting from a `Generic` `Rate`](trait.Rate.html#converting-from-a-generic-rate)
                 fn try_from(generic_rate: Generic<SourceInt>) -> Result<Self, Self::Error> {
                     fixed_point::from_ticks(generic_rate.integer, generic_rate.scaling_factor)
                 }
@@ -458,7 +466,7 @@ pub mod units {
 
             impl<T: TimeInt> From<$name<T>> for Generic<T> {
                 /// See [Converting to a `Generic`
-                /// `Rate`](../trait.Rate.html#converting-to-a-generic-rate)
+                /// `Rate`](trait.Rate.html#converting-to-a-generic-rate)
                 fn from(rate: $name<T>) -> Self {
                     Self::new(*rate.integer(), $name::<T>::SCALING_FACTOR)
                 }
@@ -500,7 +508,7 @@ pub mod units {
             where
                 T: TryFrom<RhsInt>,
             {
-                /// See [Comparisons](../trait.Rate.html#comparisons)
+                /// See [Comparisons](trait.Rate.html#comparisons)
                 fn eq(&self, rhs: &$name<RhsInt>) -> bool {
                     match T::try_from(*rhs.integer()) {
                         Ok(rhs_value) => *self.integer() == rhs_value,
@@ -513,7 +521,7 @@ pub mod units {
             where
                 T: TryFrom<RhsInt>,
             {
-                /// See [Comparisons](../trait.Rate.html#comparisons)
+                /// See [Comparisons](trait.Rate.html#comparisons)
                 fn partial_cmp(&self, rhs: &$name<RhsInt>) -> Option<core::cmp::Ordering> {
                     match T::try_from(*rhs.integer()) {
                         Ok(rhs_integer) => Some(self.integer().cmp(&rhs_integer)),
@@ -534,7 +542,7 @@ pub mod units {
                     RhsInt: Widen,
                     <RhsInt as Widen>::Output: TryFrom<<T as Widen>::Output>,
                 {
-                    /// See [Comparisons](../trait.Rate.html#comparisons)
+                    /// See [Comparisons](trait.Rate.html#comparisons)
                     fn eq(&self, rhs: &$small<RhsInt>) -> bool {
                         <$small::<RhsInt> as PartialEq<$big<T>>>::eq(rhs, self)
                     }
@@ -548,7 +556,7 @@ pub mod units {
                     RhsInt: Widen,
                     <RhsInt as Widen>::Output: ops::Mul<Fraction>,
                 {
-                    /// See [Comparisons](../trait.Rate.html#comparisons)
+                    /// See [Comparisons](trait.Rate.html#comparisons)
                     fn eq(&self, rhs: &$big<RhsInt>) -> bool {
                         let lhs_value = self.integer().widen() * Self::SCALING_FACTOR;
                         let rhs_value = rhs.integer().widen() * $big::<RhsInt>::SCALING_FACTOR;
@@ -568,11 +576,11 @@ pub mod units {
                     <RhsInt as Widen>::Output: ops::Mul<Fraction> + TryFrom<<T as Widen>::Output> + TryFrom<<<T as Widen>::Output as ops::Mul<Fraction>>::Output>,
                     <<RhsInt as Widen>::Output as ops::Mul<Fraction>>::Output: PartialEq + TryFrom<<<T as Widen>::Output as ops::Mul<Fraction>>::Output>,
                 {
-                    /// See [Comparisons](../trait.Rate.html#comparisons)
+                    /// See [Comparisons](trait.Rate.html#comparisons)
                     fn partial_cmp(&self, rhs: &$small<RhsInt>) -> Option<core::cmp::Ordering> {
                         let lhs_value = self.integer().widen() * Self::SCALING_FACTOR;
                         let rhs_value = rhs.integer().widen() * $small::<RhsInt>::SCALING_FACTOR;
-                         match <<T as Widen>::Output as ops::Mul<Fraction>>::Output::try_from(rhs_value) {
+                        match <<T as Widen>::Output as ops::Mul<Fraction>>::Output::try_from(rhs_value) {
                             Ok(rhs_value) => Some(lhs_value.cmp(&rhs_value)),
                             Err(_) => Some(core::cmp::Ordering::Less),
                         }
@@ -588,7 +596,7 @@ pub mod units {
                     RhsInt: Widen,
                     <RhsInt as Widen>::Output: ops::Mul<Fraction>,
                 {
-                    /// See [Comparisons](../trait.Rate.html#comparisons)
+                    /// See [Comparisons](trait.Rate.html#comparisons)
                     fn partial_cmp(&self, rhs: &$big<RhsInt>) -> Option<core::cmp::Ordering> {
                         let lhs_value = self.integer().widen() * Self::SCALING_FACTOR;
                         let rhs_value = rhs.integer().widen() * $big::<RhsInt>::SCALING_FACTOR;
@@ -620,7 +628,7 @@ pub mod units {
     macro_rules! impl_from {
         ($name:ident) => {
             impl From<$name<u32>> for $name<u64> {
-                /// See [Converting between `Rate`s](../trait.Rate.html#converting-between-rates)
+                /// See [Converting between `Rate`s](trait.Rate.html#converting-between-rates)
                 fn from(source: $name<u32>) -> Self {
                     Self::new(u64::from(*source.integer()))
                 }
@@ -629,7 +637,7 @@ pub mod units {
             impl TryFrom<$name<u64>> for $name<u32> {
                 type Error = ConversionError;
 
-                /// See [Converting between `Rate`s](../trait.Rate.html#converting-between-rates)
+                /// See [Converting between `Rate`s](trait.Rate.html#converting-between-rates)
                 fn try_from(source: $name<u64>) -> Result<Self, Self::Error> {
                     fixed_point::from_ticks(*source.integer(), $name::<u64>::SCALING_FACTOR)
                 }
@@ -663,7 +671,7 @@ pub mod units {
             $(
                 impl<T: TimeInt> From<$small<T>> for $big<T>
                 {
-                    /// See [Converting between `Rate`s](../trait.Rate.html#converting-between-rates)
+                    /// See [Converting between `Rate`s](trait.Rate.html#converting-between-rates)
                     fn from(small: $small<T>) -> Self {
                         fixed_point::from_ticks_safe(*small.integer(), $small::<T>::SCALING_FACTOR)
                     }
@@ -671,7 +679,7 @@ pub mod units {
 
                 impl From<$small<u32>> for $big<u64>
                 {
-                    /// See [Converting between `Rate`s](../trait.Rate.html#converting-between-rates)
+                    /// See [Converting between `Rate`s](trait.Rate.html#converting-between-rates)
                     fn from(small: $small<u32>) -> Self {
                         fixed_point::from_ticks_safe(*small.integer(), $small::<u32>::SCALING_FACTOR)
                     }
@@ -681,7 +689,7 @@ pub mod units {
                 {
                     type Error = ConversionError;
 
-                    /// See [Converting between `Rate`s](../trait.Rate.html#converting-between-rates)
+                    /// See [Converting between `Rate`s](trait.Rate.html#converting-between-rates)
                     fn try_from(small: $small<u64>) -> Result<Self, Self::Error> {
                         fixed_point::from_ticks(
                             *small.integer(),
@@ -716,7 +724,7 @@ pub mod units {
             $(
                 impl From<$big<u32>> for $small<u64>
                 {
-                   /// See [Converting between `Rate`s](../trait.Rate.html#converting-between-rates)
+                   /// See [Converting between `Rate`s](trait.Rate.html#converting-between-rates)
                     fn from(big: $big<u32>) -> Self {
                         fixed_point::from_ticks_safe(*big.integer(), $big::<u32>::SCALING_FACTOR)
                     }
@@ -726,7 +734,7 @@ pub mod units {
                 {
                     type Error = ConversionError;
 
-                    /// See [Converting between `Rate`s](../trait.Rate.html#converting-between-rates)
+                    /// See [Converting between `Rate`s](trait.Rate.html#converting-between-rates)
                     fn try_from(big: $big<T>) -> Result<Self, Self::Error> {
                         fixed_point::from_ticks(
                             *big.integer(),
@@ -739,7 +747,7 @@ pub mod units {
                 {
                     type Error = ConversionError;
 
-                    /// See [Converting between `Rate`s](../trait.Rate.html#converting-between-rates)
+                    /// See [Converting between `Rate`s](trait.Rate.html#converting-between-rates)
                     fn try_from(big: $big<u64>) -> Result<Self, Self::Error> {
                         fixed_point::from_ticks(
                             *big.integer(),
@@ -901,6 +909,4 @@ pub mod units {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-}
+mod tests {}
