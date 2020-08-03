@@ -15,7 +15,10 @@ fn construction() {
 }
 
 #[test]
-fn comparison() {
+fn comparisons() {
+    assert_ne!(Seconds(5_u32), Nanoseconds(u32::MAX));
+    assert_ne!(Seconds(5_u32), Nanoseconds(u32::MAX as u64));
+
     // even though the value of 5 seconds cannot be expressed as Nanoseconds<u32>, it behaves as
     // expected.
     assert_ne!(Seconds(5_u32), Nanoseconds(u32::MAX));
@@ -28,6 +31,9 @@ fn comparison() {
     assert_ne!(Nanoseconds(u32::MAX), Seconds(5_u64));
     assert_ne!(Nanoseconds(u32::MAX as u64), Seconds(5_u64));
 
+    assert_ne!(Nanoseconds(1_u32), Nanoseconds(u64::MAX));
+    assert_ne!(Nanoseconds(u64::MAX), Nanoseconds(1_u32));
+
     assert!(Seconds(5_u32) > Nanoseconds(u32::MAX));
     assert!(Nanoseconds(u32::MAX) < Seconds(5_u32));
 
@@ -39,10 +45,41 @@ fn comparison() {
 
     assert!(Seconds(5_u64) < Nanoseconds(u64::MAX));
     assert!(Nanoseconds(u64::MAX) > Seconds(5_u64));
+
+    assert!(Microseconds(5_u32) < Microseconds(u64::MAX));
+    assert!(Microseconds(u64::MAX) > Microseconds(5_u32));
 }
 
 #[test]
-fn try_from_generic() {
+fn add() {
+    assert_eq!(
+        (Milliseconds(1_u32) + Seconds(1_u32)),
+        Milliseconds(1_001_u32)
+    );
+}
+
+#[test]
+fn sub() {
+    assert_eq!(
+        (Milliseconds(2_001_u32) - Seconds(1_u32)),
+        Milliseconds(1_001_u32)
+    );
+
+    assert_eq!((Minutes(u32::MAX) - Hours(1_u32)), Minutes(u32::MAX - 60));
+}
+
+#[test]
+fn rem() {
+    assert_eq!(100_u32.minutes() % u64::MAX.hours(), 100_u32.minutes());
+    assert_eq!(100_u32.minutes() % 1_u64.hours(), 40_u32.minutes());
+
+    assert_eq!(Minutes(62_u32) % Hours(1_u32), Minutes(2_u32));
+    assert_eq!(Minutes(62_u32) % Milliseconds(1_u32), Minutes(0_u32));
+    assert_eq!(Minutes(62_u32) % Minutes(60_u32), Minutes(2_u32));
+}
+
+#[test]
+fn from_generic() {
     assert_eq!(
         Seconds::try_from(duration::Generic::new(246_u32, Fraction::new(1, 2))),
         Ok(Seconds(123_u32))
@@ -80,6 +117,13 @@ fn to_generic() {
         Seconds(u32::MAX).to_generic::<u32>(Fraction::new(1, 2)),
         Err(ConversionError::Overflow)
     );
+
+    // From named
+    let generic: duration::Generic<u32> = 246_u32.milliseconds().into();
+    assert_eq!(
+        generic,
+        duration::Generic::new(246_u32, Fraction::new(1, 1_000))
+    );
 }
 
 #[test]
@@ -89,17 +133,13 @@ fn get_generic_integer() {
 }
 
 #[test]
-fn remainder() {
-    assert_eq!(Minutes(62_u32) % Hours(1_u32), Minutes(2_u32));
-    assert_eq!(Minutes(62_u32) % Milliseconds(1_u32), Minutes(0_u32));
-    assert_eq!(Minutes(62_u32) % Minutes(60_u32), Minutes(2_u32));
-}
-
-#[test]
-fn convert_to_rate() {
-    assert_eq!(Milliseconds(500_u32).to_rate(), Ok(Hertz(2_u32)));
-
+fn to_rate() {
     assert_eq!(Microseconds(500_u32).to_rate(), Ok(Kilohertz(2_u32)));
+    assert_eq!(Microseconds(500_u32).to_rate(), Ok(Kilohertz(2_u64)));
+    assert_eq!(Microseconds(500_u64).to_rate(), Ok(Kilohertz(2_u32)));
+    assert_eq!(Microseconds(500_u64).to_rate(), Ok(Kilohertz(2_u64)));
+
+    assert_eq!(Milliseconds(500_u32).to_rate(), Ok(Hertz(2_u32)));
 
     // Errors
     assert_eq!(
@@ -110,10 +150,14 @@ fn convert_to_rate() {
         Seconds(0_u32).to_rate::<Hertz<u32>>(),
         Err(ConversionError::DivByZero)
     );
+    assert_eq!(
+        Seconds(0_u32).to_rate::<Hertz<u64>>(),
+        Err(ConversionError::DivByZero)
+    );
 }
 
 #[test]
-fn convert_from_core_duration() {
+fn from_core_duration() {
     let core_duration = core::time::Duration::from_nanos(5_025_678_901_234);
     assert_eq!(
         core_duration.try_into(),
@@ -127,10 +171,14 @@ fn convert_from_core_duration() {
     assert_eq!(core_duration.try_into(), Ok(Seconds::<u32>(5_025)));
     assert_eq!(core_duration.try_into(), Ok(Minutes::<u32>(83)));
     assert_eq!(core_duration.try_into(), Ok(Hours::<u32>(1)));
+
+    // From
+    let duration: Seconds<u64> = core_duration.into();
+    assert_eq!(duration, Seconds(5_025_u64));
 }
 
 #[test]
-fn convert_to_core_duration() {
+fn into_core_duration() {
     assert_eq!(
         Nanoseconds(123_u32).try_into(),
         Ok(core::time::Duration::from_nanos(123))
@@ -173,306 +221,233 @@ fn duration_scaling() {
     assert_eq!(3_600_000_000_000_u64.nanoseconds(), 1_u64.hours());
 }
 
-mod into_bigger {
-    use super::*;
+#[test]
+fn into_bigger() {
+    macro_rules! test_into_bigger {
+        ($into:ident) => {};
+        ($into:ident, $($small:ident),+) => {
 
-    #[test]
-    fn into_hours() {
-        // From
-        assert_eq!(Hours::<u32>::from(Minutes(u32::MAX)), Hours(u32::MAX / 60));
-        assert_eq!(Hours::<u32>::from(Seconds(3_601_u32)), Hours(1_u32));
-        assert_eq!(
-            Hours::<u32>::from(Milliseconds(3_600_001_u32)),
-            Hours(1_u32)
-        );
-        assert_eq!(
-            Hours::<u32>::from(Microseconds(3_600_000_001_u32)),
-            Hours(1_u32)
-        );
-        assert_eq!(
-            Hours::<u64>::from(Nanoseconds(3_600_000_000_001_u64)),
-            Hours(1_u64)
-        );
+            assert_eq!(
+                $into::<u32>::from($into(u32::MAX)),
+                $into(u32::MAX)
+            );
 
-        // Into
-        let hours: Hours<u32> = Minutes(62_u32).into();
-        assert_eq!(hours, Hours(1_u32));
+            let rate: $into<u32> = $into(u32::MAX).into();
+            assert_eq!(rate, $into(u32::MAX));
 
-        let hours: Hours<u32> = Seconds(3_601_u32).into();
-        assert_eq!(hours, Hours(1_u32));
+            $(
+                assert_eq!(
+                    $into::<u32>::from($small(u32::MAX)),
+                    $into((u32::MAX as u64
+                    * *$small::<u32>::SCALING_FACTOR.numerator() as u64
+                    * *$into::<u32>::SCALING_FACTOR.denominator() as u64
+                    / *$into::<u32>::SCALING_FACTOR.numerator() as u64
+                    / *$small::<u32>::SCALING_FACTOR.denominator() as u64
+                    ) as u32)
+                );
 
-        let hours: Hours<u32> = Milliseconds(3_600_001_u32).into();
-        assert_eq!(hours, Hours(1_u32));
+                let rate: $into<u32> = $small(u32::MAX).into();
+                assert_eq!(rate,
+                    $into((u32::MAX as u64
+                    * *$small::<u32>::SCALING_FACTOR.numerator() as u64
+                    * *$into::<u32>::SCALING_FACTOR.denominator() as u64
+                    / *$into::<u32>::SCALING_FACTOR.numerator() as u64
+                    / *$small::<u32>::SCALING_FACTOR.denominator() as u64
+                    ) as u32)
+                );
 
-        let hours: Hours<u32> = Microseconds(3_600_000_001_u32).into();
-        assert_eq!(hours, Hours(1_u32));
+                assert_eq!(
+                    $into::<u64>::from($small(u32::MAX)),
+                    $into((u32::MAX as u64
+                    * *$small::<u32>::SCALING_FACTOR.numerator() as u64
+                    * *$into::<u64>::SCALING_FACTOR.denominator() as u64
+                    / *$into::<u64>::SCALING_FACTOR.numerator() as u64
+                    / *$small::<u32>::SCALING_FACTOR.denominator() as u64
+                    ) as u64)
+                );
 
-        let hours: Hours<u64> = Nanoseconds(3_600_000_000_001_u64).into();
-        assert_eq!(hours, Hours(1_u64));
+                let rate: $into<u64> = $small(u32::MAX).into();
+                assert_eq!(rate,
+                    $into((u32::MAX as u64
+                    * *$small::<u32>::SCALING_FACTOR.numerator() as u64
+                    * *$into::<u64>::SCALING_FACTOR.denominator() as u64
+                    / *$into::<u64>::SCALING_FACTOR.numerator() as u64
+                    / *$small::<u32>::SCALING_FACTOR.denominator() as u64
+                    ) as u64)
+                );
+
+                assert_eq!(
+                    $into::<u32>::try_from($small(u32::MAX as u64)),
+                    Ok(
+                        $into((u32::MAX as u64
+                        * *$small::<u64>::SCALING_FACTOR.numerator() as u64
+                        * *$into::<u32>::SCALING_FACTOR.denominator() as u64
+                        / *$into::<u32>::SCALING_FACTOR.numerator() as u64
+                        / *$small::<u64>::SCALING_FACTOR.denominator() as u64
+                        ) as u32)
+                    )
+                );
+
+                let rate: Result<$into<u32>, _> = $small(u32::MAX as u64).try_into();
+                assert_eq!(
+                    rate,
+                    Ok(
+                        $into((u32::MAX as u64
+                        * *$small::<u64>::SCALING_FACTOR.numerator() as u64
+                        * *$into::<u32>::SCALING_FACTOR.denominator() as u64
+                        / *$into::<u32>::SCALING_FACTOR.numerator() as u64
+                        / *$small::<u64>::SCALING_FACTOR.denominator() as u64
+                        ) as u32)
+                    )
+                );
+            )+
+
+            test_into_bigger!($($small),+);
+        };
     }
-
-    #[test]
-    fn into_minutes() {
-        // From
-        assert_eq!(Minutes::<u32>::from(Seconds(3_601_u32)), Minutes(60_u32));
-        assert_eq!(
-            Minutes::<u32>::from(Milliseconds(3_600_001_u32)),
-            Minutes(60_u32)
-        );
-        assert_eq!(
-            Minutes::<u32>::from(Microseconds(3_600_000_001_u32)),
-            Minutes(60_u32)
-        );
-        assert_eq!(
-            Minutes::<u64>::from(Nanoseconds(3_600_000_000_001_u64)),
-            Minutes(60_u64)
-        );
-
-        // Into
-        let minutes: Minutes<u32> = Seconds(3_601_u32).into();
-        assert_eq!(minutes, Minutes(60_u32));
-
-        let minutes: Minutes<u32> = Milliseconds(3_600_001_u32).into();
-        assert_eq!(minutes, Minutes(60_u32));
-
-        let minutes: Minutes<u32> = Microseconds(3_600_000_001_u32).into();
-        assert_eq!(minutes, Minutes(60_u32));
-
-        let minutes: Minutes<u64> = Nanoseconds(3_600_000_000_001_u64).into();
-        assert_eq!(minutes, Minutes(60_u32));
-    }
-
-    #[test]
-    fn into_seconds() {
-        // From
-        assert_eq!(
-            Seconds::<u32>::from(Milliseconds(3_600_001_u32)),
-            Seconds(3_600_u32)
-        );
-        assert_eq!(
-            Seconds::<u32>::from(Microseconds(3_600_000_001_u32)),
-            Seconds(3_600_u32)
-        );
-        assert_eq!(
-            Seconds::<u64>::from(Nanoseconds(3_600_000_000_001_u64)),
-            Seconds(3_600_u32)
-        );
-
-        // Into
-        let seconds: Seconds<u32> = Milliseconds(3_600_001_u32).into();
-        assert_eq!(seconds, Seconds(3_600_u32));
-
-        let seconds: Seconds<u32> = Microseconds(3_600_000_001_u32).into();
-        assert_eq!(seconds, Seconds(3_600_u32));
-
-        let seconds: Seconds<u64> = Nanoseconds(3_600_000_000_001_u64).into();
-        assert_eq!(seconds, Seconds(3_600_u32));
-    }
-
-    #[test]
-    fn into_milliseconds() {
-        // From
-        assert_eq!(
-            Milliseconds::<u32>::from(Microseconds(3_600_000_001_u32)),
-            Milliseconds(3_600_000_u32)
-        );
-        assert_eq!(
-            Milliseconds::<u64>::from(Nanoseconds(3_600_000_000_001_u64)),
-            Milliseconds(3_600_000_u32)
-        );
-
-        // Into
-        let milliseconds: Milliseconds<u32> = Microseconds(3_600_000_001_u32).into();
-        assert_eq!(milliseconds, Milliseconds(3_600_000_u32));
-
-        let milliseconds: Milliseconds<u64> = Nanoseconds(3_600_000_000_001_u64).into();
-        assert_eq!(milliseconds, Milliseconds(3_600_000_u32));
-    }
-
-    #[test]
-    fn into_microseconds() {
-        // From
-        assert_eq!(
-            Microseconds::<u64>::from(Nanoseconds(3_600_000_000_001_u64)),
-            Microseconds(3_600_000_000_u32)
-        );
-
-        // Into
-        let microseconds: Microseconds<u64> = Nanoseconds(3_600_000_000_001_u64).into();
-        assert_eq!(microseconds, Microseconds(3_600_000_000_u32));
-    }
+    test_into_bigger![
+        Hours,
+        Minutes,
+        Seconds,
+        Milliseconds,
+        Microseconds,
+        Nanoseconds
+    ];
 }
 
 #[test]
 fn widen_integer() {
-    assert_eq!(Hours::<u64>::from(Hours(500_u32)), Hours(500_u64));
-
-    let hours: Hours<u64> = Hours(500_u32).into();
-    assert_eq!(hours, Hours(500_u64));
-
-    assert_eq!(Minutes::<u64>::from(Minutes(500_u32)), Minutes(500_u64));
-
-    let minutes: Minutes<u64> = Minutes(500_u32).into();
-    assert_eq!(minutes, Minutes(500_u64));
-
-    assert_eq!(Seconds::<u64>::from(Seconds(500_u32)), Seconds(500_u64));
-
-    let seconds: Seconds<u64> = Seconds(500_u32).into();
-    assert_eq!(seconds, Seconds(500_u64));
-
-    assert_eq!(
-        Milliseconds::<u64>::from(Milliseconds(500_u32)),
-        Milliseconds(500_u64)
-    );
-
-    let milliseconds: Milliseconds<u64> = Milliseconds(500_u32).into();
-    assert_eq!(milliseconds, Milliseconds(500_u64));
-
-    assert_eq!(
-        Microseconds::<u64>::from(Microseconds(500_u32)),
-        Microseconds(500_u64)
-    );
-
-    let microseconds: Microseconds<u64> = Microseconds(500_u32).into();
-    assert_eq!(microseconds, Microseconds(500_u64));
-
-    assert_eq!(
-        Nanoseconds::<u64>::from(Nanoseconds(500_u32)),
-        Nanoseconds(500_u64)
-    );
-
-    let nanoseconds: Nanoseconds<u64> = Nanoseconds(500_u32).into();
-    assert_eq!(nanoseconds, Nanoseconds(500_u64));
+    macro_rules! test_widen_integer {
+        ($name:ident) => {
+            assert_eq!($name::<u64>::from($name(500_u32)), $name(500_u64));
+            let rate: $name<u64> = $name(500_u32).into();
+            assert_eq!(rate, $name(500_u64));
+        };
+    }
+    test_widen_integer![Hours];
+    test_widen_integer![Minutes];
+    test_widen_integer![Seconds];
+    test_widen_integer![Milliseconds];
+    test_widen_integer![Microseconds];
+    test_widen_integer![Nanoseconds];
 }
 
-mod into_smaller {
-    use super::*;
+#[test]
+fn into_smaller() {
+    macro_rules! test_into_smaller {
+        ($into:ident) => {};
+        ($into:ident, $($big:ident),+) => {
 
-    #[test]
-    fn into_minutes() {
-        // From
-        assert_eq!(Minutes::<u64>::from(Hours(1_u32)), Minutes(60_u64));
+            assert_eq!(
+                $into::<u32>::from($into(u32::MAX)),
+                $into(u32::MAX)
+            );
 
-        // Into
-        let minutes: Minutes<u64> = Hours(1_u32).into();
-        assert_eq!(minutes, Minutes(60_u64));
+            let rate: $into<u32> = $into(u32::MAX).into();
+            assert_eq!(rate, $into(u32::MAX));
+
+            $(
+                assert_eq!(
+                    $into::<u64>::from($big(u32::MAX)),
+                    $into((u32::MAX as u64
+                    * *$big::<u32>::SCALING_FACTOR.numerator() as u64
+                    * *$into::<u64>::SCALING_FACTOR.denominator() as u64
+                    / *$into::<u64>::SCALING_FACTOR.numerator() as u64
+                    / *$big::<u32>::SCALING_FACTOR.denominator() as u64
+                    ) as u64)
+                );
+
+                let rate: $into<u64> = $big(u32::MAX).into();
+                assert_eq!(rate,
+                    $into((u32::MAX as u64
+                    * *$big::<u32>::SCALING_FACTOR.numerator() as u64
+                    * *$into::<u64>::SCALING_FACTOR.denominator() as u64
+                    / *$into::<u64>::SCALING_FACTOR.numerator() as u64
+                    / *$big::<u32>::SCALING_FACTOR.denominator() as u64
+                    ) as u64)
+                );
+
+                assert_eq!(
+                    $into::<u32>::try_from($big(4 as u32)),
+                    Ok(
+                        $into((4 as u64
+                        * *$big::<u32>::SCALING_FACTOR.numerator() as u64
+                        * *$into::<u32>::SCALING_FACTOR.denominator() as u64
+                        / *$into::<u32>::SCALING_FACTOR.numerator() as u64
+                        / *$big::<u32>::SCALING_FACTOR.denominator() as u64
+                        ) as u32)
+                    )
+                );
+
+                let rate: Result<$into<u32>, _> = $big(4 as u32).try_into();
+                assert_eq!(
+                    rate,
+                    Ok(
+                        $into((4 as u64
+                        * *$big::<u32>::SCALING_FACTOR.numerator() as u64
+                        * *$into::<u32>::SCALING_FACTOR.denominator() as u64
+                        / *$into::<u32>::SCALING_FACTOR.numerator() as u64
+                        / *$big::<u32>::SCALING_FACTOR.denominator() as u64
+                        ) as u32)
+                    )
+                );
+
+                assert_eq!(
+                    $into::<u32>::try_from($big(4 as u64)),
+                    Ok(
+                        $into((4 as u64
+                        * *$big::<u64>::SCALING_FACTOR.numerator() as u64
+                        * *$into::<u32>::SCALING_FACTOR.denominator() as u64
+                        / *$into::<u32>::SCALING_FACTOR.numerator() as u64
+                        / *$big::<u64>::SCALING_FACTOR.denominator() as u64
+                        ) as u32)
+                    )
+                );
+
+                let rate: Result<$into<u32>, _> = $big(4 as u64).try_into();
+                assert_eq!(
+                    rate,
+                    Ok(
+                        $into((4 as u64
+                        * *$big::<u64>::SCALING_FACTOR.numerator() as u64
+                        * *$into::<u32>::SCALING_FACTOR.denominator() as u64
+                        / *$into::<u32>::SCALING_FACTOR.numerator() as u64
+                        / *$big::<u64>::SCALING_FACTOR.denominator() as u64
+                        ) as u32)
+                    )
+                );
+
+                assert_eq!(
+                    $into::<u64>::try_from($big(4 as u64)),
+                    Ok(
+                        $into((4 as u64
+                        * *$big::<u64>::SCALING_FACTOR.numerator() as u64
+                        * *$into::<u64>::SCALING_FACTOR.denominator() as u64
+                        / *$into::<u64>::SCALING_FACTOR.numerator() as u64
+                        / *$big::<u64>::SCALING_FACTOR.denominator() as u64
+                        ) as u64)
+                    )
+                );
+
+                let rate: Result<$into<u64>, _> = $big(4 as u64).try_into();
+                assert_eq!(
+                    rate,
+                    Ok(
+                        $into((4 as u64
+                        * *$big::<u64>::SCALING_FACTOR.numerator() as u64
+                        * *$into::<u64>::SCALING_FACTOR.denominator() as u64
+                        / *$into::<u64>::SCALING_FACTOR.numerator() as u64
+                        / *$big::<u64>::SCALING_FACTOR.denominator() as u64
+                        ) as u64)
+                    )
+                );
+            )+
+
+            test_into_smaller!($($big),+);
+        };
     }
-
-    #[test]
-    fn into_seconds() {
-        // From
-        assert_eq!(Seconds::<u64>::from(Minutes(60_u32)), Seconds(3_600_u64));
-        assert_eq!(Seconds::<u64>::from(Hours(1_u32)), Seconds(3_600_u64));
-
-        // Into
-        let seconds: Seconds<u64> = Hours(1_u32).into();
-        assert_eq!(seconds, Seconds(3_600_u64));
-
-        let seconds: Seconds<u64> = Minutes(60_u32).into();
-        assert_eq!(seconds, Seconds(3_600_u64));
-    }
-
-    #[test]
-    fn into_milliseconds() {
-        // From
-        assert_eq!(
-            Milliseconds::<u64>::from(Seconds(3_600_u32)),
-            Milliseconds(3_600_000_u64)
-        );
-        assert_eq!(
-            Milliseconds::<u64>::from(Minutes(60_u32)),
-            Milliseconds(3_600_000_u64)
-        );
-        assert_eq!(
-            Milliseconds::<u64>::from(Hours(1_u32)),
-            Milliseconds(3_600_000_u64)
-        );
-
-        // Into
-        let milliseconds: Milliseconds<u64> = Hours(1_u32).into();
-        assert_eq!(milliseconds, Milliseconds(3_600_000_u64));
-
-        let milliseconds: Milliseconds<u64> = Minutes(60_u32).into();
-        assert_eq!(milliseconds, Milliseconds(3_600_000_u64));
-
-        let milliseconds: Milliseconds<u64> = Seconds(3_600_u32).into();
-        assert_eq!(milliseconds, Milliseconds(3_600_000_u64));
-    }
-
-    #[test]
-    fn into_microseconds() {
-        // From
-        assert_eq!(
-            Microseconds::<u64>::from(Milliseconds(3_600_000_u32)),
-            Microseconds(3_600_000_000_u64)
-        );
-        assert_eq!(
-            Microseconds::<u64>::from(Seconds(3_600_u32)),
-            Microseconds(3_600_000_000_u64)
-        );
-        assert_eq!(
-            Microseconds::<u64>::from(Minutes(60_u32)),
-            Microseconds(3_600_000_000_u64)
-        );
-        assert_eq!(
-            Microseconds::<u64>::from(Hours(1_u32)),
-            Microseconds(3_600_000_000_u64)
-        );
-
-        // Into
-        let microseconds: Microseconds<u64> = Hours(1_u32).into();
-        assert_eq!(microseconds, Microseconds(3_600_000_000_u64));
-
-        let microseconds: Microseconds<u64> = Minutes(60_u32).into();
-        assert_eq!(microseconds, Microseconds(3_600_000_000_u64));
-
-        let microseconds: Microseconds<u64> = Seconds(3_600_u32).into();
-        assert_eq!(microseconds, Microseconds(3_600_000_000_u64));
-
-        let microseconds: Microseconds<u64> = Milliseconds(3_600_000_u32).into();
-        assert_eq!(microseconds, Microseconds(3_600_000_000_u64));
-    }
-
-    #[test]
-    fn into_nanoseconds() {
-        // From
-        assert_eq!(
-            Nanoseconds::<u64>::from(Microseconds(1_000_000_u32)),
-            Nanoseconds(1_000_000_000_u64)
-        );
-        assert_eq!(
-            Nanoseconds::<u64>::from(Milliseconds(1_000_u32)),
-            Nanoseconds(1_000_000_000_u64)
-        );
-        assert_eq!(
-            Nanoseconds::<u64>::from(Seconds(1_u32)),
-            Nanoseconds(1_000_000_000_u64)
-        );
-        assert_eq!(
-            Nanoseconds::<u64>::from(Minutes(1_u32)),
-            Nanoseconds(60_000_000_000_u64)
-        );
-        assert_eq!(
-            Nanoseconds::<u64>::from(Hours(1_u32)),
-            Nanoseconds(3_600_000_000_000_u64)
-        );
-
-        // Into
-        let nanoseconds: Nanoseconds<u64> = Hours(1_u32).into();
-        assert_eq!(nanoseconds, Nanoseconds(3_600_000_000_000_u64));
-
-        let nanoseconds: Nanoseconds<u64> = Minutes(60_u32).into();
-        assert_eq!(nanoseconds, Nanoseconds(3_600_000_000_000_u64));
-
-        let nanoseconds: Nanoseconds<u64> = Seconds(3_600_u32).into();
-        assert_eq!(nanoseconds, Nanoseconds(3_600_000_000_000_u64));
-
-        let nanoseconds: Nanoseconds<u64> = Milliseconds(3_600_000_u32).into();
-        assert_eq!(nanoseconds, Nanoseconds(3_600_000_000_000_u64));
-
-        let nanoseconds: Nanoseconds<u64> = Microseconds(3_600_000_000_u32).into();
-        assert_eq!(nanoseconds, Nanoseconds(3_600_000_000_000_u64));
-    }
+    test_into_smaller![Milliseconds, Seconds, Minutes, Hours];
+    test_into_smaller![Nanoseconds, Microseconds, Milliseconds, Seconds];
 }
 
 #[test]
