@@ -106,49 +106,15 @@ pub trait FixedPoint: Sized + Copy + fmt::Display {
     where
         Self: TryFrom<Rhs>,
     {
-        let rhs = *Self::try_from(rhs).ok().unwrap().integer();
-
-        if rhs > Self::T::from(0) {
-            Self::new(*self.integer() % rhs)
-        } else {
-            Self::new(Self::T::from(0))
-        }
-    }
-
-    /// Panicky equality
-    #[doc(hidden)]
-    fn eq<Rhs: FixedPoint>(&self, rhs: &Rhs) -> bool
-    where
-        Self: TryFrom<Rhs>,
-        Rhs: TryFrom<Self>,
-    {
-        if Self::SCALING_FACTOR < Rhs::SCALING_FACTOR {
-            self.integer() == Self::try_from(*rhs).ok().unwrap().integer()
-        } else {
-            Rhs::try_from(*self).ok().unwrap().integer() == rhs.integer()
-        }
-    }
-
-    /// Panicky comparison
-    #[doc(hidden)]
-    fn partial_cmp<Rhs: FixedPoint>(&self, rhs: &Rhs) -> Option<core::cmp::Ordering>
-    where
-        Self: TryFrom<Rhs>,
-        Rhs: TryFrom<Self>,
-    {
-        if Self::SCALING_FACTOR < Rhs::SCALING_FACTOR {
-            Some(
-                self.integer()
-                    .cmp(&Self::try_from(*rhs).ok().unwrap().integer()),
-            )
-        } else {
-            Some(
-                Rhs::try_from(*self)
-                    .ok()
-                    .unwrap()
-                    .integer()
-                    .cmp(&rhs.integer()),
-            )
+        match Self::try_from(rhs) {
+            Ok(rhs) => {
+                if *rhs.integer() > Self::T::from(0) {
+                    Self::new(*self.integer() % *rhs.integer())
+                } else {
+                    Self::new(Self::T::from(0))
+                }
+            }
+            Err(_) => self,
         }
     }
 
