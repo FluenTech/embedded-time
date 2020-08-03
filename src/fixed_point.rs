@@ -226,4 +226,18 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::duration::*;
+    use crate::fixed_point;
+
+    #[test]
+    fn from_ticks() {
+        assert_eq!(
+            fixed_point::from_ticks(200_u32, Fraction::new(1, 1_000)),
+            Ok(Milliseconds(200_u64))
+        );
+        assert_eq!(
+            fixed_point::from_ticks(200_u32, Fraction::new(1_000, 1)),
+            Ok(Seconds(200_000_u64))
+        );
+    }
 }
