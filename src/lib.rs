@@ -66,7 +66,6 @@
 //! - [`RTIC`](https://github.com/rtic-rs/cortex-m-rtic)
 //! - [`time`](https://docs.rs/time/latest/time) (Specifically the [`time::NumbericalDuration`](https://docs.rs/time/latest/time/trait.NumericalDuration.html)
 //!   implementations for primitive integers)
-//!
 
 #![deny(unsafe_code)]
 #![cfg_attr(not(test), no_std)]

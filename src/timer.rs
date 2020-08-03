@@ -82,7 +82,7 @@ impl<'a, Type, Clock: crate::Clock, Dur: Duration> Timer<'a, Type, Armed, Clock,
         Ok(Timer::<Type, Running, Clock, Dur> {
             clock: self.clock,
             duration: self.duration,
-            expiration: self.clock.try_now()?.checked_add_duration(self.duration)?,
+            expiration: self.clock.try_now()?.checked_add(self.duration)?,
             _type: PhantomData,
             _state: PhantomData,
         })
@@ -105,9 +105,11 @@ impl<Type, Clock: crate::Clock, Dur: Duration> Timer<'_, Type, Running, Clock, D
         Dur::T: TryFrom<Clock::T>,
         Clock::T: TryFrom<Dur::T>,
     {
-        Ok(Dur::try_from(self.clock.try_now()?.duration_since(
-            &(self.expiration.checked_sub_duration(self.duration)?),
-        )?)?)
+        Ok(Dur::try_from(
+            self.clock
+                .try_now()?
+                .checked_duration_since(&(self.expiration.checked_sub(self.duration)?))?,
+        )?)
     }
 
     /// Returns the [`Duration`] until the expiration of the timer
@@ -121,7 +123,10 @@ impl<Type, Clock: crate::Clock, Dur: Duration> Timer<'_, Type, Running, Clock, D
         Dur::T: TryFrom<u32> + TryFrom<Clock::T>,
         Clock::T: TryFrom<Dur::T>,
     {
-        match self.expiration.duration_since(&self.clock.try_now()?) {
+        match self
+            .expiration
+            .checked_duration_since(&self.clock.try_now()?)
+        {
             Ok(duration) => Ok(Dur::try_from(duration)?),
             Err(error) if error == ConversionError::NegDuration => {
                 Ok(Dur::new(Dur::T::from(0_u32)))
