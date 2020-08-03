@@ -39,7 +39,7 @@ fn construction() {
 }
 
 #[test]
-fn comparison() {
+fn comparisons() {
     assert_ne!(2_001_u32.Hz(), 2_u32.kHz());
     assert_ne!(2_001_u32.Hz(), 2_u64.kHz());
     assert_ne!(2_001_u64.Hz(), 2_u32.kHz());
@@ -48,10 +48,50 @@ fn comparison() {
     assert!(5_u32.KiBps() > 5_u32.kBps());
     assert!(5_u32.KiBps() > 40_u32.kbps());
     assert_eq!(8_u32.Kibps(), 1_u32.KiBps());
+
+    assert!(Kilohertz(5_u32) < Kilohertz(u64::MAX));
+    assert!(Kilohertz(u64::MAX) > Kilohertz(5_u32));
+
+    assert!(Hertz(5_u32) < Kilohertz(u64::MAX));
+    assert!(Kilohertz(u64::MAX) > Hertz(5_u32));
+
+    assert!(Kilohertz(5_u32) < Hertz(u64::MAX));
+    assert!(Hertz(u64::MAX) > Kilohertz(5_u32));
+
+    assert_ne!(Kilohertz(5_u32), Kilohertz(u64::MAX));
+    assert_ne!(Kilohertz(u64::MAX), Kilohertz(5_u32));
 }
 
 #[test]
-fn try_from_generic() {
+fn add() {
+    assert_eq!((Kilohertz(1_u32) + Megahertz(1_u32)), Kilohertz(1_001_u32));
+}
+
+#[test]
+fn sub() {
+    assert_eq!(
+        (Kilohertz(2_001_u32) - Megahertz(1_u32)),
+        Kilohertz(1_001_u32)
+    );
+
+    assert_eq!(
+        (Kibihertz(u32::MAX) - Mebihertz(1_u32)),
+        Kibihertz(u32::MAX - 1_024)
+    );
+}
+
+#[test]
+fn rem() {
+    assert_eq!(100_u32.bps() % u64::MAX.MiBps(), 100_u32.bps());
+    assert_eq!(10_020_u32.Bps() % 1_u64.kBps(), 20_u32.Bps());
+
+    assert_eq!(Hertz(456_u32) % Hertz(100_u32), Hertz(56_u32));
+    assert_eq!(Hertz(2_003_u32) % Kilohertz(1_u32), Hertz(3_u32));
+    assert_eq!(Kilohertz(40_u32) % Hertz(100_u32), Kilohertz(0_u32));
+}
+
+#[test]
+fn from_generic() {
     assert_eq!(
         Hertz::try_from(rate::Generic::new(246_u32, Fraction::new(1, 2))),
         Ok(Hertz(123_u32))
@@ -64,13 +104,18 @@ fn to_generic() {
         Hertz(123_u32).to_generic(Fraction::new(1, 2)),
         Ok(rate::Generic::new(246_u32, Fraction::new(1, 2)))
     );
-}
 
-#[test]
-fn try_into_generic_err() {
+    // Overflow error
     assert_eq!(
         Hertz(u32::MAX).to_generic::<u32>(Fraction::new(1, 2)),
         Err(ConversionError::Overflow)
+    );
+
+    // From named
+    let generic: rate::Generic<u32> = 123_u32.Kibps().into();
+    assert_eq!(
+        generic,
+        rate::Generic::new(123_u32, Fraction::new(1_024, 1))
     );
 }
 
@@ -81,23 +126,32 @@ fn get_generic_integer() {
 }
 
 #[test]
-fn remainder() {
-    assert_eq!(Hertz(456_u32) % Hertz(100_u32), Hertz(56_u32));
-    assert_eq!(Hertz(2_003_u32) % Kilohertz(1_u32), Hertz(3_u32));
-    assert_eq!(Kilohertz(40_u32) % Hertz(100_u32), Kilohertz(0_u32));
-}
-
-#[test]
 fn convert_to_duration() {
     assert_eq!(Hertz(500_u32).to_duration(), Ok(Milliseconds(2_u32)));
     assert_eq!(Kilohertz(500_u32).to_duration(), Ok(Microseconds(2_u32)));
+
+    // Errors
+    assert_eq!(
+        Megahertz(u32::MAX).to_duration::<Hours<u32>>(),
+        Err(ConversionError::Overflow)
+    );
+    assert_eq!(
+        Hertz(0_u32).to_duration::<Seconds<u32>>(),
+        Err(ConversionError::DivByZero)
+    );
+    assert_eq!(
+        Hertz(0_u32).to_duration::<Seconds<u64>>(),
+        Err(ConversionError::DivByZero)
+    );
 }
 
 #[test]
 fn frequency_scaling() {
     assert_eq!(1_u32.Hz(), 1_u32.Hz());
     assert_eq!(1_u32.kHz(), 1_000_u32.Hz());
+    assert_eq!(1_u32.KiHz(), 1_024_u32.Hz());
     assert_eq!(1_u32.MHz(), 1_000_000_u32.Hz());
+    assert_eq!(1_u32.MiHz(), 1_048_576_u32.Hz());
 }
 
 #[test]
@@ -116,6 +170,8 @@ fn bits_per_second_scaling() {
     assert_eq!(1_u32.Kibps(), 1_024_u32.bps());
     assert_eq!(1_u32.Mbps(), 1_000_000_u32.bps());
     assert_eq!(1_u32.Mibps(), 1_048_576_u32.bps());
+
+    assert_eq!(1_u32.Bps(), 8_u32.bps());
 }
 
 #[test]
@@ -178,34 +234,36 @@ fn into_bigger() {
 }
 
 #[test]
-fn widen_integer() {
-    macro_rules! test_widen_integer {
+fn into_same() {
+    macro_rules! test_into_same {
         ($name:ident) => {
             assert_eq!($name::<u64>::from($name(500_u32)), $name(500_u64));
             let rate: $name<u64> = $name(500_u32).into();
             assert_eq!(rate, $name(500_u64));
+
+            assert_eq!($name::<u32>::try_from($name(500_u64)), Ok($name(500_u32)));
         };
     }
-    test_widen_integer![Mebihertz];
-    test_widen_integer![Megahertz];
-    test_widen_integer![Kibihertz];
-    test_widen_integer![Kilohertz];
-    test_widen_integer![Hertz];
-    test_widen_integer![MebibytesPerSecond];
-    test_widen_integer![MegabytesPerSecond];
-    test_widen_integer![KibibytesPerSecond];
-    test_widen_integer![KilobytesPerSecond];
-    test_widen_integer![BytesPerSecond];
-    test_widen_integer![MebibitsPerSecond];
-    test_widen_integer![MegabitsPerSecond];
-    test_widen_integer![KibibitsPerSecond];
-    test_widen_integer![KilobitsPerSecond];
-    test_widen_integer![BitsPerSecond];
-    test_widen_integer![Mebibaud];
-    test_widen_integer![Megabaud];
-    test_widen_integer![Kibibaud];
-    test_widen_integer![Kilobaud];
-    test_widen_integer![Baud];
+    test_into_same![Mebihertz];
+    test_into_same![Megahertz];
+    test_into_same![Kibihertz];
+    test_into_same![Kilohertz];
+    test_into_same![Hertz];
+    test_into_same![MebibytesPerSecond];
+    test_into_same![MegabytesPerSecond];
+    test_into_same![KibibytesPerSecond];
+    test_into_same![KilobytesPerSecond];
+    test_into_same![BytesPerSecond];
+    test_into_same![MebibitsPerSecond];
+    test_into_same![MegabitsPerSecond];
+    test_into_same![KibibitsPerSecond];
+    test_into_same![KilobitsPerSecond];
+    test_into_same![BitsPerSecond];
+    test_into_same![Mebibaud];
+    test_into_same![Megabaud];
+    test_into_same![Kibibaud];
+    test_into_same![Kilobaud];
+    test_into_same![Baud];
 }
 
 #[test]
