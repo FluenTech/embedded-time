@@ -13,8 +13,8 @@ pub enum Error<E> {
     Other(E),
 }
 
-/// The `Clock` trait provides an abstraction for hardware-specific timer peripherals, external timer
-/// devices, RTCs, etc.
+/// The `Clock` trait provides an abstraction for hardware-specific timer peripherals, external
+/// timer devices, RTCs, etc.
 ///
 /// The `Clock` is characterized by an inner unsigned integer storage type (either [`u32`] or
 /// [`u64`]), a [`u32`]/[`u32`] [`Fraction`] defining the duration (in seconds) of one
