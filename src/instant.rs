@@ -72,10 +72,10 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
     /// }
     ///
-    /// assert_eq!(Instant::<Clock>::new(5).duration_since(&Instant::<Clock>::new(3)).unwrap().try_into(),
+    /// assert_eq!(Instant::<Clock>::new(5).checked_duration_since(&Instant::<Clock>::new(3)).unwrap().try_into(),
     ///     Ok(Microseconds(2_000_u64)));
     ///
-    /// assert_eq!(Instant::<Clock>::new(3).duration_since(&Instant::<Clock>::new(5)),
+    /// assert_eq!(Instant::<Clock>::new(3).checked_duration_since(&Instant::<Clock>::new(5)),
     ///     Err(ConversionError::NegDuration));
     /// ```
     ///
@@ -89,7 +89,7 @@ impl<Clock: crate::Clock> Instant<Clock> {
     ///
     /// - [`ConversionError::ConversionFailure`] : problem coverting to the desired [`Duration`]
     // TODO: add example
-    pub fn duration_since(
+    pub fn checked_duration_since(
         &self,
         other: &Self,
     ) -> Result<duration::Generic<Clock::T>, ConversionError> {
@@ -120,10 +120,10 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
     /// }
     ///
-    /// assert_eq!(Instant::<Clock>::new(5).duration_until::<Microseconds<u64>>(&Instant::<Clock>::new(7)),
+    /// assert_eq!(Instant::<Clock>::new(5).checked_duration_until::<Microseconds<u64>>(&Instant::<Clock>::new(7)),
     ///     Ok(Microseconds(2_000_u64)));
     ///
-    /// assert_eq!(Instant::<Clock>::new(7).duration_until::<Microseconds<u64>>(&Instant::<Clock>::new(5)),
+    /// assert_eq!(Instant::<Clock>::new(7).checked_duration_until::<Microseconds<u64>>(&Instant::<Clock>::new(5)),
     ///     Err(ConversionError::NegDuration));
     /// ```
     ///
@@ -137,7 +137,10 @@ impl<Clock: crate::Clock> Instant<Clock> {
     ///
     /// - [`ConversionError::ConversionFailure`] : problem coverting to the desired [`Duration`]
     // TODO: add example
-    pub fn duration_until<Dur: Duration>(&self, other: &Self) -> Result<Dur, ConversionError>
+    pub fn checked_duration_until<Dur: Duration>(
+        &self,
+        other: &Self,
+    ) -> Result<Dur, ConversionError>
     where
         Dur: FixedPoint + TryFrom<duration::Generic<Clock::T>, Error = ConversionError>,
         Dur::T: TryFrom<Clock::T>,
@@ -157,7 +160,7 @@ impl<Clock: crate::Clock> Instant<Clock> {
     ///
     /// If it is a _wrapping_ clock, the result is meaningless.
     pub fn duration_since_epoch(&self) -> duration::Generic<Clock::T> {
-        self.duration_since(&Self {
+        self.checked_duration_since(&Self {
             ticks: Clock::T::from(0),
         })
         .ok()
@@ -205,10 +208,10 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
     /// }
     ///
-    /// assert_eq!(Instant::<Clock>::new(0).checked_add_duration(Milliseconds(u32::MAX/2 + 1)),
+    /// assert_eq!(Instant::<Clock>::new(0).checked_add(Milliseconds(u32::MAX/2 + 1)),
     ///     Err(ConversionError::Overflow));
     /// ```
-    pub fn checked_add_duration<Dur: Duration>(self, duration: Dur) -> Result<Self, ConversionError>
+    pub fn checked_add<Dur: Duration>(self, duration: Dur) -> Result<Self, ConversionError>
     where
         Dur: FixedPoint,
         Clock::T: TryFrom<Dur::T>,
@@ -264,10 +267,10 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
     /// }
     ///
-    /// assert_eq!(Instant::<Clock>::new(u32::MAX).checked_sub_duration(Milliseconds(u32::MAX/2 + 1)),
+    /// assert_eq!(Instant::<Clock>::new(u32::MAX).checked_sub(Milliseconds(u32::MAX/2 + 1)),
     ///     Err(ConversionError::Overflow));
     /// ```
-    pub fn checked_sub_duration<Dur: Duration>(self, duration: Dur) -> Result<Self, ConversionError>
+    pub fn checked_sub<Dur: Duration>(self, duration: Dur) -> Result<Self, ConversionError>
     where
         Dur: FixedPoint,
         Clock::T: TryFrom<Dur::T>,
@@ -388,7 +391,7 @@ where
     /// Instant::<Clock>::new(0) + Milliseconds(u32::MAX/2 + 1);
     /// ```
     fn add(self, rhs: Dur) -> Self::Output {
-        self.checked_add_duration(rhs).ok().unwrap()
+        self.checked_add(rhs).ok().unwrap()
     }
 }
 
@@ -448,7 +451,7 @@ where
     /// Instant::<Clock>::new(u32::MAX) - Milliseconds(u32::MAX/2 + 1);
     /// ```
     fn sub(self, rhs: Dur) -> Self::Output {
-        self.checked_sub_duration(rhs).ok().unwrap()
+        self.checked_sub(rhs).ok().unwrap()
     }
 }
 
