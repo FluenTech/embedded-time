@@ -2,7 +2,7 @@ use embedded_time::{
     self as time,
     duration::{self, *},
     fraction::Fraction,
-    ConversionError, Instant,
+    Instant,
 };
 
 #[derive(Debug)]
@@ -23,11 +23,11 @@ fn duration_since() {
     let diff = Instant::<Clock>::new(5).checked_duration_since(&Instant::<Clock>::new(3));
     assert_eq!(
         diff,
-        Ok(duration::Generic::new(2_u32, Fraction::new(1, 1_000)))
+        Some(duration::Generic::new(2_u32, Fraction::new(1, 1_000)))
     );
 
     let diff = Instant::<Clock>::new(5).checked_duration_since(&Instant::<Clock>::new(6));
-    assert_eq!(diff, Err(ConversionError::NegDuration));
+    assert_eq!(diff, None);
 }
 
 #[test]

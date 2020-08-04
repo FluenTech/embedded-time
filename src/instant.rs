@@ -3,7 +3,6 @@
 use crate::{
     duration::{self, Duration},
     fixed_point::FixedPoint,
-    ConversionError,
 };
 use core::{cmp::Ordering, convert::TryFrom, ops};
 use num::traits::{WrappingAdd, WrappingSub};
@@ -54,12 +53,13 @@ impl<Clock: crate::Clock> Instant<Clock> {
         Self { ticks }
     }
 
-    /// Returns the amount of time elapsed from another instant to this one, or None if that instant is later than this one.
+    /// Returns the amount of time elapsed from another instant to this one, or None if that instant
+    /// is later than this one.
     ///
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{Clock as _, duration::*, fraction::Fraction, rate::*, Instant, ConversionError};
+    /// # use embedded_time::{Clock as _, duration::*, fraction::Fraction, Instant, ConversionError};
     /// # use core::convert::TryInto;
     /// # #[derive(Debug)]
     /// struct Clock;
@@ -75,40 +75,26 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// assert_eq!(Instant::<Clock>::new(5).checked_duration_since(&Instant::<Clock>::new(3)).unwrap().try_into(),
     ///     Ok(Microseconds(2_000_u64)));
     ///
-    /// assert_eq!(Instant::<Clock>::new(3).checked_duration_since(&Instant::<Clock>::new(5)),
-    ///     Err(ConversionError::NegDuration));
+    /// assert_eq!(Instant::<Clock>::new(3).checked_duration_since(&Instant::<Clock>::new(5)), None);
     /// ```
-    ///
-    /// # Errors
-    ///
-    /// - [`ConversionError::NegDuration`] : `Instant` is in the future
-    // TODO: add example
-    ///
-    /// - [`ConversionError::Overflow`] : problem coverting to the desired [`Duration`]
-    // TODO: add example
-    ///
-    /// - [`ConversionError::ConversionFailure`] : problem coverting to the desired [`Duration`]
-    // TODO: add example
-    pub fn checked_duration_since(
-        &self,
-        other: &Self,
-    ) -> Result<duration::Generic<Clock::T>, ConversionError> {
+    pub fn checked_duration_since(&self, other: &Self) -> Option<duration::Generic<Clock::T>> {
         if self >= other {
-            Ok(duration::Generic::new(
+            Some(duration::Generic::new(
                 self.ticks.wrapping_sub(&other.ticks),
                 Clock::SCALING_FACTOR,
             ))
         } else {
-            Err(ConversionError::NegDuration)
+            None
         }
     }
 
-    /// Returns the [`Duration`] until the given `Instant`
+    /// Returns the amount of time from this instant to another, or None if that instant is earlier
+    /// than this one.
     ///
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{fraction::Fraction, duration::*, rate::*, Instant, ConversionError};
+    /// # use embedded_time::{fraction::Fraction, duration::*, Instant, ConversionError};
     /// # use core::convert::TryInto;
     /// # #[derive(Debug)]
     /// struct Clock;
@@ -124,30 +110,16 @@ impl<Clock: crate::Clock> Instant<Clock> {
     ///     Ok(Microseconds(2_000_u64)));
     ///
     /// assert_eq!(Instant::<Clock>::new(7).checked_duration_until(&Instant::<Clock>::new(5)),
-    ///     Err(ConversionError::NegDuration));
+    ///     None);
     /// ```
-    ///
-    /// # Errors
-    ///
-    /// - [`ConversionError::NegDuration`] : `Instant` is in the past
-    // TODO: add example
-    ///
-    /// - [`ConversionError::Overflow`] : problem coverting to the desired [`Duration`]
-    // TODO: add example
-    ///
-    /// - [`ConversionError::ConversionFailure`] : problem coverting to the desired [`Duration`]
-    // TODO: add example
-    pub fn checked_duration_until(
-        &self,
-        other: &Self,
-    ) -> Result<duration::Generic<Clock::T>, ConversionError> {
+    pub fn checked_duration_until(&self, other: &Self) -> Option<duration::Generic<Clock::T>> {
         if self <= other {
-            Ok(duration::Generic::new(
+            Some(duration::Generic::new(
                 other.ticks.wrapping_sub(&self.ticks),
                 Clock::SCALING_FACTOR,
             ))
         } else {
-            Err(ConversionError::NegDuration)
+            None
         }
     }
 
@@ -159,12 +131,14 @@ impl<Clock: crate::Clock> Instant<Clock> {
         duration::Generic::new(self.ticks, Clock::SCALING_FACTOR)
     }
 
-    /// Add a [`Duration`] to an `Instant` resulting in a new, later `Instant`
+    /// This `Instant` + [`Duration`] = later (future) `Instant`
+    ///
+    /// Returns [`None`] if the [`Duration`] is too large
     ///
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{fraction::Fraction, duration::*, rate::*, Instant};
+    /// # use embedded_time::{fraction::Fraction, duration::*, Instant, ConversionError};
     /// # #[derive(Debug)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
@@ -175,55 +149,39 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
     /// }
     ///
-    /// assert_eq!(Instant::<Clock>::new(800) + Milliseconds(700_u32), Instant::<Clock>::new(1_500_u32));
-    /// assert_eq!(Instant::<Clock>::new(5_000) + Milliseconds(700_u64), Instant::<Clock>::new(5_700_u32));
+    /// assert_eq!(
+    ///     Instant::<Clock>::new(0).checked_add(Milliseconds(u32::MAX/2)),
+    ///     Some(Instant::<Clock>::new(u32::MAX/2))
+    /// );
     ///
-    /// // maximum duration allowed
-    /// assert_eq!(Instant::<Clock>::new(0) + Milliseconds(u32::MAX / 2),
-    /// Instant::<Clock>::new(u32::MAX/2));
+    /// assert_eq!(
+    ///     Instant::<Clock>::new(0).checked_add(Milliseconds(u32::MAX/2 + 1)),
+    ///     None
+    /// );
     /// ```
-    ///
-    /// # Errors
-    ///
-    /// [`ConversionError::Overflow`] : The duration is more than half the wrap-around period of the
-    /// clock
-    ///
-    /// ```rust
-    /// # use embedded_time::{fraction::Fraction, duration::*, rate::*, Instant, ConversionError};
-    /// # #[derive(Debug)]
-    /// struct Clock;
-    /// impl embedded_time::Clock for Clock {
-    ///     type T = u32;
-    /// # type ImplError = ();
-    ///     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
-    ///     // ...
-    /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
-    /// }
-    ///
-    /// assert_eq!(Instant::<Clock>::new(0).checked_add(Milliseconds(u32::MAX/2 + 1)),
-    ///     Err(ConversionError::Overflow));
-    /// ```
-    pub fn checked_add<Dur: Duration>(self, duration: Dur) -> Result<Self, ConversionError>
+    pub fn checked_add<Dur: Duration>(self, duration: Dur) -> Option<Self>
     where
         Dur: FixedPoint,
         Clock::T: TryFrom<Dur::T>,
     {
-        let add_ticks: Clock::T = duration.into_ticks(Clock::SCALING_FACTOR)?;
+        let add_ticks: Clock::T = duration.into_ticks(Clock::SCALING_FACTOR).ok()?;
         if add_ticks <= (<Clock::T as num::Bounded>::max_value() / 2.into()) {
-            Ok(Self {
+            Some(Self {
                 ticks: self.ticks.wrapping_add(&add_ticks),
             })
         } else {
-            Err(ConversionError::Overflow)
+            None
         }
     }
 
-    /// Subtracts a [`Duration`] from an `Instant` resulting in a new, earlier `Instant`
+    /// This `Instant` - [`Duration`] = earlier `Instant`
+    ///
+    /// Returns [`None`] if the [`Duration`] is too large
     ///
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{fraction::Fraction, duration::*, rate::*, Instant};
+    /// # use embedded_time::{fraction::Fraction, duration::*, Instant, ConversionError};
     /// # #[derive(Debug)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
@@ -234,46 +192,24 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
     /// }
     ///
-    /// assert_eq!(Instant::<Clock>::new(800) - Milliseconds(700_u32), Instant::<Clock>::new(100));
-    /// assert_eq!(Instant::<Clock>::new(5_000) - Milliseconds(700_u64), Instant::<Clock>::new(4_300));
-    ///
-    /// // maximum duration allowed
-    /// assert_eq!(Instant::<Clock>::new(u32::MAX) - Milliseconds(i32::MAX as u32),
-    /// Instant::<Clock>::new(u32::MAX/2 + 1));
-    /// ```
-    ///
-    /// # Errors
-    ///
-    /// [`ConversionError::Overflow`] : The duration is more than half the wrap-around period of the
-    /// clock
-    ///
-    /// ```rust
-    /// # use embedded_time::{fraction::Fraction, duration::*, rate::*, Instant, ConversionError};
-    /// # #[derive(Debug)]
-    /// struct Clock;
-    /// impl embedded_time::Clock for Clock {
-    ///     type T = u32;
-    /// # type ImplError = ();
-    ///     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
-    ///     // ...
-    /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
-    /// }
+    /// assert_eq!(Instant::<Clock>::new(u32::MAX).checked_sub(Milliseconds(u32::MAX/2)),
+    ///     Some(Instant::<Clock>::new(u32::MAX - u32::MAX/2)));
     ///
     /// assert_eq!(Instant::<Clock>::new(u32::MAX).checked_sub(Milliseconds(u32::MAX/2 + 1)),
-    ///     Err(ConversionError::Overflow));
+    ///     None);
     /// ```
-    pub fn checked_sub<Dur: Duration>(self, duration: Dur) -> Result<Self, ConversionError>
+    pub fn checked_sub<Dur: Duration>(self, duration: Dur) -> Option<Self>
     where
         Dur: FixedPoint,
         Clock::T: TryFrom<Dur::T>,
     {
-        let sub_ticks: Clock::T = duration.into_ticks(Clock::SCALING_FACTOR)?;
+        let sub_ticks: Clock::T = duration.into_ticks(Clock::SCALING_FACTOR).ok()?;
         if sub_ticks <= (<Clock::T as num::Bounded>::max_value() / 2.into()) {
-            Ok(Self {
+            Some(Self {
                 ticks: self.ticks.wrapping_sub(&sub_ticks),
             })
         } else {
-            Err(ConversionError::Overflow)
+            None
         }
     }
 }
@@ -298,7 +234,7 @@ impl<Clock: crate::Clock> PartialOrd for Instant<Clock> {
     /// Calculates the difference between two `Instant`s resulting in a [`Duration`]
     ///
     /// ```rust
-    /// # use embedded_time::{fraction::Fraction, duration::*, rate::*, Instant};
+    /// # use embedded_time::{fraction::Fraction, duration::*, Instant};
     /// # #[derive(Debug)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
@@ -339,7 +275,7 @@ where
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{fraction::Fraction, duration::*, rate::*, Instant};
+    /// # use embedded_time::{fraction::Fraction, duration::*, Instant};
     /// # #[derive(Debug)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
@@ -369,7 +305,7 @@ where
     /// the wrap-around period of the clock.
     ///
     /// ```rust,should_panic
-    /// # use embedded_time::{fraction::Fraction, duration::*, rate::*, Instant};
+    /// # use embedded_time::{fraction::Fraction, duration::*, Instant};
     /// # #[derive(Debug)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
@@ -383,7 +319,7 @@ where
     /// Instant::<Clock>::new(0) + Milliseconds(u32::MAX/2 + 1);
     /// ```
     fn add(self, rhs: Dur) -> Self::Output {
-        self.checked_add(rhs).ok().unwrap()
+        self.checked_add(rhs).unwrap()
     }
 }
 
@@ -399,7 +335,7 @@ where
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{fraction::Fraction, duration::*, rate::*, Instant};
+    /// # use embedded_time::{fraction::Fraction, duration::*, Instant};
     /// # #[derive(Debug)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
@@ -429,7 +365,7 @@ where
     /// the wrap-around period of the clock.
     ///
     /// ```rust,should_panic
-    /// # use embedded_time::{fraction::Fraction, duration::*, rate::*, Instant};
+    /// # use embedded_time::{fraction::Fraction, duration::*, Instant};
     /// # #[derive(Debug)]
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
@@ -443,7 +379,7 @@ where
     /// Instant::<Clock>::new(u32::MAX) - Milliseconds(u32::MAX/2 + 1);
     /// ```
     fn sub(self, rhs: Dur) -> Self::Output {
-        self.checked_sub(rhs).ok().unwrap()
+        self.checked_sub(rhs).unwrap()
     }
 }
 

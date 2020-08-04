@@ -1,3 +1,4 @@
+use crate::fraction::Fraction;
 use crate::{
     duration::{self, *},
     fixed_point::FixedPoint,
@@ -82,7 +83,11 @@ impl<'a, Type, Clock: crate::Clock, Dur: Duration> Timer<'a, Type, Armed, Clock,
         Ok(Timer::<Type, Running, Clock, Dur> {
             clock: self.clock,
             duration: self.duration,
-            expiration: self.clock.try_now()?.checked_add(self.duration)?,
+            expiration: self
+                .clock
+                .try_now()?
+                .checked_add(self.duration)
+                .ok_or(ConversionError::Overflow)?,
             _type: PhantomData,
             _state: PhantomData,
         })
@@ -105,11 +110,18 @@ impl<Type, Clock: crate::Clock, Dur: Duration> Timer<'_, Type, Running, Clock, D
         Dur::T: TryFrom<Clock::T>,
         Clock::T: TryFrom<Dur::T>,
     {
-        Ok(Dur::try_from(
-            self.clock
-                .try_now()?
-                .checked_duration_since(&(self.expiration.checked_sub(self.duration)?))?,
-        )?)
+        let generic_duration = self
+            .clock
+            .try_now()?
+            .checked_duration_since(
+                &(self
+                    .expiration
+                    .checked_sub(self.duration)
+                    .ok_or(ConversionError::Overflow)?),
+            )
+            .ok_or(TimeError::Overflow)?;
+
+        Ok(Dur::try_from(generic_duration)?)
     }
 
     /// Returns the [`Duration`] until the expiration of the timer
@@ -123,16 +135,18 @@ impl<Type, Clock: crate::Clock, Dur: Duration> Timer<'_, Type, Running, Clock, D
         Dur::T: TryFrom<u32> + TryFrom<Clock::T>,
         Clock::T: TryFrom<Dur::T>,
     {
-        match self
+        let result = self
             .expiration
             .checked_duration_since(&self.clock.try_now()?)
-        {
-            Ok(duration) => Ok(Dur::try_from(duration)?),
-            Err(error) if error == ConversionError::NegDuration => {
-                Ok(Dur::new(Dur::T::from(0_u32)))
-            }
-            Err(error) => Err(error.into()),
-        }
+            .or_else(|| {
+                Some(duration::Generic::<Clock::T>::new(
+                    0.into(),
+                    Fraction::default(),
+                ))
+            })
+            .ok_or(TimeError::NegDuration)?;
+
+        Ok(Dur::try_from(result)?)
     }
 }
 
