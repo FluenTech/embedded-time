@@ -1,4 +1,9 @@
-use embedded_time::{self as time, duration, fraction::Fraction, ConversionError, Instant};
+use embedded_time::{
+    self as time,
+    duration::{self, *},
+    fraction::Fraction,
+    ConversionError, Instant,
+};
 
 #[derive(Debug)]
 struct Clock;
@@ -23,4 +28,12 @@ fn duration_since() {
 
     let diff = Instant::<Clock>::new(5).checked_duration_since(&Instant::<Clock>::new(6));
     assert_eq!(diff, Err(ConversionError::NegDuration));
+}
+
+#[test]
+fn duration_since_epoch() {
+    assert_eq!(
+        Instant::<Clock>::new(u32::MAX).duration_since_epoch(),
+        duration::Generic::from(Milliseconds(u32::MAX))
+    );
 }
