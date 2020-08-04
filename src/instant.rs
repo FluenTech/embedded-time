@@ -54,7 +54,7 @@ impl<Clock: crate::Clock> Instant<Clock> {
         Self { ticks }
     }
 
-    /// Returns the [`Duration`] since the given `Instant`
+    /// Returns the amount of time elapsed from another instant to this one, or None if that instant is later than this one.
     ///
     /// # Examples
     ///
@@ -156,11 +156,7 @@ impl<Clock: crate::Clock> Instant<Clock> {
     ///
     /// If it is a _wrapping_ clock, the result is meaningless.
     pub fn duration_since_epoch(&self) -> duration::Generic<Clock::T> {
-        self.checked_duration_since(&Self {
-            ticks: Clock::T::from(0),
-        })
-        .ok()
-        .unwrap()
+        duration::Generic::new(self.ticks, Clock::SCALING_FACTOR)
     }
 
     /// Add a [`Duration`] to an `Instant` resulting in a new, later `Instant`
