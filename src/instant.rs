@@ -109,8 +109,8 @@ impl<Clock: crate::Clock> Instant<Clock> {
     ///
     /// ```rust
     /// # use embedded_time::{fraction::Fraction, duration::*, rate::*, Instant, ConversionError};
+    /// # use core::convert::TryInto;
     /// # #[derive(Debug)]
-    /// #
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type T = u32;
@@ -120,10 +120,10 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
     /// }
     ///
-    /// assert_eq!(Instant::<Clock>::new(5).checked_duration_until::<Microseconds<u64>>(&Instant::<Clock>::new(7)),
+    /// assert_eq!(Instant::<Clock>::new(5).checked_duration_until(&Instant::<Clock>::new(7)).unwrap().try_into(),
     ///     Ok(Microseconds(2_000_u64)));
     ///
-    /// assert_eq!(Instant::<Clock>::new(7).checked_duration_until::<Microseconds<u64>>(&Instant::<Clock>::new(5)),
+    /// assert_eq!(Instant::<Clock>::new(7).checked_duration_until(&Instant::<Clock>::new(5)),
     ///     Err(ConversionError::NegDuration));
     /// ```
     ///
@@ -137,16 +137,12 @@ impl<Clock: crate::Clock> Instant<Clock> {
     ///
     /// - [`ConversionError::ConversionFailure`] : problem coverting to the desired [`Duration`]
     // TODO: add example
-    pub fn checked_duration_until<Dur: Duration>(
+    pub fn checked_duration_until(
         &self,
         other: &Self,
-    ) -> Result<Dur, ConversionError>
-    where
-        Dur: FixedPoint + TryFrom<duration::Generic<Clock::T>, Error = ConversionError>,
-        Dur::T: TryFrom<Clock::T>,
-    {
+    ) -> Result<duration::Generic<Clock::T>, ConversionError> {
         if self <= other {
-            Dur::try_from(duration::Generic::new(
+            Ok(duration::Generic::new(
                 other.ticks.wrapping_sub(&self.ticks),
                 Clock::SCALING_FACTOR,
             ))
