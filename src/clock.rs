@@ -4,6 +4,7 @@ use crate::{
     duration::Duration, fixed_point::FixedPoint, fraction::Fraction, instant::Instant,
     time_int::TimeInt, timer::param, timer::Timer,
 };
+use core::hash::Hash;
 
 /// Potential `Clock` errors
 #[non_exhaustive]
@@ -33,7 +34,7 @@ impl Default for Error {
 /// software [`Timer`]s can be spawned from a `Clock` object.
 pub trait Clock: Sized {
     /// The type to hold the tick count
-    type T: TimeInt;
+    type T: TimeInt + Hash;
 
     /// The duration of one clock tick in seconds, AKA the clock precision.
     const SCALING_FACTOR: Fraction;
