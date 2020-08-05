@@ -386,7 +386,8 @@ pub trait Duration: Sized + Copy {
         Rate::T: TryFrom<Self::T>,
     {
         let conversion_factor = Self::SCALING_FACTOR
-            .checked_mul(&Rate::SCALING_FACTOR)?
+            .checked_mul(&Rate::SCALING_FACTOR)
+            .ok_or(ConversionError::Unspecified)?
             .recip();
 
         if size_of::<Self::T>() >= size_of::<Rate::T>() {
