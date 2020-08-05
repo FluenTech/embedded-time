@@ -59,9 +59,11 @@ pub trait FixedPoint: Sized + Copy + fmt::Display {
 
             if fraction > Fraction::new(1, 1) {
                 TimeInt::checked_div_fraction(
-                    &TimeInt::checked_mul_fraction(&ticks, &Self::SCALING_FACTOR)?,
+                    &TimeInt::checked_mul_fraction(&ticks, &Self::SCALING_FACTOR)
+                        .ok_or(ConversionError::Unspecified)?,
                     &fraction,
                 )
+                .ok_or(ConversionError::Unspecified)
             } else {
                 TimeInt::checked_mul_fraction(
                     &ticks,
@@ -69,20 +71,24 @@ pub trait FixedPoint: Sized + Copy + fmt::Display {
                         .checked_div(&fraction)
                         .ok_or(ConversionError::Unspecified)?,
                 )
+                .ok_or(ConversionError::Unspecified)
             }
         } else {
             let ticks = if Self::SCALING_FACTOR > Fraction::new(1, 1) {
                 TimeInt::checked_div_fraction(
-                    &TimeInt::checked_mul_fraction(self.integer(), &Self::SCALING_FACTOR)?,
+                    &TimeInt::checked_mul_fraction(self.integer(), &Self::SCALING_FACTOR)
+                        .ok_or(ConversionError::Unspecified)?,
                     &fraction,
-                )?
+                )
+                .ok_or(ConversionError::Unspecified)?
             } else {
                 TimeInt::checked_mul_fraction(
                     self.integer(),
                     &Self::SCALING_FACTOR
                         .checked_div(&fraction)
                         .ok_or(ConversionError::Unspecified)?,
-                )?
+                )
+                .ok_or(ConversionError::Unspecified)?
             };
 
             T::try_from(ticks).map_err(|_| ConversionError::ConversionFailure)
@@ -164,9 +170,11 @@ where
             // pure integer value can be calculated first followed by division by the
             // dest scaling factor.
             TimeInt::checked_div_fraction(
-                &TimeInt::checked_mul_fraction(&ticks, &scaling_factor)?,
+                &TimeInt::checked_mul_fraction(&ticks, &scaling_factor)
+                    .ok_or(ConversionError::Unspecified)?,
                 &Dest::SCALING_FACTOR,
-            )?
+            )
+            .ok_or(ConversionError::Unspecified)?
         } else {
             // If the source scaling factor is <= 1, the relative ratio of the scaling factors are
             // calculated first by dividing the source scaling factor by that of the
@@ -176,28 +184,34 @@ where
                 &scaling_factor
                     .checked_div(&Dest::SCALING_FACTOR)
                     .ok_or(ConversionError::Unspecified)?,
-            )?
+            )
+            .ok_or(ConversionError::Unspecified)?
         };
 
         Ok(Dest::new(ticks))
     } else {
         let ticks = if scaling_factor > Fraction::new(1, 1) {
             TimeInt::checked_div_fraction(
-                &TimeInt::checked_mul_fraction(&ticks, &scaling_factor)?,
+                &TimeInt::checked_mul_fraction(&ticks, &scaling_factor)
+                    .ok_or(ConversionError::Unspecified)?,
                 &Dest::SCALING_FACTOR,
-            )?
+            )
+            .ok_or(ConversionError::Unspecified)?
         } else if Dest::SCALING_FACTOR > Fraction::new(1, 1) {
             TimeInt::checked_mul_fraction(
-                &TimeInt::checked_div_fraction(&ticks, &Dest::SCALING_FACTOR)?,
+                &TimeInt::checked_div_fraction(&ticks, &Dest::SCALING_FACTOR)
+                    .ok_or(ConversionError::Unspecified)?,
                 &scaling_factor,
-            )?
+            )
+            .ok_or(ConversionError::Unspecified)?
         } else {
             TimeInt::checked_mul_fraction(
                 &ticks,
                 &scaling_factor
                     .checked_div(&Dest::SCALING_FACTOR)
                     .ok_or(ConversionError::Unspecified)?,
-            )?
+            )
+            .ok_or(ConversionError::Unspecified)?
         };
 
         let ticks = Dest::T::try_from(ticks).map_err(|_| ConversionError::ConversionFailure)?;

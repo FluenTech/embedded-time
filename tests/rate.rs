@@ -108,7 +108,7 @@ fn to_generic() {
     // Overflow error
     assert_eq!(
         Hertz(u32::MAX).to_generic::<u32>(Fraction::new(1, 2)),
-        Err(ConversionError::Overflow)
+        Err(ConversionError::Unspecified)
     );
 
     // From named
