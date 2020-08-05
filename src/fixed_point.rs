@@ -63,7 +63,12 @@ pub trait FixedPoint: Sized + Copy + fmt::Display {
                     &fraction,
                 )
             } else {
-                TimeInt::checked_mul_fraction(&ticks, &Self::SCALING_FACTOR.checked_div(&fraction)?)
+                TimeInt::checked_mul_fraction(
+                    &ticks,
+                    &Self::SCALING_FACTOR
+                        .checked_div(&fraction)
+                        .ok_or(ConversionError::Unspecified)?,
+                )
             }
         } else {
             let ticks = if Self::SCALING_FACTOR > Fraction::new(1, 1) {
@@ -74,7 +79,9 @@ pub trait FixedPoint: Sized + Copy + fmt::Display {
             } else {
                 TimeInt::checked_mul_fraction(
                     self.integer(),
-                    &Self::SCALING_FACTOR.checked_div(&fraction)?,
+                    &Self::SCALING_FACTOR
+                        .checked_div(&fraction)
+                        .ok_or(ConversionError::Unspecified)?,
                 )?
             };
 
@@ -166,7 +173,9 @@ where
             // dest. The source integer part is then multiplied by the result.
             TimeInt::checked_mul_fraction(
                 &ticks,
-                &scaling_factor.checked_div(&Dest::SCALING_FACTOR)?,
+                &scaling_factor
+                    .checked_div(&Dest::SCALING_FACTOR)
+                    .ok_or(ConversionError::Unspecified)?,
             )?
         };
 
@@ -185,7 +194,9 @@ where
         } else {
             TimeInt::checked_mul_fraction(
                 &ticks,
-                &scaling_factor.checked_div(&Dest::SCALING_FACTOR)?,
+                &scaling_factor
+                    .checked_div(&Dest::SCALING_FACTOR)
+                    .ok_or(ConversionError::Unspecified)?,
             )?
         };
 
