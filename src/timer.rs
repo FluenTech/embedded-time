@@ -8,25 +8,25 @@ use crate::{
 use core::{convert::TryFrom, marker::PhantomData, ops::Add, prelude::v1::*};
 
 pub(crate) mod param {
-    #[derive(Debug)]
+    #[derive(Debug, Hash)]
     pub struct None;
 
-    #[derive(Debug)]
+    #[derive(Debug, Hash)]
     pub struct Armed;
 
-    #[derive(Debug)]
+    #[derive(Debug, Hash)]
     pub struct Running;
 
-    #[derive(Debug)]
+    #[derive(Debug, Hash)]
     pub struct Periodic;
 
-    #[derive(Debug)]
+    #[derive(Debug, Hash)]
     pub struct OneShot;
 }
 
 /// A `Timer` counts toward an expiration, can be polled for elapsed and remaining time, and can be
 /// one-shot or continuous/periodic.
-#[derive(Debug)]
+#[derive(Debug, Hash)]
 pub struct Timer<'a, Type, State, Clock: crate::Clock, Dur: Duration> {
     clock: &'a Clock,
     duration: Dur,
