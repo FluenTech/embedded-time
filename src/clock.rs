@@ -9,6 +9,8 @@ use crate::{
 #[non_exhaustive]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub enum Error {
+    /// Exact cause of failure is unknown
+    Unspecified,
     /// The clock has either stopped or never started
     NotRunning,
 }
@@ -34,7 +36,8 @@ pub trait Clock: Sized {
     ///
     /// # Errors
     ///
-    /// [`Error::NotRunning`]
+    /// - [`Error::NotRunning`]
+    /// - [`Error::Unspecified`]
     fn try_now(&self) -> Result<Instant<Self>, Error>;
 
     /// Spawn a new, `OneShot` [`Timer`] from this clock
