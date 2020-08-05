@@ -12,8 +12,8 @@
 //! ```rust
 //! use embedded_time::duration::*;    // imports all duration-related types and traits
 //! use embedded_time::rate::*;        // imports all rate-related types and traits
-//! use embedded_time::clock;           
-//! use embedded_time::Instant;         
+//! use embedded_time::clock;
+//! use embedded_time::Instant;
 //! use embedded_time::Timer;
 //! ```
 //!
@@ -89,6 +89,8 @@ pub use timer::Timer;
 #[non_exhaustive]
 #[derive(Debug, Eq, PartialEq)]
 pub enum TimeError<E> {
+    /// Exact cause of failure is unknown
+    Unspecified,
     /// Attempted type conversion failed
     ConversionFailure,
     /// Result is outside of those valid for this type
@@ -111,6 +113,8 @@ impl<E> From<clock::Error<E>> for TimeError<E> {
 #[non_exhaustive]
 #[derive(Debug, Eq, PartialEq)]
 pub enum ConversionError {
+    /// Exact cause of failure is unknown
+    Unspecified,
     /// Attempted type conversion failed
     ConversionFailure,
     /// Result is outside of those valid for this type
@@ -124,6 +128,7 @@ pub enum ConversionError {
 impl<E> From<ConversionError> for TimeError<E> {
     fn from(error: ConversionError) -> Self {
         match error {
+            ConversionError::Unspecified => TimeError::Unspecified,
             ConversionError::ConversionFailure => TimeError::ConversionFailure,
             ConversionError::Overflow => TimeError::Overflow,
             ConversionError::DivByZero => TimeError::DivByZero,
