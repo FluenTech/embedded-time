@@ -4,6 +4,7 @@ use embedded_time::{
     fraction::Fraction,
     Instant,
 };
+use test_case::test_case;
 
 #[derive(Debug)]
 struct Clock;
@@ -35,4 +36,10 @@ fn duration_since_epoch() {
         Instant::<Clock>::new(u32::MAX).duration_since_epoch(),
         duration::Generic::from(Milliseconds(u32::MAX))
     );
+}
+
+#[test_case(0, u32::MAX/2 => Some(Instant::<Clock>::new(u32::MAX / 2)) ; "Add the maximum allowed duration")]
+#[test_case(0, u32::MAX/2 + 1 => None ; "Overflow due to the duration being too large")]
+fn checked_add(base: u32, addition: u32) -> Option<Instant<Clock>> {
+    Instant::<Clock>::new(base).checked_add(Milliseconds(addition))
 }
