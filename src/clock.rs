@@ -15,6 +15,12 @@ pub enum Error {
     NotRunning,
 }
 
+impl Default for Error {
+    fn default() -> Self {
+        Self::Unspecified
+    }
+}
+
 /// The `Clock` trait provides an abstraction for hardware-specific timer peripherals, external
 /// timer devices, RTCs, etc.
 ///
