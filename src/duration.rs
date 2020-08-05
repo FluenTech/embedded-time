@@ -391,7 +391,7 @@ pub trait Duration: Sized + Copy {
             .recip();
 
         if size_of::<Self::T>() >= size_of::<Rate::T>() {
-            fixed_point::from_ticks(
+            fixed_point::FixedPoint::from_ticks(
                 Self::T::from(*conversion_factor.numerator())
                     .checked_div(
                         &self
@@ -403,7 +403,7 @@ pub trait Duration: Sized + Copy {
                 Rate::SCALING_FACTOR,
             )
         } else {
-            fixed_point::from_ticks(
+            fixed_point::FixedPoint::from_ticks(
                 Rate::T::from(*conversion_factor.numerator())
                     .checked_div(
                         &Rate::T::try_from(*self.integer())
@@ -557,7 +557,7 @@ pub mod units {
                 /// See [Converting from a `Generic`
                 /// `Duration`](trait.Duration.html#converting-from-a-generic-duration)
                 fn try_from(generic_duration: Generic<SourceInt>) -> Result<Self, Self::Error> {
-                    fixed_point::from_ticks(
+                    fixed_point::FixedPoint::from_ticks(
                         generic_duration.integer,
                         generic_duration.scaling_factor,
                     )
@@ -835,7 +835,10 @@ pub mod units {
                 /// See [Converting between
                 /// `Duration`s](trait.Duration.html#converting-between-durations)
                 fn try_from(source: $name<u64>) -> Result<Self, Self::Error> {
-                    fixed_point::from_ticks(*source.integer(), $name::<u64>::SCALING_FACTOR)
+                    fixed_point::FixedPoint::from_ticks(
+                        *source.integer(),
+                        $name::<u64>::SCALING_FACTOR,
+                    )
                 }
             }
         };
@@ -855,7 +858,7 @@ pub mod units {
                 {
                     /// See [Converting between `Duration`s](trait.Duration.html#converting-between-durations)
                     fn from(small: $small<T>) -> Self {
-                        fixed_point::from_ticks_safe(*small.integer(), $small::<T>::SCALING_FACTOR)
+                        fixed_point::FixedPoint::from_ticks_safe(*small.integer(), $small::<T>::SCALING_FACTOR)
                     }
                 }
 
@@ -863,7 +866,7 @@ pub mod units {
                 {
                     /// See [Converting between `Duration`s](trait.Duration.html#converting-between-durations)
                     fn from(small: $small<u32>) -> Self {
-                        fixed_point::from_ticks_safe(*small.integer(), $small::<u32>::SCALING_FACTOR)
+                        fixed_point::FixedPoint::from_ticks_safe(*small.integer(), $small::<u32>::SCALING_FACTOR)
                     }
                 }
 
@@ -873,7 +876,7 @@ pub mod units {
 
                     /// See [Converting between `Duration`s](trait.Duration.html#converting-between-durations)
                     fn try_from(small: $small<u64>) -> Result<Self, Self::Error> {
-                        fixed_point::from_ticks(
+                        fixed_point::FixedPoint::from_ticks(
                             *small.integer(),
                             $small::<u64>::SCALING_FACTOR,
                         )
@@ -902,7 +905,7 @@ pub mod units {
                 {
                     /// See [Converting between `Duration`s](trait.Duration.html#converting-between-durations)
                     fn from(big: $big<u32>) -> Self {
-                        fixed_point::from_ticks_safe(*big.integer(), $big::<u32>::SCALING_FACTOR)
+                        fixed_point::FixedPoint::from_ticks_safe(*big.integer(), $big::<u32>::SCALING_FACTOR)
                     }
                 }
 
@@ -912,7 +915,7 @@ pub mod units {
 
                     /// See [Converting between `Duration`s](trait.Duration.html#converting-between-durations)
                     fn try_from(big: $big<T>) -> Result<Self, Self::Error> {
-                        fixed_point::from_ticks(
+                        fixed_point::FixedPoint::from_ticks(
                             *big.integer(),
                             $big::<T>::SCALING_FACTOR,
                         )
@@ -925,7 +928,7 @@ pub mod units {
 
                     /// See [Converting between `Duration`s](trait.Duration.html#converting-between-durations)
                     fn try_from(big: $big<u64>) -> Result<Self, Self::Error> {
-                        fixed_point::from_ticks(
+                        fixed_point::FixedPoint::from_ticks(
                             *big.integer(),
                             $big::<u64>::SCALING_FACTOR,
                         )
