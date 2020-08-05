@@ -1,4 +1,3 @@
-use core::convert::Infallible;
 use crossbeam_utils::thread;
 use embedded_time::{
     self as time, duration::*, fixed_point, fraction::Fraction, Clock as _, Instant,
@@ -11,10 +10,9 @@ static TICKS: AtomicU64 = AtomicU64::new(0);
 struct Clock;
 impl time::Clock for Clock {
     type T = u64;
-    type ImplError = Infallible;
     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
 
-    fn try_now(&self) -> Result<Instant<Self>, time::clock::Error<Self::ImplError>> {
+    fn try_now(&self) -> Result<Instant<Self>, time::clock::Error> {
         Ok(Instant::new(TICKS.load(Ordering::SeqCst)))
     }
 }

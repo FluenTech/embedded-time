@@ -1,7 +1,6 @@
 #![cfg_attr(not(test), no_std)]
 #![cfg_attr(not(test), no_main)]
 
-use core::convert::Infallible;
 use cortex_m_rt::entry;
 use embedded_time::{self as time};
 use panic_halt as _;
@@ -37,10 +36,9 @@ impl SysClock {
 
 impl time::Clock for SysClock {
     type T = u64;
-    type ImplError = Infallible;
     const SCALING_FACTOR: time::fraction::Fraction = <time::fraction::Fraction>::new(1, 16_000_000);
 
-    fn try_now(&self) -> Result<time::Instant<Self>, time::clock::Error<Self::ImplError>> {
+    fn try_now(&self) -> Result<time::Instant<Self>, time::clock::Error> {
         self.capture_task.tasks_trigger[0].write(|write| unsafe { write.bits(1) });
 
         let ticks =

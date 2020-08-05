@@ -7,12 +7,15 @@
 - `From` implementations for infallible intra-rate and intra-duration conversions
 - Implementations of common traits to types
 - More frequency types: mebihertz (MiHz) and kibihertz(KiHz)
+- More test coverage
 
 ### Changed
 
 - Fallible intra-rate and intra-duration conversions use `try_from()`/`try_into()` rather than the `try_convert_` methods
 - Replaced `try_into_generic()` with `to_generic()`
 - Replaced `try_from_`(duration/rate) with `to_duration()` and `to_rate()`
+- Return `Option`s from `checked_` methods rather than `Result`s
+- Remove impl-specific `Clock` error type (`ImplError`)
 
 ### Removed
 
