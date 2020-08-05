@@ -75,7 +75,7 @@ impl<'a, Type, State, Clock: crate::Clock, Dur: Duration> Timer<'a, Type, State,
 
 impl<'a, Type, Clock: crate::Clock, Dur: Duration> Timer<'a, Type, Armed, Clock, Dur> {
     /// Start the timer from this instant
-    pub fn start(self) -> Result<Timer<'a, Type, Running, Clock, Dur>, TimeError<Clock::ImplError>>
+    pub fn start(self) -> Result<Timer<'a, Type, Running, Clock, Dur>, TimeError>
     where
         Clock::T: TryFrom<Dur::T>,
         Dur: FixedPoint,
@@ -95,7 +95,7 @@ impl<'a, Type, Clock: crate::Clock, Dur: Duration> Timer<'a, Type, Armed, Clock,
 }
 
 impl<Type, Clock: crate::Clock, Dur: Duration> Timer<'_, Type, Running, Clock, Dur> {
-    fn _is_expired(&self) -> Result<bool, TimeError<Clock::ImplError>> {
+    fn _is_expired(&self) -> Result<bool, TimeError> {
         Ok(self.clock.try_now()? >= self.expiration)
     }
 
@@ -104,7 +104,7 @@ impl<Type, Clock: crate::Clock, Dur: Duration> Timer<'_, Type, Running, Clock, D
     /// **The duration is truncated, not rounded**.
     ///
     /// The units of the [`Duration`] are the same as that used to construct the `Timer`.
-    pub fn elapsed(&self) -> Result<Dur, TimeError<Clock::ImplError>>
+    pub fn elapsed(&self) -> Result<Dur, TimeError>
     where
         Dur: FixedPoint + TryFrom<duration::Generic<Clock::T>, Error = ConversionError>,
         Dur::T: TryFrom<Clock::T>,
@@ -129,7 +129,7 @@ impl<Type, Clock: crate::Clock, Dur: Duration> Timer<'_, Type, Running, Clock, D
     /// **The duration is truncated, not rounded**.
     ///
     /// The units of the [`Duration`] are the same as that used to construct the `Timer`.
-    pub fn remaining(&self) -> Result<Dur, TimeError<Clock::ImplError>>
+    pub fn remaining(&self) -> Result<Dur, TimeError>
     where
         Dur: FixedPoint + TryFrom<duration::Generic<Clock::T>, Error = ConversionError>,
         Dur::T: TryFrom<u32> + TryFrom<Clock::T>,
@@ -152,9 +152,7 @@ impl<Type, Clock: crate::Clock, Dur: Duration> Timer<'_, Type, Running, Clock, D
 
 impl<'a, Clock: crate::Clock, Dur: Duration> Timer<'a, OneShot, Running, Clock, Dur> {
     /// Block until the timer has expired
-    pub fn wait(
-        self,
-    ) -> Result<Timer<'a, OneShot, Armed, Clock, Dur>, TimeError<Clock::ImplError>> {
+    pub fn wait(self) -> Result<Timer<'a, OneShot, Armed, Clock, Dur>, TimeError> {
         // since the timer is running, _is_expired() will return a value
         while !self._is_expired()? {}
 
@@ -167,7 +165,7 @@ impl<'a, Clock: crate::Clock, Dur: Duration> Timer<'a, OneShot, Running, Clock, 
     /// Check whether the timer has expired
     ///
     /// The timer is not restarted
-    pub fn is_expired(&self) -> Result<bool, TimeError<Clock::ImplError>> {
+    pub fn is_expired(&self) -> Result<bool, TimeError> {
         self._is_expired()
     }
 }
@@ -176,7 +174,7 @@ impl<Clock: crate::Clock, Dur: Duration> Timer<'_, Periodic, Running, Clock, Dur
     /// Block until the timer has expired
     ///
     /// The timer is restarted
-    pub fn wait(self) -> Result<Self, TimeError<Clock::ImplError>>
+    pub fn wait(self) -> Result<Self, TimeError>
     where
         Instant<Clock>: Add<Dur, Output = Instant<Clock>>,
     {
@@ -197,7 +195,7 @@ impl<Clock: crate::Clock, Dur: Duration> Timer<'_, Periodic, Running, Clock, Dur
     /// Check whether a _periodic_ timer has elapsed
     ///
     /// The timer is restarted if it has elapsed.
-    pub fn period_complete(&mut self) -> Result<bool, TimeError<Clock::ImplError>>
+    pub fn period_complete(&mut self) -> Result<bool, TimeError>
     where
         Instant<Clock>: Add<Dur, Output = Instant<Clock>>,
     {

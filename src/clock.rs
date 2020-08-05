@@ -7,10 +7,10 @@ use crate::{
 
 /// Potential `Clock` errors
 #[non_exhaustive]
-#[derive(Debug, Eq, PartialEq)]
-pub enum Error<E> {
-    /// implementation-specific error
-    Other(E),
+#[derive(Debug, Eq, PartialEq, Hash)]
+pub enum Error {
+    /// The clock has either stopped or never started
+    NotRunning,
 }
 
 /// The `Clock` trait provides an abstraction for hardware-specific timer peripherals, external
@@ -27,12 +27,6 @@ pub trait Clock: Sized {
     /// The type to hold the tick count
     type T: TimeInt;
 
-    /// Implementation-defined error type
-    ///
-    /// This type can be returned using the
-    /// [`clock::Error::Other(E)`](enum.Error.html#variant.Other)
-    type ImplError;
-
     /// The duration of one clock tick in seconds, AKA the clock precision.
     const SCALING_FACTOR: Fraction;
 
@@ -40,9 +34,8 @@ pub trait Clock: Sized {
     ///
     /// # Errors
     ///
-    /// Implementation-specific error returned as
-    /// [`Error::Other(Self::ImplError)`](enum.Error.html#variant.Other)
-    fn try_now(&self) -> Result<Instant<Self>, Error<Self::ImplError>>;
+    /// [`Error::NotRunning`]
+    fn try_now(&self) -> Result<Instant<Self>, Error>;
 
     /// Spawn a new, `OneShot` [`Timer`] from this clock
     fn new_timer<Dur: Duration>(
