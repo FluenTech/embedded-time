@@ -1,12 +1,12 @@
 //! Fixed-point values
 use crate::{fraction::Fraction, time_int::TimeInt, ConversionError};
-use core::{convert::TryFrom, fmt, mem::size_of, ops, prelude::v1::*};
+use core::{convert::TryFrom, mem::size_of, ops, prelude::v1::*};
 use num::Bounded;
 
 /// Fixed-point value type
 ///
 /// QX.32 where X: bit-width of `T`
-pub trait FixedPoint: Sized + Copy + fmt::Display {
+pub trait FixedPoint: Sized + Copy {
     /// The _integer_ (magnitude) type
     type T: TimeInt;
 
