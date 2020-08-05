@@ -10,10 +10,9 @@ struct Clock;
 
 impl time::Clock for Clock {
     type T = u32;
-    type ImplError = ();
     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
 
-    fn try_now(&self) -> Result<Instant<Self>, time::clock::Error<Self::ImplError>> {
+    fn try_now(&self) -> Result<Instant<Self>, time::clock::Error> {
         unimplemented!()
     }
 }

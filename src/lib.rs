@@ -87,8 +87,8 @@ pub use timer::Timer;
 
 /// Crate errors
 #[non_exhaustive]
-#[derive(Debug, Eq, PartialEq)]
-pub enum TimeError<E> {
+#[derive(Debug, Eq, PartialEq, Hash)]
+pub enum TimeError {
     /// Exact cause of failure is unknown
     Unspecified,
     /// Attempted type conversion failed
@@ -100,18 +100,18 @@ pub enum TimeError<E> {
     /// Resulting [`Duration`](duration/trait.Duration.html) is negative (not allowed)
     NegDuration,
     /// [`Clock`]-implementation-specific error
-    Clock(clock::Error<E>),
+    Clock(clock::Error),
 }
 
-impl<E> From<clock::Error<E>> for TimeError<E> {
-    fn from(clock_error: clock::Error<E>) -> Self {
-        TimeError::<E>::Clock(clock_error)
+impl From<clock::Error> for TimeError {
+    fn from(clock_error: clock::Error) -> Self {
+        TimeError::Clock(clock_error)
     }
 }
 
 /// Conversion errors
 #[non_exhaustive]
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Hash)]
 pub enum ConversionError {
     /// Exact cause of failure is unknown
     Unspecified,
@@ -125,7 +125,7 @@ pub enum ConversionError {
     NegDuration,
 }
 
-impl<E> From<ConversionError> for TimeError<E> {
+impl From<ConversionError> for TimeError {
     fn from(error: ConversionError) -> Self {
         match error {
             ConversionError::Unspecified => TimeError::Unspecified,

@@ -19,9 +19,8 @@ use num::traits::{WrappingAdd, WrappingSub};
 /// # struct SomeClock;
 /// # impl embedded_time::Clock for SomeClock {
 /// #     type T = u32;
-/// #     type ImplError = ();
 /// #     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
-/// #     fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {Ok(Instant::<Self>::new(23))}
+/// #     fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error> {Ok(Instant::<Self>::new(23))}
 /// # }
 /// let some_clock = SomeClock;
 /// let some_instant = some_clock.try_now().unwrap();
@@ -36,9 +35,8 @@ use num::traits::{WrappingAdd, WrappingSub};
 /// # struct SomeClock;
 /// # impl embedded_time::Clock for SomeClock {
 /// #     type T = u32;
-/// #     type ImplError = ();
 /// #     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
-/// #     fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
+/// #     fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error> {unimplemented!()}
 /// # }
 /// Instant::<SomeClock>::new(23);
 /// ```
@@ -65,11 +63,10 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type T = u32;
-    /// #   type ImplError = ();
     ///     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
     ///     // ...
     ///
-    /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
+    /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error> {unimplemented!()}
     /// }
     ///
     /// assert_eq!(Instant::<Clock>::new(5).checked_duration_since(&Instant::<Clock>::new(3)).unwrap().try_into(),
@@ -100,10 +97,9 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type T = u32;
-    /// # type ImplError = ();
     ///     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
     ///     // ...
-    /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
+    /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error> {unimplemented!()}
     /// }
     ///
     /// assert_eq!(Instant::<Clock>::new(5).checked_duration_until(&Instant::<Clock>::new(7)).unwrap().try_into(),
@@ -143,10 +139,9 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type T = u32;
-    /// # type ImplError = ();
     ///     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
     ///     // ...
-    /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
+    /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error> {unimplemented!()}
     /// }
     ///
     /// assert_eq!(
@@ -186,10 +181,9 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type T = u32;
-    /// # type ImplError = ();
     ///     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
     ///     // ...
-    /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
+    /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error> {unimplemented!()}
     /// }
     ///
     /// assert_eq!(Instant::<Clock>::new(u32::MAX).checked_sub(Milliseconds(u32::MAX/2)),
@@ -239,10 +233,9 @@ impl<Clock: crate::Clock> PartialOrd for Instant<Clock> {
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type T = u32;
-    /// # type ImplError = ();
     ///     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
     ///     // ...
-    /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
+    /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error> {unimplemented!()}
     /// }
     ///
     /// assert!(Instant::<Clock>::new(5) > Instant::<Clock>::new(3));
@@ -280,10 +273,9 @@ where
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type T = u32;
-    /// # type ImplError = ();
     ///     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
     ///     // ...
-    /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
+    /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error> {unimplemented!()}
     /// }
     ///
     /// assert_eq!(Instant::<Clock>::new(1) + Seconds(3_u32),
@@ -310,10 +302,9 @@ where
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type T = u32;
-    /// # type ImplError = ();
     ///     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
     ///     // ...
-    /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
+    /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error> {unimplemented!()}
     /// }
     ///
     /// Instant::<Clock>::new(0) + Milliseconds(u32::MAX/2 + 1);
@@ -340,10 +331,9 @@ where
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type T = u32;
-    /// # type ImplError = ();
     ///     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
     ///     // ...
-    /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
+    /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error> {unimplemented!()}
     /// }
     ///
     /// assert_eq!(Instant::<Clock>::new(5_001) - Seconds(3_u32),
@@ -370,10 +360,9 @@ where
     /// struct Clock;
     /// impl embedded_time::Clock for Clock {
     ///     type T = u32;
-    /// # type ImplError = ();
     ///     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
     ///     // ...
-    /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error<Self::ImplError>> {unimplemented!()}
+    /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error> {unimplemented!()}
     /// }
     ///
     /// Instant::<Clock>::new(u32::MAX) - Milliseconds(u32::MAX/2 + 1);

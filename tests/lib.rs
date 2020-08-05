@@ -1,16 +1,15 @@
 use core::{
-    convert::{Infallible, TryFrom, TryInto},
+    convert::{TryFrom, TryInto},
     fmt::{self, Formatter},
 };
-use embedded_time::{self as time, duration::*, Clock as _};
+use embedded_time::{self as time, duration::*, Clock as _, ConversionError, TimeError};
 
 struct MockClock64;
 impl time::Clock for MockClock64 {
     type T = u64;
-    type ImplError = Infallible;
     const SCALING_FACTOR: time::fraction::Fraction = <time::fraction::Fraction>::new(1, 64_000_000);
 
-    fn try_now(&self) -> Result<time::Instant<Self>, time::clock::Error<Self::ImplError>> {
+    fn try_now(&self) -> Result<time::Instant<Self>, time::clock::Error> {
         Ok(time::Instant::new(128_000_000))
     }
 }
@@ -20,18 +19,11 @@ struct MockClock32;
 
 impl time::Clock for MockClock32 {
     type T = u32;
-    type ImplError = Infallible;
     const SCALING_FACTOR: time::fraction::Fraction = <time::fraction::Fraction>::new(1, 16_000_000);
 
-    fn try_now(&self) -> Result<time::Instant<Self>, time::clock::Error<Self::ImplError>> {
+    fn try_now(&self) -> Result<time::Instant<Self>, time::clock::Error> {
         Ok(time::Instant::new(32_000_000))
     }
-}
-
-#[non_exhaustive]
-#[derive(Debug, Eq, PartialEq)]
-pub enum ClockImplError {
-    NotStarted,
 }
 
 #[derive(Debug)]
@@ -39,11 +31,10 @@ struct BadClock;
 
 impl time::Clock for BadClock {
     type T = u32;
-    type ImplError = ClockImplError;
     const SCALING_FACTOR: time::fraction::Fraction = <time::fraction::Fraction>::new(1, 16_000_000);
 
-    fn try_now(&self) -> Result<time::Instant<Self>, time::clock::Error<Self::ImplError>> {
-        Err(time::clock::Error::Other(ClockImplError::NotStarted))
+    fn try_now(&self) -> Result<time::Instant<Self>, time::clock::Error> {
+        Err(time::clock::Error::NotRunning)
     }
 }
 
@@ -79,10 +70,33 @@ fn common_types() {
 }
 
 #[test]
-fn clock_error() {
+fn errors() {
+    assert_eq!(BadClock.try_now(), Err(time::clock::Error::NotRunning));
+
     assert_eq!(
-        BadClock.try_now(),
-        Err(time::clock::Error::Other(ClockImplError::NotStarted))
+        TimeError::from(time::clock::Error::NotRunning),
+        TimeError::Clock(time::clock::Error::NotRunning)
+    );
+
+    assert_eq!(
+        TimeError::from(ConversionError::Unspecified),
+        TimeError::Unspecified
+    );
+    assert_eq!(
+        TimeError::from(ConversionError::ConversionFailure),
+        TimeError::ConversionFailure
+    );
+    assert_eq!(
+        TimeError::from(ConversionError::Overflow),
+        TimeError::Overflow
+    );
+    assert_eq!(
+        TimeError::from(ConversionError::DivByZero),
+        TimeError::DivByZero
+    );
+    assert_eq!(
+        TimeError::from(ConversionError::NegDuration),
+        TimeError::NegDuration
     );
 }
 
