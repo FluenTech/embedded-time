@@ -197,7 +197,7 @@ pub use units::*;
 ///
 /// ---
 ///
-/// [`ConversionError::Overflow`] : The conversion of the _scaling factor_ causes an overflow.
+/// [`ConversionError::Unspecified`]
 ///
 /// ```rust
 /// # use embedded_time::{fraction::Fraction, duration::*, duration::Generic, ConversionError};
@@ -205,7 +205,7 @@ pub use units::*;
 /// #
 /// assert_eq!(
 ///     Seconds::<u32>::try_from(Generic::new(u32::MAX, Fraction::new(10,1))),
-///     Err(ConversionError::Overflow)
+///     Err(ConversionError::Unspecified)
 /// );
 /// ```
 ///
@@ -299,14 +299,14 @@ pub trait Duration: Sized + Copy {
     ///
     /// ---
     ///
-    /// [`ConversionError::Overflow`] : The conversion of the _scaling factor_ causes an overflow.
+    /// [`ConversionError::Unspecified`]
     ///
     /// ```rust
     /// # use embedded_time::{fraction::Fraction, duration::*, ConversionError};
     /// # use core::convert::TryFrom;
     /// #
     /// assert_eq!(Seconds(u32::MAX).to_generic::<u32>(Fraction::new(1, 2)),
-    ///     Err(ConversionError::Overflow));
+    ///     Err(ConversionError::Unspecified));
     /// ```
     ///
     /// ---

@@ -92,7 +92,7 @@ fn from_generic() {
     // Overflow
     assert_eq!(
         Seconds::<u32>::try_from(duration::Generic::new(u32::MAX, Fraction::new(10, 1))),
-        Err(ConversionError::Overflow)
+        Err(ConversionError::Unspecified)
     );
 
     // ConversionFailure (type)
@@ -115,7 +115,7 @@ fn to_generic() {
     // Overflow error
     assert_eq!(
         Seconds(u32::MAX).to_generic::<u32>(Fraction::new(1, 2)),
-        Err(ConversionError::Overflow)
+        Err(ConversionError::Unspecified)
     );
 
     // From named
@@ -458,6 +458,6 @@ fn error_try_from() {
     );
     assert_eq!(
         Milliseconds::<u32>::try_from(Seconds(u64::MAX)),
-        Err(ConversionError::Overflow)
+        Err(ConversionError::Unspecified)
     );
 }
