@@ -4,7 +4,12 @@ use crate::{
     duration::{self, Duration},
     fixed_point::FixedPoint,
 };
-use core::{cmp::Ordering, convert::TryFrom, ops};
+use core::{
+    cmp::Ordering,
+    convert::TryFrom,
+    hash::{Hash, Hasher},
+    ops,
+};
 use num::traits::{WrappingAdd, WrappingSub};
 
 /// Represents an instant of time relative to a specific [`Clock`](clock/trait.Clock.html)
@@ -369,6 +374,13 @@ where
     /// ```
     fn sub(self, rhs: Dur) -> Self::Output {
         self.checked_sub(rhs).unwrap()
+    }
+}
+
+impl<Clock: crate::clock::Clock> Hash for Instant<Clock> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        Clock::SCALING_FACTOR.hash(state);
+        self.ticks.hash(state);
     }
 }
 
