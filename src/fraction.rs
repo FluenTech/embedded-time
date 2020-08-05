@@ -72,29 +72,26 @@ impl Fraction {
 
     /// Checked `Fraction` × `Fraction` = `Fraction`
     ///
+    /// Returns [`None`] for any errors
+    ///
     /// # Examples
     ///
     /// ```rust
     /// # use embedded_time::{fraction::Fraction, ConversionError};
     /// #
     /// assert_eq!(Fraction::new(1000, 1).checked_mul(&Fraction::new(5,5)),
-    ///     Ok(Fraction::new(5_000, 5)));
+    ///     Some(Fraction::new(5_000, 5)));
     ///
     /// assert_eq!(Fraction::new(u32::MAX, 1).checked_mul(&Fraction::new(2,1)),
-    ///     Err(ConversionError::Overflow));
+    ///     None);
     /// ```
-    ///
-    /// # Errors
-    ///
-    /// [`ConversionError::Overflow`]
-    // TODO: add example
-    pub fn checked_mul(&self, v: &Self) -> Result<Self, ConversionError> {
-        Ok(Self(
-            self.0.checked_mul(&v.0).ok_or(ConversionError::Overflow)?,
-        ))
+    pub fn checked_mul(&self, v: &Self) -> Option<Self> {
+        self.0.checked_mul(&v.0).map(Self)
     }
 
     /// Checked `Fraction` / `Fraction` = `Fraction`
+    ///
+    /// Returns [`None`] for any errors
     ///
     /// # Examples
     ///
@@ -102,54 +99,13 @@ impl Fraction {
     /// # use embedded_time::{fraction::Fraction, ConversionError};
     /// #
     /// assert_eq!(Fraction::new(1000, 1).checked_div(&Fraction::new(10, 1000)),
-    ///     Ok(Fraction::new(1_000_000, 10)));
+    ///     Some(Fraction::new(1_000_000, 10)));
     ///
     /// assert_eq!(Fraction::new(1, u32::MAX).checked_div(&Fraction::new(2,1)),
-    ///     Err(ConversionError::Overflow));
+    ///     None);
     /// ```
-    ///
-    /// # Errors
-    ///
-    /// [`ConversionError::Overflow`]
-    // TODO: add example
-    pub fn checked_div(&self, v: &Self) -> Result<Self, ConversionError> {
-        Ok(Self(
-            self.0.checked_div(&v.0).ok_or(ConversionError::Overflow)?,
-        ))
-    }
-
-    /// Checked `Fraction` / integer = `Fraction`
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// # use embedded_time::{fraction::Fraction, ConversionError};
-    /// #
-    /// assert_eq!(Fraction::new(1000, 1).checked_div_integer(5_u32),
-    ///     Ok(Fraction::new(200, 1)));
-    ///
-    /// assert_eq!(Fraction::new(1, 1000).checked_div_integer(5_u32),
-    ///     Ok(Fraction::new(1, 5000)));
-    ///
-    /// assert_eq!(Fraction::new(1, u32::MAX).checked_div_integer(2_u32),
-    ///     Err(ConversionError::Overflow));
-    /// ```
-    ///
-    /// # Errors
-    ///
-    /// [`ConversionError::Overflow`]
-    // TODO: add example
-    /// [`ConversionError::DivByZero`]
-    // TODO: add example
-    pub fn checked_div_integer(&self, divisor: u32) -> Result<Self, ConversionError> {
-        if divisor == 0 {
-            Err(ConversionError::DivByZero)
-        } else {
-            Ok(Self(
-                Ratio::checked_div(&self.0, &Ratio::from_integer(divisor))
-                    .ok_or(ConversionError::Overflow)?,
-            ))
-        }
+    pub fn checked_div(&self, v: &Self) -> Option<Self> {
+        self.0.checked_div(&v.0).map(Self)
     }
 }
 
