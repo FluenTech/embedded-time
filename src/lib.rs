@@ -109,6 +109,12 @@ impl From<clock::Error> for TimeError {
     }
 }
 
+impl Default for TimeError {
+    fn default() -> Self {
+        Self::Unspecified
+    }
+}
+
 /// Conversion errors
 #[non_exhaustive]
 #[derive(Debug, Eq, PartialEq, Hash)]
@@ -134,6 +140,12 @@ impl From<ConversionError> for TimeError {
             ConversionError::DivByZero => TimeError::DivByZero,
             ConversionError::NegDuration => TimeError::NegDuration,
         }
+    }
+}
+
+impl Default for ConversionError {
+    fn default() -> Self {
+        Self::Unspecified
     }
 }
 
