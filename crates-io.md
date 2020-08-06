@@ -15,13 +15,13 @@
 
 - Conversion from `Rate` types
     ```rust
-    Microseconds::<u32>::try_from_rate(Kilohertz(2_u32)) -> Ok(Microseconds(500_u32))
+    Microseconds(500_u32).to_rate() -> Ok(Kilohertz(2_u32))
     ```
 
 - Conversion to/from `Generic` `Duration` type
 
     ```rust
-    Seconds(2_u64).try_into_generic(Fraction::new(1, 2_000)) -> Ok(Generic::new(4_000_u32, Fraction::new(1, 2_000))))
+    Seconds(2_u64).to_generic(Fraction::new(1, 2_000)) -> Ok(Generic::new(4_000_u32, Fraction::new(1, 2_000))))
     Seconds::<u64>::try_from(Generic::new(2_000_u32, Fraction::new(1, 1_000))) -> Ok(Seconds(2_u64))
     ```
 
@@ -84,18 +84,18 @@ _(the size of `core` duration type is 12 B)_
 | Kilobaud          | kBd       |
 | Baud              | Bd        |
 
-- Conversion from/to all other rate types within the same class (frequency, data rate, etc.). This includes conversions such as MBps (megabytes per second) --> Kibps (kibibits per second).
+- Conversion from/to all other rate types within the same class (frequency, data rate, etc.). For example, MBps (megabytes per second) --> Kibps (kibibits per second).
 
 - Conversion from `Duration` types
 
     ```rust
-    Kilohertz::<u32>::try_from_duration(Microseconds(2_u32)) -> Ok(Kilohertz(500_u32))
+    Kilohertz(500_u32).to_duration() -> Ok(Microseconds(2_u32))
     ```
 
 - Conversion to/from `Generic` `Rate` type
 
     ```rust
-    Hertz(2_u64).try_into_generic(Fraction::new(1,2_000)) -> Ok(Generic::new(4_000_u32, Fraction::new(1,2_000))))
+    Hertz(2_u64).to_generic(Fraction::new(1,2_000)) -> Ok(Generic::new(4_000_u32, Fraction::new(1,2_000))))
     Hertz::<u64>::try_from(Generic::new(2_000_u32, Fraction::new(1,1_000))) -> Ok(Hertz(2_u64))
     ```
 
