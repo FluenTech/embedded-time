@@ -677,7 +677,7 @@ pub mod units {
                 {
                     /// See [Converting between `Rate`s](trait.Rate.html#converting-between-rates)
                     fn from(small: $small<T>) -> Self {
-                        fixed_point::FixedPoint::from_ticks_safe(*small.integer(), $small::<T>::SCALING_FACTOR)
+                        fixed_point::FixedPoint::from_ticks(*small.integer(), $small::<T>::SCALING_FACTOR).ok().unwrap()
                     }
                 }
 
@@ -685,7 +685,7 @@ pub mod units {
                 {
                     /// See [Converting between `Rate`s](trait.Rate.html#converting-between-rates)
                     fn from(small: $small<u32>) -> Self {
-                        fixed_point::FixedPoint::from_ticks_safe(*small.integer(), $small::<u32>::SCALING_FACTOR)
+                        fixed_point::FixedPoint::from_ticks(*small.integer(), $small::<u32>::SCALING_FACTOR).ok().unwrap()
                     }
                 }
 
@@ -730,7 +730,7 @@ pub mod units {
                 {
                    /// See [Converting between `Rate`s](trait.Rate.html#converting-between-rates)
                     fn from(big: $big<u32>) -> Self {
-                        fixed_point::FixedPoint::from_ticks_safe(*big.integer(), $big::<u32>::SCALING_FACTOR)
+                        fixed_point::FixedPoint::from_ticks(*big.integer(), $big::<u32>::SCALING_FACTOR).ok().unwrap()
                     }
                 }
 
