@@ -26,7 +26,7 @@
 - trait module
   - duration- and/or rate-specific functionality can be imported separately by using duration::* and rate::*
 
-[0.9.0]: https://github.com/FluenTech/embedded-time/compare/v0.8.2...v0.9.0
+[0.9.0]: https://github.com/FluenTech/embedded-time/compare/v0.8.1...v0.9.0
 
 ## [0.8.1] - 2020-07-25
 
