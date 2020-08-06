@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+[unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.9.0...HEAD
+
+## [0.9.0] - 2020-08-05
+
 ### Added
 
 - `From` implementations for infallible intra-rate and intra-duration conversions
@@ -22,7 +26,7 @@
 - trait module
   - duration- and/or rate-specific functionality can be imported separately by using duration::* and rate::*
 
-[unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.8.1...HEAD
+[0.9.0]: https://github.com/FluenTech/embedded-time/compare/v0.8.2...v0.9.0
 
 ## [0.8.1] - 2020-07-25
 
