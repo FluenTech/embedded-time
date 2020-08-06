@@ -1,4 +1,5 @@
 use crate::fraction::Fraction;
+use core::convert::TryInto;
 use core::{fmt, ops};
 
 /// The core inner-type trait for time-related types
@@ -41,9 +42,61 @@ pub trait TimeInt:
 }
 
 #[doc(hidden)]
-impl TimeInt for u32 {}
+impl TimeInt for u32 {
+    fn checked_mul_fraction(&self, fraction: &Fraction) -> Option<Self> {
+        if fraction.numerator() == &1 {
+            self.checked_div(*fraction.denominator())
+        } else {
+            let integer = self.widen();
+            integer
+                .checked_mul((*fraction.numerator()).into())?
+                .checked_div((*fraction.denominator()).into())?
+                .try_into()
+                .ok()
+        }
+    }
+
+    fn checked_div_fraction(&self, fraction: &Fraction) -> Option<Self> {
+        if fraction.denominator() == &1 {
+            self.checked_div(*fraction.numerator())
+        } else {
+            let integer = self.widen();
+            integer
+                .checked_mul((*fraction.denominator()).into())?
+                .checked_div((*fraction.numerator()).into())?
+                .try_into()
+                .ok()
+        }
+    }
+}
 #[doc(hidden)]
-impl TimeInt for u64 {}
+impl TimeInt for u64 {
+    fn checked_mul_fraction(&self, fraction: &Fraction) -> Option<Self> {
+        if fraction.numerator() == &1 {
+            self.checked_div((*fraction.denominator()).into())
+        } else {
+            let integer = self.widen();
+            integer
+                .checked_mul((*fraction.numerator()).into())?
+                .checked_div((*fraction.denominator()).into())?
+                .try_into()
+                .ok()
+        }
+    }
+
+    fn checked_div_fraction(&self, fraction: &Fraction) -> Option<Self> {
+        if fraction.denominator() == &1 {
+            self.checked_div((*fraction.numerator()).into())
+        } else {
+            let integer = self.widen();
+            integer
+                .checked_mul((*fraction.denominator()).into())?
+                .checked_div((*fraction.numerator()).into())?
+                .try_into()
+                .ok()
+        }
+    }
+}
 
 #[doc(hidden)]
 pub trait Widen {

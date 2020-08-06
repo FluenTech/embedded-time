@@ -1,6 +1,6 @@
 //! Fixed-point values
 use crate::{fraction::Fraction, time_int::TimeInt, ConversionError};
-use core::{convert::TryFrom, mem::size_of, ops, prelude::v1::*};
+use core::{convert::TryFrom, mem::size_of, prelude::v1::*};
 use num::Bounded;
 
 /// Fixed-point value type
@@ -50,89 +50,33 @@ pub trait FixedPoint: Sized + Copy {
             // the dest integer is wider than the source, first promote the source integer to the
             // dest type
             let ticks = Self::T::try_from(ticks).map_err(|_| ConversionError::ConversionFailure)?;
-
-            let ticks = if scaling_factor > Fraction::new(1, 1) {
-                // In order to preserve precision, if the source scaling factor is > 1, the source's
-                // pure integer value can be calculated first followed by division by the
-                // dest scaling factor.
-                TimeInt::checked_div_fraction(
-                    &TimeInt::checked_mul_fraction(&ticks, &scaling_factor)
-                        .ok_or(ConversionError::Unspecified)?,
-                    &Self::SCALING_FACTOR,
-                )
-                .ok_or(ConversionError::Unspecified)?
-            } else {
-                // If the source scaling factor is <= 1, the relative ratio of the scaling factors
-                // are calculated first by dividing the source scaling factor by
-                // that of the dest. The source integer part is then multiplied by
-                // the result.
-                TimeInt::checked_mul_fraction(
-                    &ticks,
-                    &scaling_factor
-                        .checked_div(&Self::SCALING_FACTOR)
-                        .ok_or(ConversionError::Unspecified)?,
-                )
-                .ok_or(ConversionError::Unspecified)?
-            };
-
+            let ticks =
+                Self::convert_ticks(ticks, scaling_factor).ok_or(ConversionError::Unspecified)?;
             Ok(Self::new(ticks))
         } else {
-            let ticks = if scaling_factor > Fraction::new(1, 1) {
-                TimeInt::checked_div_fraction(
-                    &TimeInt::checked_mul_fraction(&ticks, &scaling_factor)
-                        .ok_or(ConversionError::Unspecified)?,
-                    &Self::SCALING_FACTOR,
-                )
-                .ok_or(ConversionError::Unspecified)?
-            } else if Self::SCALING_FACTOR > Fraction::new(1, 1) {
-                TimeInt::checked_mul_fraction(
-                    &TimeInt::checked_div_fraction(&ticks, &Self::SCALING_FACTOR)
-                        .ok_or(ConversionError::Unspecified)?,
-                    &scaling_factor,
-                )
-                .ok_or(ConversionError::Unspecified)?
-            } else {
-                TimeInt::checked_mul_fraction(
-                    &ticks,
-                    &scaling_factor
-                        .checked_div(&Self::SCALING_FACTOR)
-                        .ok_or(ConversionError::Unspecified)?,
-                )
-                .ok_or(ConversionError::Unspecified)?
-            };
-
+            let ticks =
+                Self::convert_ticks(ticks, scaling_factor).ok_or(ConversionError::Unspecified)?;
             let ticks = Self::T::try_from(ticks).map_err(|_| ConversionError::ConversionFailure)?;
-
             Ok(Self::new(ticks))
         }
     }
 
-    /// Constructs a `FixedPoint` value from _integer_ and _scaling-factor_ ([`Fraction`]) parts
-    ///
     #[doc(hidden)]
-    fn from_ticks_safe<SourceInt: TimeInt>(ticks: SourceInt, scaling_factor: Fraction) -> Self
-    where
-        Self::T: From<SourceInt>,
-        Self::T: ops::Mul<Fraction, Output = Self::T> + ops::Div<Fraction, Output = Self::T>,
-    {
-        let ticks = Self::T::from(ticks);
-
-        let ticks = if (scaling_factor >= Fraction::new(1, 1)
-            && Self::SCALING_FACTOR <= Fraction::new(1, 1))
+    fn convert_ticks<T: TimeInt>(ticks: T, scaling_factor: Fraction) -> Option<T> {
+        if (scaling_factor >= Fraction::new(1, 1) && Self::SCALING_FACTOR <= Fraction::new(1, 1))
             || (scaling_factor <= Fraction::new(1, 1)
                 && Self::SCALING_FACTOR >= Fraction::new(1, 1))
         {
-            // if the source's _scaling factor_ is > `1/1`, start by converting to a _scaling
-            // factor_ of `1/1`, then convert to destination _scaling factor_.
-            (ticks * scaling_factor) / Self::SCALING_FACTOR
+            TimeInt::checked_div_fraction(
+                &TimeInt::checked_mul_fraction(&ticks, &scaling_factor)?,
+                &Self::SCALING_FACTOR,
+            )
         } else {
-            // If the source scaling factor is <= 1, the relative ratio of the scaling factors are
-            // calculated first by dividing the source scaling factor by that of the
-            // dest. The source integer part is then multiplied by the result.
-            ticks * (scaling_factor / Self::SCALING_FACTOR)
-        };
-
-        Self::new(ticks)
+            TimeInt::checked_mul_fraction(
+                &ticks,
+                &scaling_factor.checked_div(&Self::SCALING_FACTOR)?,
+            )
+        }
     }
 
     /// Returns the _integer_ of the fixed-point value after converting to the _scaling factor_
