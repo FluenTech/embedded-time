@@ -1,9 +1,9 @@
 //! Rate-based types/units
 
+pub use crate::fraction::Fraction;
 use crate::{
     duration,
     fixed_point::{self, FixedPoint},
-    fraction::Fraction,
     time_int::{TimeInt, Widen},
     ConversionError,
 };

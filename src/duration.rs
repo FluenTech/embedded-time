@@ -1,8 +1,8 @@
 //! Duration types/units
 
+pub use crate::fraction::Fraction;
 use crate::{
     fixed_point::{self, FixedPoint},
-    fraction::Fraction,
     rate,
     time_int::TimeInt,
     ConversionError,
@@ -181,7 +181,7 @@ pub use units::*;
 /// ### Examples
 ///
 /// ```rust
-/// # use embedded_time::{fraction::Fraction, duration::*, duration::Generic};
+/// use embedded_time::duration::*;
 /// # use core::convert::{TryFrom, TryInto};
 /// #
 /// # let generic_duration = Generic::new(2_000_u32, Fraction::new(1, 1_000));
@@ -200,7 +200,7 @@ pub use units::*;
 /// [`ConversionError::Unspecified`]
 ///
 /// ```rust
-/// # use embedded_time::{fraction::Fraction, duration::*, duration::Generic, ConversionError};
+/// use embedded_time::{duration::*, ConversionError};
 /// # use core::convert::TryFrom;
 /// #
 /// assert_eq!(
@@ -215,7 +215,7 @@ pub use units::*;
 /// destination type fails.
 ///
 /// ```rust
-/// # use embedded_time::{fraction::Fraction, duration::*, duration::Generic, ConversionError};
+/// use embedded_time::{duration::*, ConversionError};
 /// # use core::convert::TryFrom;
 /// #
 /// assert_eq!(
@@ -227,7 +227,7 @@ pub use units::*;
 /// ## Converting to a [`Generic`] `Duration`
 ///
 /// ```rust
-/// # use embedded_time::{fraction::Fraction, duration::*, duration::Generic};
+/// use embedded_time::duration::*;
 /// # use core::convert::{TryFrom, TryInto};
 /// #
 /// let generic_duration = Generic::<u32>::from(5_u32.seconds());

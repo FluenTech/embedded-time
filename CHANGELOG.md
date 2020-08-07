@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Re-export `Fraction` type in the `duration` and `rate` module
+  - Allows for a single import (eg `use duration::*`) to support `Generic` usage which uses `Fraction`
+
 [unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.9.0...HEAD
 
 ## [0.9.0] - 2020-08-05
