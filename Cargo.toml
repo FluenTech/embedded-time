@@ -29,6 +29,7 @@ num = { version = "0.3.0", default-features = false }
 crossbeam-utils = "0.7.2"
 criterion = "0.3.3"
 test-case = "1.0.0"
+version-sync = "0.9.1"
 
 [[bench]]
 name = "duration"
