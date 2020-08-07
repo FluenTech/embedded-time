@@ -37,4 +37,3 @@ harness = false
 [[bench]]
 name = "duration_vs_rate"
 harness = false
-bench = false

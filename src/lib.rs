@@ -5,19 +5,64 @@
 //! Additionally, an implementation of software timers is provided that work seemlessly with all
 //! the types in this crate.
 //!
-//! # Imports
-//!
-//! The suggested use statements are as follows depending on what is needed:
-//!
 //! ```rust
-//! use embedded_time::duration::*;    // imports all duration-related types and traits
-//! use embedded_time::rate::*;        // imports all rate-related types and traits
-//! use embedded_time::clock;
-//! use embedded_time::Instant;
-//! use embedded_time::Timer;
+//! use embedded_time::{duration::*, rate::*};
+//! # use core::convert::TryInto;
+//!
+//! let micros = 200_000_u32.microseconds();                // 200_000 μs
+//! let millis: Milliseconds = micros.into();               // 200 ms
+//! let frequency: Result<Hertz,_> = millis.to_rate();      // 5 Hz
+//!
+//! assert_eq!(frequency, Ok(5_u32.Hz()));
 //! ```
 //!
-//! # Details
+//! # Motivation
+//!
+//! The handling of time on embedded systems is generally much different than that of OSs. For
+//! instance, on an OS, the time is measured against an arbitrary epoch. Embedded systems generally
+//! don't know (nor do they care) what the *real* time is, but rather how much time has passed since
+//! the system has started.
+//!
+//! ## Drawbacks of the standard library types
+//!
+//! ### Duration
+//!
+//! - The storage is `u64` seconds and `u32` nanoseconds.
+//! - This is huge overkill and adds needless complexity beyond what is required (or desired) for
+//!   embedded systems.
+//! - Any read (with the exception of seconds and nanoseconds) requires arithmetic to convert to the
+//!   requested units
+//! - This is much slower than this project's implementation of what is analogous to a tagged union
+//!   of time units.
+//!
+//! ### Instant
+//!
+//! - The `Instant` type requires `std`.
+//!
+//! ## Drawbacks of the [`time`](https://crates.io/crates/time) crate
+//!
+//! The `time` crate is a remarkable library but isn't geared for embedded systems (although it does
+//! support a subset of features in `no_std` contexts). It suffers from some of the same drawbacks
+//! as the core::Duration type (namely the storage format) and the `Instant` struct dependency on
+//! `std`. It also adds a lot of functionally that would seldom be useful in an embedded context.
+//! For instance it has a comprehensive date/time formatting, timezone, and calendar support.
+//!
+//! ## Background
+//!
+//! ### What is an Instant?
+//!
+//! In the Rust ecosystem, it appears to be idiomatic to call a `now()` associated function from an
+//! Instant type. There is generally no concept of a "Clock". I believe that using the `Instant` in
+//! this way is a violation of the *separation of concerns* principle. What is an `Instant`? Is it a
+//! time-keeping entity from which you read the current instant in time, or is it that instant in
+//! time itself. In this case, it's both.
+//!
+//! As an alternative, the current instant in time is read from a **Clock**. The `Instant` read from
+//! the `Clock` has the same precision and width (inner type) as the `Clock`. Requesting the
+//! difference between two `Instant`s gives a `Duration` which can have different precision and/or
+//! width.
+//!
+//! # Overview
 //!
 //! The approach taken is similar to the C++ `chrono` library. [`Duration`]s and [`Rate`]s are
 //! fixed-point values as in they are comprised of _integer_ and _scaling factor_ values.
@@ -35,6 +80,8 @@
 //!
 //! [`Seconds`]: duration::units::Seconds
 //! [`Milliseconds`]: duration::units::Milliseconds
+//! [`Clock`]: clock::Clock
+//! [`Instant`]: instant::Instant
 //! [`Rate`]: rate::Rate
 //! [`Hertz`]: rate::units::Hertz
 //! [`BitsPerSecond`]: rate::units::BitsPerSecond
@@ -61,7 +108,163 @@
 //!
 //! **Rate**: A measure of events per time such as frequency, data-rate, etc.
 //!
-//! ## Notes
+//! # Imports
+//!
+//! The suggested use statements are as follows depending on what is needed:
+//!
+//! ```rust
+//! use embedded_time::duration::*;    // imports all duration-related types and traits
+//! use embedded_time::rate::*;        // imports all rate-related types and traits
+//! use embedded_time::clock;
+//! use embedded_time::Instant;
+//! use embedded_time::Timer;
+//! ```
+//!
+//! # Duration Types
+//!
+//! | Units        | Extension    |
+//! | :----------- | :----------- |
+//! | Hours        | hours        |
+//! | Minutes      | minutes      |
+//! | Seconds      | seconds      |
+//! | Milliseconds | milliseconds |
+//! | Microseconds | microseconds |
+//! | Nanoseconds  | nanoseconds  |
+//!
+//! - Conversion from `Rate` types
+//! ```rust
+//! use embedded_time::{duration::*, rate::*};
+//!
+//! # assert!(
+//! Microseconds(500_u32).to_rate() == Ok(Kilohertz(2_u32))
+//! # );
+//! ```
+//!
+//! - Conversion to/from `Generic` `Duration` type
+//!
+//! ```rust
+//! use embedded_time::{duration::*};
+//! # use core::convert::TryFrom;
+//!
+//! # assert!(
+//! Seconds(2_u64).to_generic(Fraction::new(1, 2_000)) == Ok(Generic::new(4_000_u32, Fraction::new(1, 2_000)))
+//! # );
+//! # assert!(
+//! Seconds::<u64>::try_from(Generic::new(2_000_u32, Fraction::new(1, 1_000))) == Ok(Seconds(2_u64))
+//! # );
+//! ```
+//!
+//! ## `core` Compatibility
+//!
+//! - Conversion to/from `core::time::Duration`
+//!
+//! ### Benchmark Comparisons to `core` duration type
+//!
+//! #### Construct and Read Milliseconds
+//!
+//! ```rust
+//! use embedded_time::duration::*;
+//!
+//! # let ms = 100;
+//! let duration = Milliseconds::<u64>(ms); // 8 bytes
+//! let count = duration.integer();
+//! ```
+//!
+//! _(the size of `embedded-time` duration types is only the size of the inner type)_
+//!
+//! ```rust
+//! use std::time::Duration;
+//!
+//! # let ms = 100;
+//! let core_duration = Duration::from_millis(ms); // 12 bytes
+//! let count = core_duration.as_millis();
+//! ```
+//!
+//! _(the size of `core` duration type is 12 B)_
+//!
+//! ![](resources/duration_violin_v0.7.0.svg)
+//!
+//! # Rate Types
+//!
+//! ## Frequency
+//! | Units             | Extension |
+//! | :---------------- | :-------- |
+//! | Mebihertz         | MiHz      |
+//! | Megahertz         | MHz       |
+//! | Kibihertz         | KiHz      |
+//! | Kilohertz         | kHz       |
+//! | Hertz             | Hz        |
+//!
+//! ## Data Rate
+//! | Units             | Extension |
+//! | :---------------- | :-------- |
+//! | MebibytePerSecond | MiBps     |
+//! | MegabytePerSecond | MBps      |
+//! | KibibytePerSecond | KiBps     |
+//! | KiloBytePerSecond | KBps      |
+//! | BytePerSecond     | Bps       |
+//! |                   |           |
+//! | MebibitPerSecond  | Mibps     |
+//! | MegabitPerSecond  | Mbps      |
+//! | KibibitPerSecond  | Kibps     |
+//! | KilobitPerSecond  | kbps      |
+//! | BitPerSecond      | bps       |
+//!
+//! ## Symbol Rate
+//! | Units             | Extension |
+//! | :---------------- | :-------- |
+//! | Mebibaud          | MiBd      |
+//! | Megabaud          | MBd       |
+//! | Kibibaud          | KiBd      |
+//! | Kilobaud          | kBd       |
+//! | Baud              | Bd        |
+//!
+//! - Conversion from/to all other rate types within the same class (frequency, data rate, etc.).
+//!   For example, MBps (megabytes per second) --> Kibps (kibibits per second).
+//!
+//! - Conversion from `Duration` types
+//!
+//! ```rust
+//! use embedded_time::{duration::*, rate::*};
+//! # use core::convert::TryFrom;
+//!
+//! # assert!(
+//! Kilohertz(500_u32).to_duration() == Ok(Microseconds(2_u32))
+//! # );
+//! ```
+//!
+//! - Conversion to/from `Generic` `Rate` type
+//!
+//! ```rust
+//! use embedded_time::rate::*;
+//! # use core::convert::TryFrom;
+//!
+//! # assert!(
+//! Hertz(2_u64).to_generic(Fraction::new(1,2_000)) == Ok(Generic::new(4_000_u32, Fraction::new(1,2_000)))
+//! # );
+//! # assert!(
+//! Hertz::<u64>::try_from(Generic::new(2_000_u32, Fraction::new(1,1_000))) == Ok(Hertz(2_u64))
+//! # );
+//! ```
+//!
+//! # Hardware Abstraction
+//!
+//! - `Clock` trait allowing abstraction of hardware timers/clocks for timekeeping.
+//!
+//! # Timers
+//!
+//! - Software timers spawned from a `Clock` impl object.
+//! - One-shot or periodic/continuous
+//! - Blocking delay
+//! - Poll for expiration
+//! - Read elapsed/remaining duration
+//!
+//! # Reliability and Usability
+//! - Extensive tests
+//! - Thorough documentation with examples
+//! - Example for the nRF52_DK board
+//!
+//! # Notes
 //! Some parts of this crate were derived from various sources:
 //! - [`RTIC`](https://github.com/rtic-rs/cortex-m-rtic)
 //! - [`time`](https://docs.rs/time/latest/time) (Specifically the [`time::NumbericalDuration`](https://docs.rs/time/latest/time/trait.NumericalDuration.html)
