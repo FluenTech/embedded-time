@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+[unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.9.1...HEAD
+
+
+## [0.9.1] - 2020-08-07
+
 ### Changed
 
 - Re-export `Fraction` type in the `duration` and `rate` module
@@ -9,7 +14,8 @@
 - Unify readme's and crate-level documentation
   - The GitHub `README.md` and crates.io `crates-io.md` are now generated using `cargo-readme`
 
-[unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.9.0...HEAD
+[0.9.1]: https://github.com/FluenTech/embedded-time/compare/v0.9.0...v0.9.1
+
 
 ## [0.9.0] - 2020-08-05
 
