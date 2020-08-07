@@ -6,6 +6,8 @@
 
 - Re-export `Fraction` type in the `duration` and `rate` module
   - Allows for a single import (eg `use duration::*`) to support `Generic` usage which uses `Fraction`
+- Unify readme's and crate-level documentation
+  - The GitHub `README.md` and crates.io `crates-io.md` are now generated using `cargo-readme`
 
 [unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.9.0...HEAD
 
