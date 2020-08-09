@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Documentation
+
+- clarify and add documentation concerning `Generic` types
+- update intra-kind (duration/rate) conversion examples
+
 [unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.9.1...HEAD
 
 

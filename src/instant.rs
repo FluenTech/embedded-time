@@ -56,13 +56,14 @@ impl<Clock: crate::Clock> Instant<Clock> {
         Self { ticks }
     }
 
-    /// Returns the amount of time elapsed from another instant to this one, or None if that instant
-    /// is later than this one.
+    /// Returns the amount of time elapsed from another instant to this one as a
+    /// [`duration::Generic`] or [`None`] if the other instant is later than
+    /// this one.
     ///
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{Clock as _, duration::*, fraction::Fraction, Instant, ConversionError};
+    /// # use embedded_time::{duration::*, Instant, ConversionError};
     /// # use core::convert::TryInto;
     /// # #[derive(Debug)]
     /// struct Clock;
@@ -70,14 +71,20 @@ impl<Clock: crate::Clock> Instant<Clock> {
     ///     type T = u32;
     ///     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
     ///     // ...
-    ///
     /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error> {unimplemented!()}
     /// }
+    /// #
+    /// # let instant1 = Instant::<Clock>::new(3);
+    /// # let instant2 = Instant::<Clock>::new(5);
     ///
-    /// assert_eq!(Instant::<Clock>::new(5).checked_duration_since(&Instant::<Clock>::new(3)).unwrap().try_into(),
-    ///     Ok(Microseconds(2_000_u64)));
+    /// // Given `instant1` at 3 `Clock` ticks
+    /// // Given `instant2` at 5 `Clock` ticks
+    /// let generic_duration = instant2.checked_duration_since(&instant1).unwrap();
     ///
-    /// assert_eq!(Instant::<Clock>::new(3).checked_duration_since(&Instant::<Clock>::new(5)), None);
+    /// // Convert into a _named_ `Duration`
+    /// let microseconds: Microseconds<u32> = generic_duration.try_into().unwrap();
+    ///
+    /// assert_eq!(microseconds, Microseconds(2_000_u32));
     /// ```
     pub fn checked_duration_since(&self, other: &Self) -> Option<duration::Generic<Clock::T>> {
         if self >= other {
@@ -90,13 +97,14 @@ impl<Clock: crate::Clock> Instant<Clock> {
         }
     }
 
-    /// Returns the amount of time from this instant to another, or None if that instant is earlier
-    /// than this one.
+    /// Returns the amount of time elapsed from self until that given instant
+    /// [`duration::Generic`] or [`None`] if the other instant is later than
+    /// this one.
     ///
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{fraction::Fraction, duration::*, Instant, ConversionError};
+    /// # use embedded_time::{duration::*, Instant, ConversionError};
     /// # use core::convert::TryInto;
     /// # #[derive(Debug)]
     /// struct Clock;
@@ -106,12 +114,18 @@ impl<Clock: crate::Clock> Instant<Clock> {
     ///     // ...
     /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error> {unimplemented!()}
     /// }
+    /// #
+    /// # let instant1 = Instant::<Clock>::new(3);
+    /// # let instant2 = Instant::<Clock>::new(5);
     ///
-    /// assert_eq!(Instant::<Clock>::new(5).checked_duration_until(&Instant::<Clock>::new(7)).unwrap().try_into(),
-    ///     Ok(Microseconds(2_000_u64)));
+    /// // Given `instant1` at 3 `Clock` ticks
+    /// // Given `instant2` at 5 `Clock` ticks
+    /// let generic_duration = instant1.checked_duration_until(&instant2).unwrap();
     ///
-    /// assert_eq!(Instant::<Clock>::new(7).checked_duration_until(&Instant::<Clock>::new(5)),
-    ///     None);
+    /// // Convert into a _named_ `Duration`
+    /// let microseconds: Microseconds<u32> = generic_duration.try_into().unwrap();
+    ///
+    /// assert_eq!(microseconds, Microseconds(2_000_u32));
     /// ```
     pub fn checked_duration_until(&self, other: &Self) -> Option<duration::Generic<Clock::T>> {
         if self <= other {

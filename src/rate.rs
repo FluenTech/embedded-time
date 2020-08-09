@@ -21,8 +21,8 @@ pub use units::*;
 /// # Constructing a rate
 ///
 /// ```rust
-/// # use embedded_time::{rate::*};
-/// #
+/// use embedded_time::rate::*;
+///
 /// let _ = <Kilohertz>::new(5);
 /// let _ = Kilohertz(5_u32);
 /// let _ = 5_u32.kHz();
@@ -31,8 +31,8 @@ pub use units::*;
 /// # Get the integer part
 ///
 /// ```rust
-/// # use embedded_time::{rate::*};
-/// #
+/// use embedded_time::rate::*;
+///
 /// assert_eq!(Hertz(45_u32).integer(), &45_u32);
 /// ```
 ///
@@ -41,8 +41,8 @@ pub use units::*;
 /// Just forwards the underlying integer to [`core::fmt::Display::fmt()`]
 ///
 /// ```rust
-/// # use embedded_time::{rate::*};
-/// #
+/// use embedded_time::rate::*;
+///
 /// assert_eq!(format!("{}", Hertz(123_u32)), "123");
 /// ```
 ///
@@ -51,25 +51,26 @@ pub use units::*;
 /// Many intra-rate conversions can be done using `From`/`Into`:
 ///
 /// ```rust
-/// # use embedded_time::rate::*;
-/// #
-/// let hertz = 23_000_u32.Hz();
-/// assert_eq!(hertz.integer(), &23_000_u32);
+/// use embedded_time::rate::*;
 ///
-/// let kilohertz: Kilohertz<u32> = hertz.into();
+/// let kilohertz = Kilohertz::<u32>::from(23_000_u32.Hz());
+/// assert_eq!(kilohertz.integer(), &23_u32);
+///
+/// let kilohertz: Kilohertz<u32> = 23_000_u32.Hz().into();
 /// assert_eq!(kilohertz.integer(), &23_u32);
 /// ```
 ///
 /// Others require the use of `TryFrom`/`TryInto`:
 ///
 /// ```rust
-/// # use embedded_time::rate::*;
-/// # use std::convert::TryInto;
-/// let kilohertz = 23_u32.kHz();
-/// assert_eq!(kilohertz.integer(), &23_u32);
+/// use embedded_time::rate::*;
+/// use std::convert::{TryInto, TryFrom};
 ///
-/// let hertz: Result<Hertz<u32>, _> = kilohertz.try_into();
-/// assert_eq!(hertz.unwrap().integer(), &23_000_u32);
+/// let hertz = Hertz::<u32>::try_from(23_u32.kHz()).unwrap();
+/// assert_eq!(hertz.integer(), &23_000_u32);
+///
+/// let hertz: Hertz<u32> = 23_u32.kHz().try_into().unwrap();
+/// assert_eq!(hertz.integer(), &23_000_u32);
 /// ```
 ///
 /// # Converting from a [`Generic`] `Rate`
@@ -77,19 +78,17 @@ pub use units::*;
 /// ## Examples
 ///
 /// ```rust
-/// # use embedded_time::{fraction::Fraction, rate::*};
-/// # use core::convert::{TryFrom, TryInto};
-/// #
-/// assert_eq!(
-///     Hertz::<u64>::try_from(Generic::new(2_000_u32, Fraction::new(1,1_000))),
-///     Ok(Hertz(2_u64))
-/// );
+/// use embedded_time::rate::*;
+/// use core::convert::{TryFrom, TryInto};
 ///
-/// // TryInto also works
-/// assert_eq!(
-///     Generic::new(2_000_u64, Fraction::new(1,1_000)).try_into(),
-///     Ok(Hertz(2_u64))
-/// );
+/// // A generic rate of 20_000 events/second
+/// let generic_rate = Generic::new(10_u32, Fraction::new(2_000, 1));
+///
+/// let rate = KilobitsPerSecond::<u32>::try_from(generic_rate).unwrap();
+/// assert_eq!(rate, 20_u32.kbps());
+///
+/// let rate: KilobitsPerSecond<u32> = generic_rate.try_into().unwrap();
+/// assert_eq!(rate, 20_u32.kbps());
 /// ```
 ///
 /// ## Errors
@@ -101,9 +100,9 @@ pub use units::*;
 /// [`ConversionError::Unspecified`]
 ///
 /// ```rust
-/// # use embedded_time::{fraction::Fraction, rate::*, ConversionError};
-/// # use core::convert::TryFrom;
-/// #
+/// use embedded_time::{rate::*, ConversionError};
+/// use core::convert::TryFrom;
+///
 /// assert_eq!(
 ///     Hertz::<u32>::try_from(Generic::new(u32::MAX, Fraction::new(10,1))),
 ///     Err(ConversionError::Unspecified)
@@ -116,23 +115,33 @@ pub use units::*;
 /// destination type fails.
 ///
 /// ```rust
-/// # use embedded_time::{fraction::Fraction, rate::*, ConversionError};
+/// use embedded_time::{rate::*, ConversionError};
 /// # use core::convert::TryFrom;
-/// #
+///
 /// assert_eq!(
 ///     Hertz::<u32>::try_from(Generic::new(u32::MAX as u64 + 1, Fraction::new(1,1))),
 ///     Err(ConversionError::ConversionFailure)
 /// );
 /// ```
 ///
-/// # Converting to a [`Generic`] `Rate`
+/// # Converting to a [`Generic`] `Rate` with the same _scaling factor_
 ///
 /// ```rust
-/// # use embedded_time::{rate::*};
-/// #
+/// use embedded_time::rate::*;
+///
 /// let generic_rate = Generic::<u32>::from(5_u32.Hz());
 /// let generic_rate: Generic<u32> = 5_u32.Hz().into();
+///
+/// assert_eq!(generic_rate.integer(), &5_u32);
 /// ```
+///
+/// # Converting to a [`Generic`] `Rate` with a different _scaling factor_
+///
+/// See [`Rate::to_generic()`]
+///
+/// # Converting to a _named_ `Duration`
+///
+/// See [`Rate::to_duration()`]
 ///
 /// # Add/Sub
 ///
@@ -141,12 +150,12 @@ pub use units::*;
 /// ## Examples
 ///
 /// ```rust
-/// # use embedded_time::{rate::*};
-/// #
-/// assert_eq!((Hertz(2_001_u32) - 1_u32.kHz()),
-///     Hertz(1_001_u32));
+/// use embedded_time::rate::*;
 ///
 /// assert_eq!((Hertz(1_u32) + 1_u32.kHz()),
+///     Hertz(1_001_u32));
+///
+/// assert_eq!((Hertz(2_001_u32) - 1_u32.kHz()),
 ///     Hertz(1_001_u32));
 /// ```
 ///
@@ -155,16 +164,16 @@ pub use units::*;
 /// The same reason the integer operation would panic. Namely, if the result overflows the type.
 ///
 /// ```rust,should_panic
-/// # use embedded_time::{rate::*};
-/// #
+/// use embedded_time::rate::*;
+///
 /// let _ = Hertz(u32::MAX) + Hertz(1_u32);
 /// ```
 ///
 /// # Comparisons
 ///
 /// ```rust
-/// # use embedded_time::{rate::*};
-/// #
+/// use embedded_time::rate::*;
+///
 /// assert_eq!(Kilohertz(2_u32), Hertz(2_000_u32));
 /// assert_ne!(Kilohertz(2_u32), Hertz(2_001_u32));
 ///
@@ -175,8 +184,8 @@ pub use units::*;
 /// # Remainder
 ///
 /// ```rust
-/// # use embedded_time::{rate::*};
-/// #
+/// use embedded_time::rate::*;
+///
 /// assert_eq!(Hertz(2_037_u32) % Kilohertz(1_u32), Hertz(37_u32));
 /// ```
 pub trait Rate: Sized + Copy {
@@ -185,13 +194,14 @@ pub trait Rate: Sized + Copy {
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{fraction::Fraction, rate::*};
-    /// # use core::convert::{TryFrom, TryInto};
-    /// #
-    /// assert_eq!(
-    ///     Hertz(2_u64).to_generic(Fraction::new(1,2_000)),
-    ///     Ok(Generic::new(4_000_u32, Fraction::new(1,2_000)))
-    /// );
+    /// use embedded_time::rate::*;
+    ///
+    /// let kilobits = KilobitsPerSecond(20_u32);
+    ///
+    /// // convert into a generic rate with a different _scaling factor_
+    /// let generic = kilobits.to_generic::<u32>(Fraction::new(500, 1)).unwrap();
+    ///
+    /// assert_eq!(generic.integer(), &40_u32);
     /// ```
     ///
     /// # Errors
@@ -203,9 +213,8 @@ pub trait Rate: Sized + Copy {
     /// [`ConversionError::Unspecified`]
     ///
     /// ```rust
-    /// # use embedded_time::{fraction::Fraction, rate::*, ConversionError};
-    /// # use core::convert::TryFrom;
-    /// #
+    /// # use embedded_time::{rate::*, ConversionError};
+    ///
     /// assert_eq!(
     ///     Hertz(u32::MAX).to_generic::<u32>(Fraction::new(1, 2)),
     ///     Err(ConversionError::Unspecified)
@@ -218,9 +227,8 @@ pub trait Rate: Sized + Copy {
     /// type fails.
     ///
     /// ```rust
-    /// # use embedded_time::{fraction::Fraction, rate::*, ConversionError};
-    /// # use core::convert::TryFrom;
-    /// #
+    /// use embedded_time::{fraction::Fraction, rate::*, ConversionError};
+    ///
     /// assert_eq!(
     ///     Hertz(u32::MAX as u64 + 1).to_generic::<u32>(Fraction::new(1, 1)),
     ///     Err(ConversionError::ConversionFailure)
@@ -247,8 +255,8 @@ pub trait Rate: Sized + Copy {
     /// # Examples
     ///
     /// ```rust
-    /// # use embedded_time::{duration::*, rate::*};
-    /// #
+    /// use embedded_time::{duration::*, rate::*};
+    ///
     /// assert_eq!(
     ///     Kilohertz(500_u32).to_duration(),
     ///     Ok(Microseconds(2_u32))
@@ -264,8 +272,8 @@ pub trait Rate: Sized + Copy {
     /// [`ConversionError::Overflow`] : The conversion of the _scaling factor_ causes an overflow.
     ///
     /// ```rust
-    /// # use embedded_time::{duration::*, rate::*, ConversionError};
-    /// #
+    /// use embedded_time::{duration::*, rate::*, ConversionError};
+    ///
     /// assert_eq!(
     ///     Megahertz(u32::MAX).to_duration::<Hours<u32>>(),
     ///     Err(ConversionError::Overflow)
@@ -277,8 +285,8 @@ pub trait Rate: Sized + Copy {
     /// [`ConversionError::DivByZero`] : The rate is `0`, therefore the reciprocal is undefined.
     ///
     /// ```rust
-    /// # use embedded_time::{duration::*, rate::*, ConversionError};
-    /// #
+    /// use embedded_time::{duration::*, rate::*, ConversionError};
+    ///
     /// assert_eq!(
     ///     Hertz(0_u32).to_duration::<Seconds<u32>>(),
     ///     Err(ConversionError::DivByZero)
@@ -324,11 +332,11 @@ pub trait Rate: Sized + Copy {
     }
 }
 
-/// The `Generic` `Rate` type allows arbitrary _scaling factor_s to be used without having to impl
-/// `FixedPoint`.
+/// The `Generic` `Rate` type allows an arbitrary _scaling factor_ to be used without having to
+/// impl `FixedPoint`.
 ///
-/// The purpose of this type is to allow a simple `Rate` that can be defined at run-time. It does
-/// this by replacing the `const` _scaling factor_ with a struct field.
+/// The purpose of this type is to allow a simple `Rate` object that can be defined at run-time.
+/// It does this by replacing the `const` _scaling factor_ with a struct field.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct Generic<T> {
     integer: T,
@@ -336,7 +344,7 @@ pub struct Generic<T> {
 }
 
 impl<T> Generic<T> {
-    /// Constructs a new (ram) fixed-point `Generic` `Rate` value
+    /// Constructs a new fixed-point `Generic` `Rate` value
     pub const fn new(integer: T, scaling_factor: Fraction) -> Self {
         Self {
             integer,
@@ -466,8 +474,7 @@ pub mod units {
             }
 
             impl<T: TimeInt> From<$name<T>> for Generic<T> {
-                /// See [Converting to a `Generic`
-                /// `Rate`](trait.Rate.html#converting-to-a-generic-rate)
+                /// See [Converting to a `Generic` `Rate`](trait.Rate.html#converting-to-a-generic-rate)
                 fn from(rate: $name<T>) -> Self {
                     Self::new(*rate.integer(), $name::<T>::SCALING_FACTOR)
                 }

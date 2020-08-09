@@ -62,33 +62,6 @@ pub use units::*;
 /// // ...
 /// ```
 ///
-/// # Converting between `Durations`
-///
-/// Many intra-duration conversions can be done using `From`/`Into`:
-///
-/// ```rust
-/// use embedded_time::duration::*;
-///
-/// let milliseconds = 23_000_u32.milliseconds();
-/// assert_eq!(milliseconds.integer(), &23_000_u32);
-///
-/// let seconds: Seconds<u32> = milliseconds.into();
-/// assert_eq!(seconds.integer(), &23_u32);
-/// ```
-///
-/// Others require the use of `TryFrom`/`TryInto`:
-///
-/// ```rust
-/// use embedded_time::duration::*;
-/// # use std::convert::TryInto;
-///
-/// let seconds = 23_u32.seconds();
-/// assert_eq!(seconds.integer(), &23_u32);
-///
-/// let milliseconds: Result<Milliseconds<u32>, _> = seconds.try_into();
-/// assert_eq!(milliseconds.unwrap().integer(), &23_000_u32);
-/// ```
-///
 /// # Converting between `Duration`s
 ///
 /// Many intra-duration conversions can be done using `From`/`Into`:
@@ -96,10 +69,10 @@ pub use units::*;
 /// ```rust
 /// use embedded_time::duration::*;
 ///
-/// let milliseconds = 23_000_u32.milliseconds();
-/// assert_eq!(milliseconds.integer(), &23_000_u32);
+/// let seconds = Seconds::<u32>::from(23_000_u32.milliseconds());
+/// assert_eq!(seconds.integer(), &23_u32);
 ///
-/// let seconds: Seconds<u32> = milliseconds.into();
+/// let seconds: Seconds<u32> = 23_000_u32.milliseconds().into();
 /// assert_eq!(seconds.integer(), &23_u32);
 /// ```
 ///
@@ -107,13 +80,13 @@ pub use units::*;
 ///
 /// ```rust
 /// use embedded_time::duration::*;
-/// # use std::convert::TryInto;
+/// use std::convert::{TryInto, TryFrom};
 ///
-/// let seconds = 23_u32.seconds();
-/// assert_eq!(seconds.integer(), &23_u32);
+/// let millis = Milliseconds::<u32>::try_from(23_u32.seconds()).unwrap();
+/// assert_eq!(millis.integer(), &23_000_u32);
 ///
-/// let milliseconds: Result<Milliseconds<u32>, _> = seconds.try_into();
-/// assert_eq!(milliseconds.unwrap().integer(), &23_000_u32);
+/// let millis: Milliseconds<u32> = 23_u32.seconds().try_into().unwrap();
+/// assert_eq!(millis.integer(), &23_000_u32);
 /// ```
 ///
 /// # Converting to `core` types
@@ -122,7 +95,7 @@ pub use units::*;
 ///
 /// ```rust
 /// use embedded_time::duration::*;
-/// # use core::convert::TryFrom;
+/// use core::convert::TryFrom;
 ///
 /// let core_duration = core::time::Duration::try_from(2_569_u32.milliseconds()).unwrap();
 ///
@@ -132,7 +105,7 @@ pub use units::*;
 ///
 /// ```rust
 /// use embedded_time::duration::*;
-/// # use core::convert::TryInto;
+/// use core::convert::TryInto;
 ///
 /// let core_duration: core::time::Duration = 2_569_u32.milliseconds().try_into().unwrap();
 ///
@@ -148,7 +121,7 @@ pub use units::*;
 ///
 /// ```rust
 /// use embedded_time::duration::*;
-/// # use core::convert::TryFrom;
+/// use core::convert::TryFrom;
 ///
 /// let core_duration = core::time::Duration::new(5, 730_023_852);
 ///
@@ -184,22 +157,25 @@ pub use units::*;
 /// assert_eq!(duration, Err(ConversionError::ConversionFailure));
 /// ```
 ///
-/// ## Converting from a [`Generic`] `Duration`
+/// # Converting from a [`Generic`] `Duration`
 ///
-/// ### Examples
+/// ## Examples
 ///
 /// ```rust
 /// use embedded_time::duration::*;
 /// # use core::convert::{TryFrom, TryInto};
 ///
-/// # let generic_duration = Generic::new(2_000_u32, Fraction::new(1, 1_000));
-/// // Generic duration returned from an [`Instant`] method: `generic_duration`
+/// // A generic duration of 2 seconds
+/// let generic_duration = Generic::new(2_000_u32, Fraction::new(1, 1_000));
 ///
-/// let secs = Seconds::<u64>::try_from(generic_duration);
-/// let secs: Result<Seconds<u64>, _> = generic_duration.try_into();
+/// let secs = Seconds::<u64>::try_from(generic_duration).unwrap();
+/// assert_eq!(secs.integer(), &2_u64);
+///
+/// let secs: Seconds<u64> = generic_duration.try_into().unwrap();
+/// assert_eq!(secs.integer(), &2_u64);
 /// ```
 ///
-/// ### Errors
+/// ## Errors
 ///
 /// Failure will only occur if the provided value does not fit in the selected destination type.
 ///
@@ -232,15 +208,24 @@ pub use units::*;
 /// );
 /// ```
 ///
-/// ## Converting to a [`Generic`] `Duration`
+/// # Converting to a [`Generic`] `Duration` with the same _scaling factor_
 ///
 /// ```rust
 /// use embedded_time::duration::*;
-/// # use core::convert::{TryFrom, TryInto};
 ///
 /// let generic_duration = Generic::<u32>::from(5_u32.seconds());
 /// let generic_duration: Generic<u32> = 5_u32.seconds().into();
+///
+/// assert_eq!(generic_duration.integer(), &5_u32);
 /// ```
+///
+/// # Converting to a [`Generic`] `Duration` with a different _scaling factor_
+///
+/// See [`Duration::to_generic()`]
+///
+/// # Converting to a _named_ `Rate`
+///
+/// See [`Duration::to_rate()`]
 ///
 /// # Add/Sub
 ///
@@ -251,10 +236,10 @@ pub use units::*;
 /// ```rust
 /// use embedded_time::duration::*;
 ///
-/// assert_eq!((Milliseconds(2_001_u32) - Seconds(1_u32)),
+/// assert_eq!((Milliseconds(1_u32) + Seconds(1_u32)),
 ///     Milliseconds(1_001_u32));
 ///
-/// assert_eq!((Milliseconds(1_u32) + Seconds(1_u32)),
+/// assert_eq!((Milliseconds(2_001_u32) - Seconds(1_u32)),
 ///     Milliseconds(1_001_u32));
 /// ```
 ///
@@ -295,10 +280,13 @@ pub trait Duration: Sized + Copy {
     ///
     /// ```rust
     /// use embedded_time::duration::*;
-    /// # use core::convert::{TryFrom, TryInto};
     ///
-    /// assert_eq!(Seconds(2_u64).to_generic(Fraction::new(1, 2_000)),
-    ///     Ok(Generic::new(4_000_u32, Fraction::new(1, 2_000))));
+    /// let millis = Milliseconds(20_u32);
+    ///
+    /// // convert into a generic duration with a different _scaling factor_
+    /// let generic = millis.to_generic::<u32>(Fraction::new(1, 2_000)).unwrap();
+    ///
+    /// assert_eq!(generic.integer(), &40_u32);
     /// ```
     ///
     /// # Errors
@@ -311,10 +299,11 @@ pub trait Duration: Sized + Copy {
     ///
     /// ```rust
     /// use embedded_time::{duration::*, ConversionError};
-    /// # use core::convert::TryFrom;
     ///
-    /// assert_eq!(Seconds(u32::MAX).to_generic::<u32>(Fraction::new(1, 2)),
-    ///     Err(ConversionError::Unspecified));
+    /// assert_eq!(
+    ///     Seconds(u32::MAX).to_generic::<u32>(Fraction::new(1, 2)),
+    ///     Err(ConversionError::Unspecified)
+    /// );
     /// ```
     ///
     /// ---
@@ -324,7 +313,6 @@ pub trait Duration: Sized + Copy {
     ///
     /// ```rust
     /// use embedded_time::{duration::*, ConversionError};
-    /// # use core::convert::TryFrom;
     ///
     /// assert_eq!(Seconds(u32::MAX as u64 + 1).to_generic::<u32>(Fraction::new(1, 1)),
     ///     Err(ConversionError::ConversionFailure));
@@ -430,8 +418,8 @@ pub trait Duration: Sized + Copy {
 /// The `Generic` `Duration` type allows an arbitrary _scaling factor_ to be used without having to
 /// impl `FixedPoint`.
 ///
-/// The purpose of this type is to allow a simple `Duration` that can be defined at run-time. It
-/// does this by replacing the `const` _scaling factor_ with a struct field.
+/// The purpose of this type is to allow a simple `Duration` object that can be defined at run-time.
+/// It does this by replacing the `const` _scaling factor_ with a struct field.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 pub struct Generic<T> {
     integer: T,
@@ -439,7 +427,7 @@ pub struct Generic<T> {
 }
 
 impl<T> Generic<T> {
-    /// Constructs a new (ram) fixed-point `Generic` `Duration` value
+    /// Constructs a new fixed-point `Generic` `Duration` value
     pub const fn new(integer: T, scaling_factor: Fraction) -> Self {
         Self {
             integer,
@@ -626,8 +614,7 @@ pub mod units {
             {
                 type Error = ConversionError;
 
-                /// See [Converting to `core`
-                /// types](trait.Duration.html#converting-to-core-types)
+                /// See [Converting to `core` types](trait.Duration.html#converting-to-core-types)
                 fn try_from(duration: $name<T>) -> Result<Self, Self::Error> {
                     Ok(Self::$from_core_dur((*duration.integer()).into()))
                 }
