@@ -1,1 +1,1 @@
-cargo bloat --bin nrf52_dk --target thumbv7em-none-eabihf --release --wide -n 100 | Out-File nrf52_dk-bloat.txt
+cargo bloat --bin isolated --target thumbv7em-none-eabihf --release --wide -n 100 | Out-File isolated-bloat.txt -Encoding UTF8
