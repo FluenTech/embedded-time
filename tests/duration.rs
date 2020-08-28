@@ -65,12 +65,12 @@ fn sub() {
         Milliseconds(1_001_u32)
     );
 
-    assert_eq!((Minutes(u32::MAX) - Hours(1_u32)), Minutes(u32::MAX - 60));
+    assert_eq!(Minutes(u32::MAX) - Hours(1_u32), Minutes(u32::MAX - 60));
 }
 
 #[test]
 fn mul() {
-    assert_eq!((Milliseconds(2_001_u32) * 2), Milliseconds(4_002_u32));
+    assert_eq!(Milliseconds(2_001_u32) * 2, Milliseconds(4_002_u32));
 }
 #[test]
 #[should_panic]

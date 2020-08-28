@@ -261,6 +261,11 @@ pub use units::*;
 /// let _ = Seconds(u32::MAX) + Seconds(1_u32);
 /// ```
 ///
+/// # Mul/Div
+///
+/// Durations may also be multiplied and divided by integers. The result is of the LHS type. Both
+/// _panicky_ and _checked_ operations are available.
+///
 /// # Comparisons
 ///
 /// ```rust

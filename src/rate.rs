@@ -169,6 +169,11 @@ pub use units::*;
 /// let _ = Hertz(u32::MAX) + Hertz(1_u32);
 /// ```
 ///
+/// # Mul/Div
+///
+/// Rates may also be multiplied and divided by integers. The result is of the LHS type. Both
+/// _panicky_ and _checked_ operations are available.
+///
 /// # Comparisons
 ///
 /// ```rust
@@ -450,7 +455,7 @@ pub mod units {
             impl<T: TimeInt> ops::Mul<T> for $name<T> {
                 type Output = Self;
 
-                /// See [Mul/Div](trait.Duration.html#muldiv)
+                /// See [Mul/Div](trait.Rate.html#muldiv)
                 fn mul(self, rhs: T) -> Self::Output {
                     <Self as FixedPoint>::mul(self, rhs)
                 }
@@ -459,7 +464,7 @@ pub mod units {
             impl<T: TimeInt> ops::Div<T> for $name<T> {
                 type Output = Self;
 
-                /// See [Mul/Div](trait.Duration.html#muldiv)
+                /// See [Mul/Div](trait.Rate.html#muldiv)
                 fn div(self, rhs: T) -> Self::Output {
                     <Self as FixedPoint>::div(self, rhs)
                 }
