@@ -211,8 +211,9 @@ _(the size of `core` duration type is 12 B)_
 | Kilobaud          | kBd       |
 | Baud              | Bd        |
 
-- Conversion from/to all other rate types within the same class (frequency, data rate, etc.).
-  For example, MBps (megabytes per second) --> Kibps (kibibits per second).
+- Conversion from/to all other rate types within the same class (frequency, data rate, etc.) and
+  _base_ (mega, mebi, kilo, kibi). For example, MiBps (mebibytes per second) --> Kibps (kibibits
+  per second) and MBps (megabytes per second) --> kbps (kilobits per second).
 
 - Conversion from `Duration` types
 
