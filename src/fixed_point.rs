@@ -1,7 +1,7 @@
 //! Fixed-point values
 use crate::{fraction::Fraction, time_int::TimeInt, ConversionError};
 use core::{convert::TryFrom, mem::size_of, prelude::v1::*};
-use num::Bounded;
+use num::{Bounded, CheckedDiv, CheckedMul};
 
 /// Fixed-point value type
 ///
@@ -161,6 +161,28 @@ pub trait FixedPoint: Sized + Copy {
         Self: TryFrom<Rhs>,
     {
         Self::new(*self.integer() - *Self::try_from(rhs).ok().unwrap().integer())
+    }
+
+    /// Panicky multiplication
+    #[doc(hidden)]
+    fn mul(self, rhs: Self::T) -> Self {
+        Self::new(*self.integer() * rhs)
+    }
+
+    /// Multiply with overflow checking
+    fn checked_mul(&self, rhs: &Self::T) -> Option<Self> {
+        Some(Self::new((*self.integer()).checked_mul(rhs)?))
+    }
+
+    /// Panicky division
+    #[doc(hidden)]
+    fn div(self, rhs: Self::T) -> Self {
+        Self::new(*self.integer() / rhs)
+    }
+
+    /// Multiply with overflow checking
+    fn checked_div(&self, rhs: &Self::T) -> Option<Self> {
+        Some(Self::new((*self.integer()).checked_div(rhs)?))
     }
 
     /// Panicky remainder

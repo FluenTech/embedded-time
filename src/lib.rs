@@ -219,9 +219,9 @@
 //! | Kilobaud          | kBd       |
 //! | Baud              | Bd        |
 //!
-//! - Conversion from/to all other rate types within the same class (frequency, data rate, etc.) and _base_ (mega, mebi, kilo, kibi).
-//!   For example, MiBps (mebibytes per second) --> Kibps (kibibits per second) and
-//!   MBps (megabytes per second) --> kbps (kilobits per second).
+//! - Conversion from/to all other rate types within the same class (frequency, data rate, etc.) and
+//!   _base_ (mega, mebi, kilo, kibi). For example, MiBps (mebibytes per second) --> Kibps (kibibits
+//!   per second) and MBps (megabytes per second) --> kbps (kilobits per second).
 //!
 //! - Conversion from `Duration` types
 //!
@@ -274,7 +274,7 @@
 #![deny(unsafe_code)]
 #![cfg_attr(not(test), no_std)]
 #![warn(missing_docs)]
-#![deny(broken_intra_doc_links)]
+#![deny(intra_doc_link_resolution_failure)]
 
 pub mod clock;
 pub mod duration;

@@ -69,6 +69,45 @@ fn sub() {
 }
 
 #[test]
+fn mul() {
+    assert_eq!((Milliseconds(2_001_u32) * 2), Milliseconds(4_002_u32));
+}
+#[test]
+#[should_panic]
+fn mul_overflow() {
+    let _ = Milliseconds(u32::MAX) * 2;
+}
+#[test]
+fn checked_mul() {
+    assert_eq!(
+        Milliseconds(2_001_u32).checked_mul(&2),
+        Some(Milliseconds(4_002_u32))
+    );
+
+    assert_eq!(Milliseconds(u32::MAX).checked_mul(&2), None);
+}
+
+#[test]
+fn div() {
+    assert_eq!((Milliseconds(2_002_u32) / 2), Milliseconds(1_001_u32));
+}
+#[test]
+#[should_panic]
+fn div_div_by_zero() {
+    let _ = Milliseconds(u32::MAX) / 0;
+}
+
+#[test]
+fn checked_div() {
+    assert_eq!(
+        Milliseconds(2_002_u32).checked_div(&2),
+        Some(Milliseconds(1_001_u32))
+    );
+
+    assert_eq!(Milliseconds(u32::MAX).checked_div(&0), None);
+}
+
+#[test]
 fn rem() {
     assert_eq!(100_u32.minutes() % u64::MAX.hours(), 100_u32.minutes());
     assert_eq!(100_u32.minutes() % 1_u64.hours(), 40_u32.minutes());
