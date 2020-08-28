@@ -1,8 +1,8 @@
+use core::convert::TryInto;
 use embedded_time::{
     self as time,
     duration::{self, *},
-    fraction::Fraction,
-    Instant,
+    Clock as _, Instant,
 };
 use test_case::test_case;
 
@@ -14,19 +14,47 @@ impl time::Clock for Clock {
     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
 
     fn try_now(&self) -> Result<Instant<Self>, time::clock::Error> {
-        unimplemented!()
+        static mut TICKS: u32 = 0;
+        unsafe {
+            TICKS += 1;
+        }
+        Ok(Instant::new(unsafe { TICKS }))
     }
 }
 
 #[test]
 fn duration_since() {
-    let diff = Instant::<Clock>::new(5).checked_duration_since(&Instant::<Clock>::new(3));
+    let clock = Clock;
+    let instant1 = clock.try_now().unwrap();
+    let instant2 = clock.try_now().unwrap();
+    let diff = instant2.checked_duration_since(&instant1);
     assert_eq!(
         diff,
-        Some(duration::Generic::new(2_u32, Fraction::new(1, 1_000)))
+        Some(duration::Generic::new(1_u32, Fraction::new(1, 1_000)))
     );
 
-    let diff = Instant::<Clock>::new(5).checked_duration_since(&Instant::<Clock>::new(6));
+    let micros: Result<Microseconds<<Clock as time::Clock>::T>, _> = diff.unwrap().try_into();
+    assert_eq!(micros, Ok(Microseconds(1_000_u32)));
+
+    let diff = instant1.checked_duration_since(&instant2);
+    assert_eq!(diff, None);
+}
+
+#[test]
+fn duration_until() {
+    let clock = Clock;
+    let instant1 = clock.try_now().unwrap();
+    let instant2 = clock.try_now().unwrap();
+    let diff = instant1.checked_duration_until(&instant2);
+    assert_eq!(
+        diff,
+        Some(duration::Generic::new(1_u32, Fraction::new(1, 1_000)))
+    );
+
+    let micros: Result<Microseconds<<Clock as time::Clock>::T>, _> = diff.unwrap().try_into();
+    assert_eq!(micros, Ok(Microseconds(1_000_u32)));
+
+    let diff = instant2.checked_duration_until(&instant1);
     assert_eq!(diff, None);
 }
 
@@ -42,4 +70,10 @@ fn duration_since_epoch() {
 #[test_case(0, u32::MAX/2 + 1 => None ; "Overflow due to the duration being too large")]
 fn checked_add(base: u32, addition: u32) -> Option<Instant<Clock>> {
     Instant::<Clock>::new(base).checked_add(Milliseconds(addition))
+}
+
+#[test_case(u32::MAX, u32::MAX/2 => Some(Instant::<Clock>::new(u32::MAX - (u32::MAX / 2))) ; "Subtract the maximum allowed duration")]
+#[test_case(u32::MAX, u32::MAX/2 + 1 => None ; "Overflow due to the duration being too large")]
+fn checked_sub(base: u32, subtrahend: u32) -> Option<Instant<Clock>> {
+    Instant::<Clock>::new(base).checked_sub(Milliseconds(subtrahend))
 }

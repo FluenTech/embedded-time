@@ -16,10 +16,10 @@ path = "src/isolated.rs"
 [dependencies]
 embedded-time = { path = ".." }
 panic-never = "0.1.0"
-cortex-m = "0.6.2"
+cortex-m = "0.6.3"
 cortex-m-rt = "0.6.12"
 panic_rtt = "0.3.0"
 panic-halt = "0.2.0"
 panic-reset = "0.1.0"
-nrf52832-hal = { version = "0.10.0", default-features = false, features = ["rt", "xxAA-package"] }
+nrf52832-hal = { version = "0.11.0", default-features = false, features = ["rt", "xxAA-package"] }
 

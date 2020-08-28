@@ -33,12 +33,6 @@ fn u64_mul_fraction(integer: u64, fraction: (u32, u32)) -> u64 {
     integer * Fraction::new(fraction.0, fraction.1)
 }
 
-#[test_case(u128::MAX, (3,5) => u128::MAX / 5 * 3 ; "Properly handles potential overflows when possible")]
-#[test_case(u128::MAX, (2,1) => panics "")]
-fn u128_mul_fraction(integer: u128, fraction: (u32, u32)) -> u128 {
-    integer * Fraction::new(fraction.0, fraction.1)
-}
-
 #[test]
 fn fraction_mul_fraction() {
     let product = Fraction::new(1_000, 1) * Fraction::new(5, 5);
@@ -57,13 +51,6 @@ fn u32_div_fraction(integer: u32, fraction: (u32, u32)) -> u32 {
 #[test_case(u64::MAX, (5,3) => u64::MAX / 5 * 3 ; "Properly handles potential overflows when possible")]
 #[test_case(u64::MAX, (1,2) => panics "")]
 fn u64_div_fraction(integer: u64, fraction: (u32, u32)) -> u64 {
-    integer / Fraction::new(fraction.0, fraction.1)
-}
-
-#[test_case(12_u128, (4,3) => 9_u128 ; "Returns integer result")]
-#[test_case(u128::MAX, (5,3) => u128::MAX / 5 * 3 ; "Properly handles potential overflows when possible")]
-#[test_case(u128::MAX, (1,2) => panics "")]
-fn u128_div_fraction(integer: u128, fraction: (u32, u32)) -> u128 {
     integer / Fraction::new(fraction.0, fraction.1)
 }
 

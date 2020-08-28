@@ -4,7 +4,7 @@ pub use crate::fraction::Fraction;
 use crate::{
     duration,
     fixed_point::{self, FixedPoint},
-    time_int::{TimeInt, Widen},
+    time_int::TimeInt,
     ConversionError,
 };
 use core::{convert::TryFrom, mem::size_of, prelude::v1::*};
@@ -387,7 +387,7 @@ pub mod units {
     macro_rules! impl_rate {
         ( $name:ident, ($numer:expr, $denom:expr), $desc:literal ) => {
             #[doc = $desc]
-            #[derive(Copy, Clone, Eq, Hash, Debug, Default)]
+            #[derive(Copy, Clone, Eq, Ord, Hash, Debug, Default)]
             pub struct $name<T: TimeInt = u32>(pub T);
 
             impl<T: TimeInt> $name<T> {
@@ -510,8 +510,27 @@ pub mod units {
     impl_rate![Kilobaud, (1_000, 1), "Baud × 1,000"];
     impl_rate![Baud, (1, 1), "Baud"];
 
-    macro_rules! impl_comparisons {
+    macro_rules! impl_conversion {
         ($name:ident) => {
+            impl From<$name<u32>> for $name<u64> {
+                /// See [Converting between `Rate`s](trait.Rate.html#converting-between-rates)
+                fn from(source: $name<u32>) -> Self {
+                    Self::new(u64::from(*source.integer()))
+                }
+            }
+
+            impl TryFrom<$name<u64>> for $name<u32> {
+                type Error = ConversionError;
+
+                /// See [Converting between `Rate`s](trait.Rate.html#converting-between-rates)
+                fn try_from(source: $name<u64>) -> Result<Self, Self::Error> {
+                    fixed_point::FixedPoint::from_ticks(
+                        *source.integer(),
+                        $name::<u64>::SCALING_FACTOR,
+                    )
+                }
+            }
+
             impl<T: TimeInt, RhsInt: TimeInt> cmp::PartialEq<$name<RhsInt>> for $name<T>
             where
                 T: TryFrom<RhsInt>,
@@ -538,254 +557,163 @@ pub mod units {
                 }
             }
         };
-        ($big:ident, $($small:ident),+) => {
 
-            impl_comparisons![$big];
-
-            $(
-                impl<T: TimeInt, RhsInt: TimeInt> cmp::PartialEq<$small<RhsInt>> for $big<T>
-                where
-                    $small<RhsInt>: PartialEq<$big<T>>,
-                    T: Widen,
-                    RhsInt: Widen,
-                    <RhsInt as Widen>::Output: TryFrom<<T as Widen>::Output>,
-                {
-                    /// See [Comparisons](trait.Rate.html#comparisons)
-                    fn eq(&self, rhs: &$small<RhsInt>) -> bool {
-                        <$small::<RhsInt> as PartialEq<$big<T>>>::eq(rhs, self)
-                    }
-                }
-
-                impl<T: TimeInt, RhsInt: TimeInt> cmp::PartialEq<$big<RhsInt>> for $small<T>
-                where
-                    T: Widen,
-                    <T as Widen>::Output: ops::Mul<Fraction>,
-                    <<T as Widen>::Output as ops::Mul<Fraction>>::Output: PartialEq + TryFrom<<<RhsInt as Widen>::Output as ops::Mul<Fraction>>::Output>,
-                    RhsInt: Widen,
-                    <RhsInt as Widen>::Output: ops::Mul<Fraction>,
-                {
-                    /// See [Comparisons](trait.Rate.html#comparisons)
-                    fn eq(&self, rhs: &$big<RhsInt>) -> bool {
-                        let lhs_value = self.integer().widen() * Self::SCALING_FACTOR;
-                        let rhs_value = rhs.integer().widen() * $big::<RhsInt>::SCALING_FACTOR;
-                        match <<T as Widen>::Output as ops::Mul<Fraction>>::Output::try_from(rhs_value) {
-                            Ok(rhs_value) => lhs_value == rhs_value,
-                            Err(_) => false
-                        }
-                    }
-                }
-
-                impl<T: TimeInt, RhsInt: TimeInt> PartialOrd<$small<RhsInt>> for $big<T>
-                where
-                    T: Widen,
-                    <T as Widen>::Output: ops::Mul<Fraction>,
-                    <<T as Widen>::Output as ops::Mul<Fraction>>::Output: Ord + TryFrom<<<RhsInt as Widen>::Output as ops::Mul<Fraction>>::Output>,
-                    RhsInt: Widen,
-                    <RhsInt as Widen>::Output: ops::Mul<Fraction> + TryFrom<<T as Widen>::Output> + TryFrom<<<T as Widen>::Output as ops::Mul<Fraction>>::Output>,
-                    <<RhsInt as Widen>::Output as ops::Mul<Fraction>>::Output: PartialEq + TryFrom<<<T as Widen>::Output as ops::Mul<Fraction>>::Output>,
-                {
-                    /// See [Comparisons](trait.Rate.html#comparisons)
-                    fn partial_cmp(&self, rhs: &$small<RhsInt>) -> Option<core::cmp::Ordering> {
-                        let lhs_value = self.integer().widen() * Self::SCALING_FACTOR;
-                        let rhs_value = rhs.integer().widen() * $small::<RhsInt>::SCALING_FACTOR;
-                        match <<T as Widen>::Output as ops::Mul<Fraction>>::Output::try_from(rhs_value) {
-                            Ok(rhs_value) => Some(lhs_value.cmp(&rhs_value)),
-                            Err(_) => Some(core::cmp::Ordering::Less),
-                        }
-
-                    }
-                }
-
-                impl<T: TimeInt, RhsInt: TimeInt> PartialOrd<$big<RhsInt>> for $small<T>
-                where
-                    T: Widen,
-                    <T as Widen>::Output: ops::Mul<Fraction>,
-                    <<T as Widen>::Output as ops::Mul<Fraction>>::Output: Ord + PartialEq + TryFrom<<<RhsInt as Widen>::Output as ops::Mul<Fraction>>::Output>,
-                    RhsInt: Widen,
-                    <RhsInt as Widen>::Output: ops::Mul<Fraction>,
-                {
-                    /// See [Comparisons](trait.Rate.html#comparisons)
-                    fn partial_cmp(&self, rhs: &$big<RhsInt>) -> Option<core::cmp::Ordering> {
-                        let lhs_value = self.integer().widen() * Self::SCALING_FACTOR;
-                        let rhs_value = rhs.integer().widen() * $big::<RhsInt>::SCALING_FACTOR;
-                        match <<T as Widen>::Output as ops::Mul<Fraction>>::Output::try_from(rhs_value) {
-                            Ok(rhs_value) => Some(lhs_value.cmp(&rhs_value)),
-                            Err(_) => Some(core::cmp::Ordering::Less),
-                        }
-                    }
-                }
-            )+
-            impl_comparisons![$($small),+];
-        };
-    }
-    impl_comparisons![Mebihertz, Megahertz, Kibihertz, Kilohertz, Hertz];
-    impl_comparisons![
-        MebibytesPerSecond,
-        MegabytesPerSecond,
-        MebibitsPerSecond,
-        MegabitsPerSecond,
-        KibibytesPerSecond,
-        KilobytesPerSecond,
-        KibibitsPerSecond,
-        KilobitsPerSecond,
-        BytesPerSecond,
-        BitsPerSecond
-    ];
-    impl_comparisons![Mebibaud, Megabaud, Kibibaud, Kilobaud, Baud];
-
-    macro_rules! impl_from {
-        ($name:ident) => {
-            impl From<$name<u32>> for $name<u64> {
+        (once, $big:ident, $small:ident) => {
+            impl<T: TimeInt> From<$small<T>> for $big<T>
+            {
                 /// See [Converting between `Rate`s](trait.Rate.html#converting-between-rates)
-                fn from(source: $name<u32>) -> Self {
-                    Self::new(u64::from(*source.integer()))
+                fn from(small: $small<T>) -> Self {
+                    fixed_point::FixedPoint::from_ticks(*small.integer(), $small::<T>::SCALING_FACTOR).ok().unwrap()
                 }
             }
 
-            impl TryFrom<$name<u64>> for $name<u32> {
+            impl From<$small<u32>> for $big<u64>
+            {
+                /// See [Converting between `Rate`s](trait.Rate.html#converting-between-rates)
+                fn from(small: $small<u32>) -> Self {
+                    fixed_point::FixedPoint::from_ticks(*small.integer(), $small::<u32>::SCALING_FACTOR).ok().unwrap()
+                }
+            }
+
+            impl TryFrom<$small<u64>> for $big<u32>
+            {
                 type Error = ConversionError;
 
                 /// See [Converting between `Rate`s](trait.Rate.html#converting-between-rates)
-                fn try_from(source: $name<u64>) -> Result<Self, Self::Error> {
+                fn try_from(small: $small<u64>) -> Result<Self, Self::Error> {
                     fixed_point::FixedPoint::from_ticks(
-                        *source.integer(),
-                        $name::<u64>::SCALING_FACTOR,
+                        *small.integer(),
+                        $small::<u64>::SCALING_FACTOR,
                     )
                 }
             }
-        };
-    }
-    impl_from![Mebihertz];
-    impl_from![Megahertz];
-    impl_from![Kibihertz];
-    impl_from![Kilohertz];
-    impl_from![Hertz];
-    impl_from![MebibytesPerSecond];
-    impl_from![MegabytesPerSecond];
-    impl_from![KibibytesPerSecond];
-    impl_from![KilobytesPerSecond];
-    impl_from![BytesPerSecond];
-    impl_from![MebibitsPerSecond];
-    impl_from![MegabitsPerSecond];
-    impl_from![KibibitsPerSecond];
-    impl_from![KilobitsPerSecond];
-    impl_from![BitsPerSecond];
-    impl_from![Mebibaud];
-    impl_from![Megabaud];
-    impl_from![Kibibaud];
-    impl_from![Kilobaud];
-    impl_from![Baud];
 
-    macro_rules! impl_from_smaller {
-        ($name:ident) => {};
-        ($big:ident, $($small:ident),+) => {
+
+            impl From<$big<u32>> for $small<u64>
+            {
+               /// See [Converting between `Rate`s](trait.Rate.html#converting-between-rates)
+                fn from(big: $big<u32>) -> Self {
+                    fixed_point::FixedPoint::from_ticks(*big.integer(), $big::<u32>::SCALING_FACTOR).ok().unwrap()
+                }
+            }
+
+            impl<T: TimeInt> TryFrom<$big<T>> for $small<T>
+            {
+                type Error = ConversionError;
+
+                /// See [Converting between `Rate`s](trait.Rate.html#converting-between-rates)
+                fn try_from(big: $big<T>) -> Result<Self, Self::Error> {
+                    fixed_point::FixedPoint::from_ticks(
+                        *big.integer(),
+                        $big::<T>::SCALING_FACTOR,
+                    )
+                }
+            }
+
+            impl TryFrom<$big<u64>> for $small<u32>
+            {
+                type Error = ConversionError;
+
+                /// See [Converting between `Rate`s](trait.Rate.html#converting-between-rates)
+                fn try_from(big: $big<u64>) -> Result<Self, Self::Error> {
+                    fixed_point::FixedPoint::from_ticks(
+                        *big.integer(),
+                        $big::<u64>::SCALING_FACTOR,
+                    )
+                }
+            }
+
+            impl<T: TimeInt, RhsInt: TimeInt> cmp::PartialEq<$small<RhsInt>> for $big<T>
+            where
+                $small<RhsInt>: PartialEq<$big<T>>,
+            {
+                /// See [Comparisons](trait.Rate.html#comparisons)
+                fn eq(&self, rhs: &$small<RhsInt>) -> bool {
+                    <$small::<RhsInt> as PartialEq<$big<T>>>::eq(rhs, self)
+                }
+            }
+
+            impl<T: TimeInt, RhsInt: TimeInt> cmp::PartialEq<$big<RhsInt>> for $small<T>
+            where
+                Self: TryFrom<$big<RhsInt>>,
+            {
+                /// See [Comparisons](trait.Rate.html#comparisons)
+                fn eq(&self, rhs: &$big<RhsInt>) -> bool {
+                    match Self::try_from(*rhs) {
+                        Ok(rhs) => *self == rhs,
+                        Err(_) => false
+                    }
+                }
+            }
+
+            impl<T: TimeInt, RhsInt: TimeInt> PartialOrd<$small<RhsInt>> for $big<T>
+            where
+                $small<RhsInt>: TryFrom<Self> + Ord,
+            {
+                /// See [Comparisons](trait.Rate.html#comparisons)
+                fn partial_cmp(&self, rhs: &$small<RhsInt>) -> Option<core::cmp::Ordering> {
+                    match $small::<RhsInt>::try_from(*self) {
+                        Ok(lhs) => Some(lhs.cmp(&rhs)),
+                        Err(_) => Some(core::cmp::Ordering::Greater),
+                    }
+
+                }
+            }
+
+            impl<T: TimeInt, RhsInt: TimeInt> PartialOrd<$big<RhsInt>> for $small<T>
+            where
+                Self: TryFrom<$big<RhsInt>>,
+            {
+                /// See [Comparisons](trait.Rate.html#comparisons)
+                fn partial_cmp(&self, rhs: &$big<RhsInt>) -> Option<core::cmp::Ordering> {
+                    match Self::try_from(*rhs) {
+                        Ok(rhs) => Some((*self).cmp(&rhs)),
+                        Err(_) => Some(core::cmp::Ordering::Less),
+                    }
+                }
+            }
+        };
+        ($big:ident; $($small:ident),+) => {
+            impl_conversion![$big];
             $(
-                impl<T: TimeInt> From<$small<T>> for $big<T>
-                {
-                    /// See [Converting between `Rate`s](trait.Rate.html#converting-between-rates)
-                    fn from(small: $small<T>) -> Self {
-                        fixed_point::FixedPoint::from_ticks(*small.integer(), $small::<T>::SCALING_FACTOR).ok().unwrap()
-                    }
-                }
-
-                impl From<$small<u32>> for $big<u64>
-                {
-                    /// See [Converting between `Rate`s](trait.Rate.html#converting-between-rates)
-                    fn from(small: $small<u32>) -> Self {
-                        fixed_point::FixedPoint::from_ticks(*small.integer(), $small::<u32>::SCALING_FACTOR).ok().unwrap()
-                    }
-                }
-
-                impl TryFrom<$small<u64>> for $big<u32>
-                {
-                    type Error = ConversionError;
-
-                    /// See [Converting between `Rate`s](trait.Rate.html#converting-between-rates)
-                    fn try_from(small: $small<u64>) -> Result<Self, Self::Error> {
-                        fixed_point::FixedPoint::from_ticks(
-                            *small.integer(),
-                            $small::<u64>::SCALING_FACTOR,
-                        )
-                    }
-                }
+                impl_conversion![once, $big, $small];
             )+
-
-            impl_from_smaller![$($small),+];
         };
+        // ($big:ident, $($small:ident),+) => {
+        //     $(
+        //         impl_from_smaller![once, $big, $small];
+        //     )+
+        //
+        //     impl_from_smaller![$($small),+];
+        // };
 
     }
-    impl_from_smaller![Mebihertz, Megahertz, Kibihertz, Kilohertz, Hertz];
-    impl_from_smaller![
-        MebibytesPerSecond,
-        MegabytesPerSecond,
-        MebibitsPerSecond,
-        MegabitsPerSecond,
-        KibibytesPerSecond,
-        KilobytesPerSecond,
-        KibibitsPerSecond,
-        KilobitsPerSecond,
-        BytesPerSecond,
-        BitsPerSecond
-    ];
-    impl_from_smaller![Mebibaud, Megabaud, Kibibaud, Kilobaud, Baud];
 
-    macro_rules! impl_from_bigger {
-        ($small:ident) => {};
-        ($small:ident, $($big:ident),+) => {
-            $(
-                impl From<$big<u32>> for $small<u64>
-                {
-                   /// See [Converting between `Rate`s](trait.Rate.html#converting-between-rates)
-                    fn from(big: $big<u32>) -> Self {
-                        fixed_point::FixedPoint::from_ticks(*big.integer(), $big::<u32>::SCALING_FACTOR).ok().unwrap()
-                    }
-                }
+    impl_conversion![Mebihertz; Kibihertz, Hertz];
+    impl_conversion![Kibihertz; Hertz];
+    impl_conversion![Megahertz; Kilohertz, Hertz];
+    impl_conversion![Kilohertz; Hertz];
+    impl_conversion![Hertz];
 
-                impl<T: TimeInt> TryFrom<$big<T>> for $small<T>
-                {
-                    type Error = ConversionError;
+    // The first arg implements From/TryFrom all following
+    impl_conversion![MebibytesPerSecond; MebibitsPerSecond, KibibytesPerSecond, KibibitsPerSecond, BytesPerSecond, BitsPerSecond];
+    impl_conversion![MebibitsPerSecond; KibibytesPerSecond, KibibitsPerSecond, BytesPerSecond, BitsPerSecond];
+    impl_conversion![KibibytesPerSecond; KibibitsPerSecond, BytesPerSecond, BitsPerSecond];
+    impl_conversion![KibibitsPerSecond; BytesPerSecond, BitsPerSecond];
 
-                    /// See [Converting between `Rate`s](trait.Rate.html#converting-between-rates)
-                    fn try_from(big: $big<T>) -> Result<Self, Self::Error> {
-                        fixed_point::FixedPoint::from_ticks(
-                            *big.integer(),
-                            $big::<T>::SCALING_FACTOR,
-                        )
-                    }
-                }
+    impl_conversion![MegabytesPerSecond; MegabitsPerSecond, KilobytesPerSecond, KilobitsPerSecond, BytesPerSecond, BitsPerSecond];
+    impl_conversion![MegabitsPerSecond; KilobytesPerSecond, KilobitsPerSecond, BytesPerSecond, BitsPerSecond  ];
+    impl_conversion![KilobytesPerSecond; KilobitsPerSecond, BytesPerSecond, BitsPerSecond ];
+    impl_conversion![KilobitsPerSecond; BytesPerSecond, BitsPerSecond];
 
-                impl TryFrom<$big<u64>> for $small<u32>
-                {
-                    type Error = ConversionError;
+    impl_conversion![BytesPerSecond; BitsPerSecond];
+    impl_conversion![BitsPerSecond];
 
-                    /// See [Converting between `Rate`s](trait.Rate.html#converting-between-rates)
-                    fn try_from(big: $big<u64>) -> Result<Self, Self::Error> {
-                        fixed_point::FixedPoint::from_ticks(
-                            *big.integer(),
-                            $big::<u64>::SCALING_FACTOR,
-                        )
-                    }
-                }
-            )+
-
-            impl_from_bigger![$($big),+];
-        };
-    }
-
-    impl_from_bigger![Hertz, Kilohertz, Kibihertz, Megahertz, Mebihertz];
-    impl_from_bigger![
-        BitsPerSecond,
-        BytesPerSecond,
-        KilobitsPerSecond,
-        KibibitsPerSecond,
-        KilobytesPerSecond,
-        KibibytesPerSecond,
-        MegabitsPerSecond,
-        MebibitsPerSecond,
-        MegabytesPerSecond,
-        MebibytesPerSecond
-    ];
-    impl_from_bigger![Baud, Kilobaud, Kibibaud, Megabaud, Mebibaud];
+    impl_conversion![Mebibaud; Kibibaud, Baud];
+    impl_conversion![Kibibaud; Baud];
+    impl_conversion![Megabaud; Kilobaud, Baud];
+    impl_conversion![Kilobaud; Baud];
+    impl_conversion![Baud];
 
     /// Create rate-based extensions from primitive numeric types.
     ///

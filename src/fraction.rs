@@ -114,17 +114,7 @@ impl ops::Mul<Fraction> for u32 {
 
     /// Panicky u32 × `Fraction` = u32
     fn mul(self, rhs: Fraction) -> Self::Output {
-        if rhs.numerator() == &1 {
-            (rhs.0 * self).to_integer()
-        } else {
-            let integer: u64 = self.into();
-            (Ratio::<u64>::new_raw((*rhs.numerator()).into(), (*rhs.denominator()).into())
-                * integer)
-                .to_integer()
-                .try_into()
-                .ok()
-                .unwrap()
-        }
+        (rhs.0 * self).to_integer()
     }
 }
 
@@ -134,17 +124,7 @@ impl ops::Div<Fraction> for u32 {
     /// Panicky u32 / `Fraction` = u32
     #[allow(clippy::suspicious_arithmetic_impl)]
     fn div(self, rhs: Fraction) -> Self::Output {
-        if rhs.denominator() == &1 {
-            (rhs.0.recip() * self).to_integer()
-        } else {
-            let integer: u64 = self.into();
-            (Ratio::<u64>::new_raw((*rhs.denominator()).into(), (*rhs.numerator()).into())
-                * integer)
-                .to_integer()
-                .try_into()
-                .ok()
-                .unwrap()
-        }
+        (rhs.0.recip() * self).to_integer()
     }
 }
 
@@ -153,18 +133,7 @@ impl ops::Mul<Fraction> for u64 {
 
     /// Panicky u64 × `Fraction` = u64
     fn mul(self, rhs: Fraction) -> Self::Output {
-        if rhs.numerator() == &1 {
-            (Ratio::new_raw((*rhs.numerator()).into(), (*rhs.denominator()).into()) * self)
-                .to_integer()
-        } else {
-            let integer: u128 = self.into();
-            (Ratio::<u128>::new_raw((*rhs.numerator()).into(), (*rhs.denominator()).into())
-                * integer)
-                .to_integer()
-                .try_into()
-                .ok()
-                .unwrap()
-        }
+        (Ratio::new_raw((*rhs.numerator()).into(), (*rhs.denominator()).into()) * self).to_integer()
     }
 }
 
@@ -172,36 +141,6 @@ impl ops::Div<Fraction> for u64 {
     type Output = Self;
 
     /// Panicky u64 / `Fraction` = u64
-    #[allow(clippy::suspicious_arithmetic_impl)]
-    fn div(self, rhs: Fraction) -> Self::Output {
-        if rhs.denominator() == &1 {
-            (Ratio::new_raw((*rhs.denominator()).into(), (*rhs.numerator()).into()) * self)
-                .to_integer()
-        } else {
-            let integer: u128 = self.into();
-            (Ratio::<u128>::new_raw((*rhs.denominator()).into(), (*rhs.numerator()).into())
-                * integer)
-                .to_integer()
-                .try_into()
-                .ok()
-                .unwrap()
-        }
-    }
-}
-
-impl ops::Mul<Fraction> for u128 {
-    type Output = Self;
-
-    /// Panicky u128 × `Fraction` = u128
-    fn mul(self, rhs: Fraction) -> Self::Output {
-        (Ratio::new_raw((*rhs.numerator()).into(), (*rhs.denominator()).into()) * self).to_integer()
-    }
-}
-
-impl ops::Div<Fraction> for u128 {
-    type Output = Self;
-
-    /// Panicky u128 / `Fraction` = u128
     #[allow(clippy::suspicious_arithmetic_impl)]
     fn div(self, rhs: Fraction) -> Self::Output {
         (Ratio::new_raw((*rhs.denominator()).into(), (*rhs.numerator()).into()) * self).to_integer()

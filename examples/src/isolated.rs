@@ -8,7 +8,7 @@ use panic_halt as _;
 
 pub struct SysClock;
 impl time::Clock for SysClock {
-    type T = u64;
+    type T = u32;
     const SCALING_FACTOR: time::fraction::Fraction = <time::fraction::Fraction>::new(1, 1_000_000);
 
     fn try_now(&self) -> Result<time::Instant<Self>, time::clock::Error> {
@@ -18,38 +18,98 @@ impl time::Clock for SysClock {
 
 #[entry]
 fn main() -> ! {
-    duration::comparison();
-    duration::construction();
-    duration::convert_to_rate();
-    duration::convert_from_core_duration();
-    duration::convert_to_core_duration();
-    duration::duration_scaling();
-    duration::error_try_from();
-    duration::get_generic_integer();
-    duration::remainder();
-    duration::to_generic();
-    duration::try_from_generic();
-
-    rate::try_from_generic();
-    rate::to_generic();
-    rate::remainder();
-    rate::get_generic_integer();
-    rate::comparison();
-    rate::baud_scaling();
-    rate::bits_per_second_scaling();
-    rate::bytes_per_second_scaling();
-    rate::convert_to_duration();
-    rate::frequency_scaling();
-    rate::try_into_generic_err();
+    instant::run();
+    duration::run();
+    rate::run();
 
     loop {}
 }
 
+mod instant {
+    use core::convert::TryInto;
+    use embedded_time::{
+        self as time,
+        duration::{self, *},
+        Instant,
+    };
+
+    pub fn run() {
+        duration_since();
+        duration_since_with_generic_type::<clock::Clock>(clock::Clock);
+        duration_since_epoch();
+    }
+
+    mod clock {
+        use embedded_time::Instant;
+        use embedded_time::{self as time, fraction::Fraction};
+
+        #[derive(Debug)]
+        pub(crate) struct Clock;
+
+        impl time::Clock for Clock {
+            type T = u32;
+            const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
+
+            fn try_now(&self) -> Result<Instant<Self>, time::clock::Error> {
+                static mut TICKS: u32 = 0;
+                unsafe {
+                    TICKS += 1;
+                }
+                Ok(Instant::new(unsafe { TICKS as Self::T }))
+            }
+        }
+    }
+
+    fn duration_since() {
+        let diff = Instant::<clock::Clock>::new(5)
+            .checked_duration_since(&Instant::<clock::Clock>::new(3));
+        assert_eq!(
+            diff,
+            Some(duration::Generic::new(2_u32, Fraction::new(1, 1_000)))
+        );
+
+        let diff = Instant::<clock::Clock>::new(5)
+            .checked_duration_since(&Instant::<clock::Clock>::new(6));
+        assert_eq!(diff, None);
+    }
+
+    fn duration_since_with_generic_type<C: time::Clock>(clock: C) {
+        let instant1 = clock.try_now().unwrap();
+        let instant2 = clock.try_now().unwrap();
+        let diff = instant2.checked_duration_since(&instant1).unwrap();
+
+        let secs: Result<Seconds<C::T>, _> = diff.try_into();
+        assert!(secs.unwrap() > Seconds(1));
+    }
+
+    fn duration_since_epoch() {
+        assert_eq!(
+            Instant::<clock::Clock>::new(u32::MAX).duration_since_epoch(),
+            duration::Generic::from(Milliseconds(u32::MAX))
+        );
+    }
+}
+
 mod duration {
-    use super::time::{duration, duration::*, fraction::Fraction, rate::*, ConversionError};
+    use super::time::{duration, duration::*, rate::*, ConversionError};
     use core::convert::{TryFrom, TryInto};
 
-    pub fn construction() {
+    pub fn run() {
+        comparison();
+        construction();
+        convert_to_rate();
+        duration_scaling();
+        get_generic_integer();
+        add();
+        sub();
+        // mul();
+        // div();
+        remainder();
+        to_generic();
+        try_from_generic();
+    }
+
+    fn construction() {
         assert_eq!(<Seconds>::new(5), Seconds(5_u32));
         assert_eq!(Seconds::new(5_u32), Seconds(5_u32));
 
@@ -61,33 +121,18 @@ mod duration {
         assert_eq!(5_u32.hours(), Hours(5_u32));
     }
 
-    pub fn comparison() {
+    fn comparison() {
         // even though the value of 5 seconds cannot be expressed as Nanoseconds<u32>, it behaves as
         // expected.
         assert_ne!(Seconds(5_u32), Nanoseconds(u32::MAX));
-        // assert_ne!(Seconds(5_u32), Nanoseconds(u32::MAX as u64));
-        // assert_ne!(Seconds(5_u64), Nanoseconds(u32::MAX));
-        // assert_ne!(Seconds(5_u64), Nanoseconds(u32::MAX as u64));
 
         assert_ne!(Nanoseconds(u32::MAX), Seconds(5_u32));
-        // assert_ne!(Nanoseconds(u32::MAX as u64), Seconds(5_u32));
-        // assert_ne!(Nanoseconds(u32::MAX), Seconds(5_u64));
-        // assert_ne!(Nanoseconds(u32::MAX as u64), Seconds(5_u64));
 
         assert!(Seconds(5_u32) > Nanoseconds(u32::MAX));
         assert!(Nanoseconds(u32::MAX) < Seconds(5_u32));
-
-        // assert!(Seconds(5_u32) < Nanoseconds(u64::MAX));
-        // assert!(Nanoseconds(u64::MAX) > Seconds(5_u32));
-        //
-        // assert!(Seconds(5_u64) > Nanoseconds(u32::MAX));
-        // assert!(Nanoseconds(u32::MAX) < Seconds(5_u64));
-        //
-        // assert!(Seconds(5_u64) < Nanoseconds(u64::MAX));
-        // assert!(Nanoseconds(u64::MAX) > Seconds(5_u64));
     }
 
-    pub fn try_from_generic() {
+    fn try_from_generic() {
         assert_eq!(
             Seconds::try_from(duration::Generic::new(246_u32, Fraction::new(1, 2))),
             Ok(Seconds(123_u32))
@@ -102,18 +147,9 @@ mod duration {
             Seconds::<u32>::try_from(duration::Generic::new(u32::MAX, Fraction::new(10, 1))),
             Err(ConversionError::Overflow)
         );
-
-        // ConversionFailure (type)
-        // assert_eq!(
-        //     Seconds::<u32>::try_from(duration::Generic::new(
-        //         u32::MAX as u64 + 1,
-        //         Fraction::new(1, 1)
-        //     )),
-        //     Err(ConversionError::ConversionFailure)
-        // );
     }
 
-    pub fn to_generic() {
+    fn to_generic() {
         assert_eq!(
             Seconds(123_u32).to_generic(Fraction::new(1, 2)),
             Ok(duration::Generic::new(246_u32, Fraction::new(1, 2)))
@@ -126,18 +162,34 @@ mod duration {
         );
     }
 
-    pub fn get_generic_integer() {
+    fn get_generic_integer() {
         let generic = duration::Generic::new(246_u32, Fraction::new(1, 2));
         assert_eq!(generic.integer(), &246_u32);
     }
 
-    pub fn remainder() {
+    fn add() {
+        assert_eq!(
+            (Milliseconds(1_u32) + Seconds(1_u32)),
+            Milliseconds(1_001_u32)
+        );
+    }
+
+    fn sub() {
+        assert_eq!(
+            (Milliseconds(2_001_u32) - Seconds(1_u32)),
+            Milliseconds(1_001_u32)
+        );
+
+        assert_eq!((Minutes(u32::MAX) - Hours(1_u32)), Minutes(u32::MAX - 60));
+    }
+
+    fn remainder() {
         assert_eq!(Minutes(62_u32) % Hours(1_u32), Minutes(2_u32));
         assert_eq!(Minutes(62_u32) % Milliseconds(1_u32), Minutes(0_u32));
         assert_eq!(Minutes(62_u32) % Minutes(60_u32), Minutes(2_u32));
     }
 
-    pub fn convert_to_rate() {
+    fn convert_to_rate() {
         assert_eq!(Milliseconds(500_u32).to_rate(), Ok(Hertz(2_u32)));
 
         assert_eq!(Microseconds(500_u32).to_rate(), Ok(Kilohertz(2_u32)));
@@ -153,23 +205,15 @@ mod duration {
         );
     }
 
-    pub fn convert_from_core_duration() {
+    fn convert_from_core_duration() {
         let core_duration = core::time::Duration::from_nanos(5_025_678_901_234);
-        // assert_eq!(
-        //     core_duration.try_into(),
-        //     Ok(Nanoseconds::<u64>(5_025_678_901_234))
-        // );
-        // assert_eq!(
-        //     core_duration.try_into(),
-        //     Ok(Microseconds::<u64>(5_025_678_901))
-        // );
         assert_eq!(core_duration.try_into(), Ok(Milliseconds::<u32>(5_025_678)));
         assert_eq!(core_duration.try_into(), Ok(Seconds::<u32>(5_025)));
         assert_eq!(core_duration.try_into(), Ok(Minutes::<u32>(83)));
         assert_eq!(core_duration.try_into(), Ok(Hours::<u32>(1)));
     }
 
-    pub fn convert_to_core_duration() {
+    fn convert_to_core_duration() {
         assert_eq!(
             Nanoseconds(123_u32).try_into(),
             Ok(core::time::Duration::from_nanos(123))
@@ -196,97 +240,111 @@ mod duration {
         );
     }
 
-    pub fn duration_scaling() {
+    fn duration_scaling() {
         assert_eq!(1_u32.nanoseconds(), 1_u32.nanoseconds());
         assert_eq!(1_u32.microseconds(), 1_000_u32.nanoseconds());
         assert_eq!(1_u32.milliseconds(), 1_000_000_u32.nanoseconds());
         assert_eq!(1_u32.seconds(), 1_000_000_000_u32.nanoseconds());
-        // assert_eq!(1_u64.minutes(), 60_000_000_000_u64.nanoseconds());
-        // assert_eq!(1_u64.hours(), 3_600_000_000_000_u64.nanoseconds());
 
         assert_eq!(1_000_u32.nanoseconds(), 1_u32.microseconds());
         assert_eq!(1_000_000_u32.nanoseconds(), 1_u32.milliseconds());
         assert_eq!(1_000_000_000_u32.nanoseconds(), 1_u32.seconds());
-        // assert_eq!(60_000_000_000_u64.nanoseconds(), 1_u64.minutes());
-        // assert_eq!(3_600_000_000_000_u64.nanoseconds(), 1_u64.hours());
-    }
-
-    pub fn error_try_from() {
-        // assert_eq!(
-        //     Milliseconds::<u32>::try_from(Nanoseconds(u64::MAX)),
-        //     Err(ConversionError::ConversionFailure)
-        // );
-        // assert_eq!(
-        //     Milliseconds::<u32>::try_from(Seconds(u64::MAX)),
-        //     Err(ConversionError::Overflow)
-        // );
     }
 }
 
 mod rate {
     use super::time::{
-        duration::{Microseconds, Milliseconds},
-        fraction::Fraction,
+        duration::*,
         rate::{self, *},
         ConversionError,
     };
-    use core::convert::TryFrom;
+    use core::convert::{TryFrom, TryInto};
 
-    pub fn comparison() {
+    pub fn run() {
+        try_from_generic();
+        to_generic();
+        add();
+        sub();
+        // mul();
+        // div();
+        remainder();
+        get_generic_integer();
+        comparison();
+        baud_scaling();
+        bits_per_second_scaling();
+        bytes_per_second_scaling();
+        convert_to_duration();
+        frequency_scaling();
+        try_into_generic_err();
+        into_bigger();
+    }
+
+    fn comparison() {
         assert_ne!(2_001_u32.Hz(), 2_u32.kHz());
-        // assert_ne!(2_001_u32.Hz(), 2_u64.kHz());
-        // assert_ne!(2_001_u64.Hz(), 2_u32.kHz());
-        // assert_ne!(2_001_u64.Hz(), 2_u64.kHz());
 
-        assert!(5_u32.KiBps() > 5_u32.kBps());
-        assert!(5_u32.KiBps() > 40_u32.kbps());
         assert_eq!(8_u32.Kibps(), 1_u32.KiBps());
     }
 
-    pub fn try_from_generic() {
+    fn try_from_generic() {
         assert_eq!(
             Hertz::try_from(rate::Generic::new(246_u32, Fraction::new(1, 2))),
             Ok(Hertz(123_u32))
         );
     }
 
-    pub fn to_generic() {
+    fn to_generic() {
         assert_eq!(
             Hertz(123_u32).to_generic(Fraction::new(1, 2)),
             Ok(rate::Generic::new(246_u32, Fraction::new(1, 2)))
         );
     }
 
-    pub fn try_into_generic_err() {
+    fn try_into_generic_err() {
         assert_eq!(
             Hertz(u32::MAX).to_generic::<u32>(Fraction::new(1, 2)),
             Err(ConversionError::Overflow)
         );
     }
 
-    pub fn get_generic_integer() {
+    fn get_generic_integer() {
         let generic = rate::Generic::new(246_u32, Fraction::new(1, 2));
         assert_eq!(generic.integer(), &246_u32);
     }
 
-    pub fn remainder() {
+    fn add() {
+        assert_eq!((Kilohertz(1_u32) + Megahertz(1_u32)), Kilohertz(1_001_u32));
+    }
+
+    fn sub() {
+        assert_eq!(
+            (Kilohertz(2_001_u32) - Megahertz(1_u32)),
+            Kilohertz(1_001_u32)
+        );
+
+        assert_eq!(
+            (Kibihertz(u32::MAX) - Mebihertz(1_u32)),
+            Kibihertz(u32::MAX - 1_024)
+        );
+    }
+
+    fn remainder() {
         assert_eq!(Hertz(456_u32) % Hertz(100_u32), Hertz(56_u32));
         assert_eq!(Hertz(2_003_u32) % Kilohertz(1_u32), Hertz(3_u32));
         assert_eq!(Kilohertz(40_u32) % Hertz(100_u32), Kilohertz(0_u32));
     }
 
-    pub fn convert_to_duration() {
+    fn convert_to_duration() {
         assert_eq!(Hertz(500_u32).to_duration(), Ok(Milliseconds(2_u32)));
         assert_eq!(Kilohertz(500_u32).to_duration(), Ok(Microseconds(2_u32)));
     }
 
-    pub fn frequency_scaling() {
+    fn frequency_scaling() {
         assert_eq!(1_u32.Hz(), 1_u32.Hz());
         assert_eq!(1_u32.kHz(), 1_000_u32.Hz());
         assert_eq!(1_u32.MHz(), 1_000_000_u32.Hz());
     }
 
-    pub fn bytes_per_second_scaling() {
+    fn bytes_per_second_scaling() {
         assert_eq!(1_u32.Bps(), 1_u32.Bps());
         assert_eq!(1_u32.kBps(), 1_000_u32.Bps());
         assert_eq!(1_u32.KiBps(), 1_024_u32.Bps());
@@ -294,7 +352,7 @@ mod rate {
         assert_eq!(1_u32.MiBps(), 1_048_576_u32.Bps());
     }
 
-    pub fn bits_per_second_scaling() {
+    fn bits_per_second_scaling() {
         assert_eq!(1_u32.bps(), 1_u32.bps());
         assert_eq!(1_u32.kbps(), 1_000_u32.bps());
         assert_eq!(1_u32.Kibps(), 1_024_u32.bps());
@@ -302,11 +360,77 @@ mod rate {
         assert_eq!(1_u32.Mibps(), 1_048_576_u32.bps());
     }
 
-    pub fn baud_scaling() {
+    fn baud_scaling() {
         assert_eq!(1_u32.Bd(), 1_u32.Bd());
         assert_eq!(1_u32.kBd(), 1_000_u32.Bd());
         assert_eq!(1_u32.KiBd(), 1_024_u32.Bd());
         assert_eq!(1_u32.MBd(), 1_000_000_u32.Bd());
         assert_eq!(1_u32.MiBd(), 1_048_576_u32.Bd());
+    }
+
+    fn into_bigger() {
+        macro_rules! test_into_bigger {
+            ($name:ident) => {
+                // into same
+                assert_eq!($name::<u32>::from($name(500_u32)), $name(500_u32));
+                let rate: $name<u32> = $name(500_u32).into();
+                assert_eq!(rate, $name(500_u32));
+
+                assert_eq!($name::<u32>::try_from($name(500_u32)), Ok($name(500_u32)));
+            };
+            ($big:ident, $($small:ident),+) => {
+                $(
+                    // into bigger
+                    assert_ne!(
+                        $big::<u32>::from($small(u32::MAX)),
+                        $big(1_u32)
+                    );
+
+                    let rate: $big<u32> = $small(u32::MAX).into();
+                    assert_eq!(rate, $big(1_u32));
+
+                    // into smaller
+                    assert_eq!(
+                        $small::<u32>::try_from($big(500 as u32)),
+                        Ok($small((500)))
+                    );
+
+                    let rate: Result<$small<u32>, _> = $big(500 as u32).try_into();
+                    assert_eq!(rate, Ok($small((500))));
+                )+
+                test_into_bigger!($big);
+                test_into_bigger!($($small),+);
+            };
+        }
+        test_into_bigger![Mebihertz, Kibihertz, Hertz];
+        test_into_bigger![Megahertz, Kilohertz, Hertz];
+
+        test_into_bigger![
+            MebibytesPerSecond,
+            MebibitsPerSecond,
+            KibibytesPerSecond,
+            KibibitsPerSecond,
+            BytesPerSecond
+        ];
+        test_into_bigger![
+            MegabytesPerSecond,
+            MegabitsPerSecond,
+            KilobytesPerSecond,
+            KilobitsPerSecond,
+            BytesPerSecond
+        ];
+        test_into_bigger![MebibytesPerSecond, BitsPerSecond];
+        test_into_bigger![MebibitsPerSecond, BitsPerSecond];
+        test_into_bigger![KibibytesPerSecond, BitsPerSecond];
+        test_into_bigger![KibibitsPerSecond, BitsPerSecond];
+        test_into_bigger![BytesPerSecond, BitsPerSecond];
+
+        test_into_bigger![MegabytesPerSecond, BitsPerSecond];
+        test_into_bigger![MegabitsPerSecond, BitsPerSecond];
+        test_into_bigger![KilobytesPerSecond, BitsPerSecond];
+        test_into_bigger![KilobitsPerSecond, BitsPerSecond];
+
+        test_into_bigger![Mebibaud, Kibibaud, Baud];
+        test_into_bigger![Megabaud, Kilobaud, Baud];
     }
 }
