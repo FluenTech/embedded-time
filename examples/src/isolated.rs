@@ -252,8 +252,8 @@ mod rate {
         to_generic();
         add();
         sub();
-        // mul();
-        // div();
+        mul();
+        div();
         remainder();
         get_generic_integer();
         comparison();
@@ -312,6 +312,28 @@ mod rate {
             (Kibihertz(u32::MAX) - Mebihertz(1_u32)),
             Kibihertz(u32::MAX - 1_024)
         );
+    }
+
+    fn mul() {
+        assert_eq!((Kilohertz(2_001_u32) * 2), Kilohertz(4_002_u32));
+
+        assert_eq!(
+            Kilohertz(2_001_u32).checked_mul(&2),
+            Some(Kilohertz(4_002_u32))
+        );
+
+        assert_eq!(Kilohertz(u32::MAX).checked_mul(&2), None);
+    }
+
+    fn div() {
+        assert_eq!((Kilohertz(2_002_u32) / 2), Kilohertz(1_001_u32));
+
+        assert_eq!(
+            Kilohertz(2_002_u32).checked_div(&2),
+            Some(Kilohertz(1_001_u32))
+        );
+
+        assert_eq!(Kilohertz(u32::MAX).checked_div(&0), None);
     }
 
     fn remainder() {
