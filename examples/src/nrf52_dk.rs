@@ -3,14 +3,14 @@
 
 use cortex_m_rt::entry;
 use embedded_time::{self as time};
-use panic_halt as _;
+use panic_rtt as _;
 use time::{duration::*, Clock as _};
 
 pub mod nrf52 {
     pub use nrf52832_hal::{
         gpio,
+        pac::{self, Peripherals},
         prelude::*,
-        target::{self as pac, Peripherals},
     };
 }
 
@@ -251,10 +251,10 @@ mod duration {
             duration::Generic::new(246_u32, Fraction::new(1, 2)).try_into();
         assert_eq!(seconds, Ok(Seconds(123_u32)));
 
-        // Overflow
+        // Error
         assert_eq!(
             Seconds::<u32>::try_from(duration::Generic::new(u32::MAX, Fraction::new(10, 1))),
-            Err(ConversionError::Overflow)
+            Err(ConversionError::Unspecified)
         );
 
         // ConversionFailure (type)
@@ -273,10 +273,10 @@ mod duration {
             Ok(duration::Generic::new(246_u32, Fraction::new(1, 2)))
         );
 
-        // Overflow error
+        // Error
         assert_eq!(
             Seconds(u32::MAX).to_generic::<u32>(Fraction::new(1, 2)),
-            Err(ConversionError::Overflow)
+            Err(ConversionError::Unspecified)
         );
     }
 
@@ -372,7 +372,7 @@ mod duration {
         );
         assert_eq!(
             Milliseconds::<u32>::try_from(Seconds(u64::MAX)),
-            Err(ConversionError::Overflow)
+            Err(ConversionError::Unspecified)
         );
     }
 }
@@ -391,8 +391,6 @@ mod rate {
         assert_ne!(2_001_u64.Hz(), 2_u32.kHz());
         assert_ne!(2_001_u64.Hz(), 2_u64.kHz());
 
-        assert!(5_u32.KiBps() > 5_u32.kBps());
-        assert!(5_u32.KiBps() > 40_u32.kbps());
         assert_eq!(8_u32.Kibps(), 1_u32.KiBps());
     }
 
@@ -413,7 +411,7 @@ mod rate {
     pub fn try_into_generic_err() {
         assert_eq!(
             Hertz(u32::MAX).to_generic::<u32>(Fraction::new(1, 2)),
-            Err(ConversionError::Overflow)
+            Err(ConversionError::Unspecified)
         );
     }
 

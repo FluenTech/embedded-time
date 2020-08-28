@@ -219,8 +219,9 @@
 //! | Kilobaud          | kBd       |
 //! | Baud              | Bd        |
 //!
-//! - Conversion from/to all other rate types within the same class (frequency, data rate, etc.).
-//!   For example, MBps (megabytes per second) --> Kibps (kibibits per second).
+//! - Conversion from/to all other rate types within the same class (frequency, data rate, etc.) and _base_ (mega, mebi, kilo, kibi).
+//!   For example, MiBps (mebibytes per second) --> Kibps (kibibits per second) and
+//!   MBps (megabytes per second) --> kbps (kilobits per second).
 //!
 //! - Conversion from `Duration` types
 //!
@@ -269,11 +270,11 @@
 //! - [`RTIC`](https://github.com/rtic-rs/cortex-m-rtic)
 //! - [`time`](https://docs.rs/time/latest/time) (Specifically the [`time::NumbericalDuration`](https://docs.rs/time/latest/time/trait.NumericalDuration.html)
 //!   implementations for primitive integers)
-#![doc(html_root_url = "https://docs.rs/embedded-time/0.9.1")]
+#![doc(html_root_url = "https://docs.rs/embedded-time/0.10.0")]
 #![deny(unsafe_code)]
 #![cfg_attr(not(test), no_std)]
 #![warn(missing_docs)]
-#![deny(intra_doc_link_resolution_failure)]
+#![deny(broken_intra_doc_links)]
 
 pub mod clock;
 pub mod duration;

@@ -45,8 +45,6 @@ fn comparisons() {
     assert_ne!(2_001_u64.Hz(), 2_u32.kHz());
     assert_ne!(2_001_u64.Hz(), 2_u64.kHz());
 
-    assert!(5_u32.KiBps() > 5_u32.kBps());
-    assert!(5_u32.KiBps() > 40_u32.kbps());
     assert_eq!(8_u32.Kibps(), 1_u32.KiBps());
 
     assert!(Kilohertz(5_u32) < Kilohertz(u64::MAX));
@@ -217,20 +215,36 @@ fn into_bigger() {
             test_into_bigger!($($small),+);
         };
     }
-    test_into_bigger![Mebihertz, Megahertz, Kibihertz, Kilohertz, Hertz];
+    test_into_bigger![Mebihertz, Kibihertz, Hertz];
+    test_into_bigger![Megahertz, Kilohertz, Hertz];
+
     test_into_bigger![
         MebibytesPerSecond,
-        MegabytesPerSecond,
         MebibitsPerSecond,
-        MegabitsPerSecond,
         KibibytesPerSecond,
-        KilobytesPerSecond,
         KibibitsPerSecond,
-        KilobitsPerSecond,
-        BytesPerSecond,
-        BitsPerSecond
+        BytesPerSecond
     ];
-    test_into_bigger![Mebibaud, Megabaud, Kibibaud, Kilobaud, Baud];
+    test_into_bigger![
+        MegabytesPerSecond,
+        MegabitsPerSecond,
+        KilobytesPerSecond,
+        KilobitsPerSecond,
+        BytesPerSecond
+    ];
+    test_into_bigger![MebibytesPerSecond, BitsPerSecond];
+    test_into_bigger![MebibitsPerSecond, BitsPerSecond];
+    test_into_bigger![KibibytesPerSecond, BitsPerSecond];
+    test_into_bigger![KibibitsPerSecond, BitsPerSecond];
+    test_into_bigger![BytesPerSecond, BitsPerSecond];
+
+    test_into_bigger![MegabytesPerSecond, BitsPerSecond];
+    test_into_bigger![MegabitsPerSecond, BitsPerSecond];
+    test_into_bigger![KilobytesPerSecond, BitsPerSecond];
+    test_into_bigger![KilobitsPerSecond, BitsPerSecond];
+
+    test_into_bigger![Mebibaud, Kibibaud, Baud];
+    test_into_bigger![Megabaud, Kilobaud, Baud];
 }
 
 #[test]
@@ -311,18 +325,24 @@ fn into_smaller() {
             test_into_smaller!($($big),+);
         };
     }
-    test_into_smaller!(Hertz, Kilohertz, Kibihertz, Megahertz, Mebihertz);
+    test_into_smaller!(Hertz, Kilohertz, Megahertz);
+    test_into_smaller!(Hertz, Kibihertz, Mebihertz);
     test_into_smaller![
         BitsPerSecond,
         BytesPerSecond,
         KilobitsPerSecond,
-        KibibitsPerSecond,
         KilobytesPerSecond,
-        KibibytesPerSecond,
         MegabitsPerSecond,
+        MegabytesPerSecond
+    ];
+    test_into_smaller![
+        BitsPerSecond,
+        BytesPerSecond,
+        KibibitsPerSecond,
+        KibibytesPerSecond,
         MebibitsPerSecond,
-        MegabytesPerSecond,
         MebibytesPerSecond
     ];
-    test_into_smaller![Baud, Kilobaud, Kibibaud, Megabaud, Mebibaud];
+    test_into_smaller![Baud, Kilobaud, Megabaud];
+    test_into_smaller![Baud, Kibibaud, Mebibaud];
 }

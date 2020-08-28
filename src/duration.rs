@@ -93,6 +93,11 @@ pub use units::*;
 ///
 /// ([`core::time::Duration`])
 ///
+/// **Note**: Due to the inner types used by `core::time::Duration`, a lot of code bloat occurs when
+/// it is used.
+///
+/// ## Examples
+///
 /// ```rust
 /// use embedded_time::duration::*;
 /// use core::convert::TryFrom;
@@ -116,6 +121,9 @@ pub use units::*;
 /// # Converting from `core` types
 ///
 /// ([`core::time::Duration`])
+///
+/// **Note**: Due to the inner types used by `core::time::Duration`, a lot of code bloat occurs when
+/// it is used.
 ///
 /// ## Examples
 ///

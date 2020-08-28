@@ -2,12 +2,24 @@
 
 ## [Unreleased]
 
+[unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.9.1...HEAD
+
+## [0.10.0] - 2020-08-27
+
+### Changed
+
+- eliminate auto-widening in rate and duration conversions
+
+### Removed
+
+- conversions between binary-rate (kibi, mebi) and decimal-rate (kilo, mega) types
+
 ### Documentation
 
 - clarify and add documentation concerning `Generic` types
 - update intra-kind (duration/rate) conversion examples
 
-[unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.9.1...HEAD
+[0.10.0]: https://github.com/FluenTech/embedded-time/compare/v0.9.1...v0.10.0
 
 
 ## [0.9.1] - 2020-08-07
