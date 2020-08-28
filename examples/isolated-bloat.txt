@@ -1,6 +1,6 @@
 ﻿File  .text    Size          Crate Name
-0.7%  22.0%  3.0KiB       isolated isolated::rate::into_bigger
-0.6%  16.7%  2.2KiB       isolated isolated::__cortex_m_rt_main
+0.7%  21.9%  3.0KiB       isolated isolated::rate::into_bigger
+0.6%  16.8%  2.3KiB       isolated isolated::__cortex_m_rt_main
 0.1%   1.8%    252B  embedded_time embedded_time::fraction::Fraction::checked_mul
 0.0%   1.3%    174B  embedded_time embedded_time::fraction::Fraction::checked_div
 0.0%   1.2%    164B  embedded_time embedded_time::fixed_point::FixedPoint::from_ticks
@@ -32,7 +32,7 @@
 0.0%   0.9%    120B  embedded_time <embedded_time::ConversionError as core::fmt::Debug>::fmt
 0.0%   0.8%    110B  embedded_time embedded_time::duration::Duration::to_generic
 0.0%   0.8%    110B  embedded_time embedded_time::rate::Rate::to_generic
-0.0%   0.7%     90B            std core::fmt::builders::DebugTuple::finish
+0.0%   0.6%     90B            std core::fmt::builders::DebugTuple::finish
 0.0%   0.6%     82B    num_integer <u32 as num_integer::Integer>::gcd
 0.0%   0.6%     80B    cortex_m_rt Reset
 0.0%   0.4%     62B            std <core::result::Result<T,E> as core::cmp::PartialEq>::eq
@@ -99,5 +99,5 @@
 0.0%   0.2%     24B            std core::option::Option<T>::unwrap
 0.0%   0.2%     24B            std core::option::Option<T>::unwrap
 0.0%   0.2%     24B            std core::option::Option<T>::unwrap
-0.2%   7.3%   1008B                And 76 smaller methods. Use -n N to show more.
-3.4% 100.0% 13.5KiB                .text section size, the file size is 398.2KiB
+0.3%   7.5%  1.0KiB                And 78 smaller methods. Use -n N to show more.
+3.4% 100.0% 13.5KiB                .text section size, the file size is 400.6KiB
