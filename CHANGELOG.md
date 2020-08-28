@@ -2,9 +2,14 @@
 
 ## [Unreleased]
 
-[unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.9.1...HEAD
+[unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.10.0...HEAD
 
-## [0.10.0] - 2020-08-27
+
+## [0.10.0] - 2020-08-28
+
+### Added
+
+- multiplication and division (both operator and _checked_) of durations and rates by integers
 
 ### Changed
 
