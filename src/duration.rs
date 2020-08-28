@@ -538,6 +538,24 @@ pub mod units {
                 }
             }
 
+            impl<T: TimeInt> ops::Mul<T> for $name<T> {
+                type Output = Self;
+
+                /// See [Mul/Div](trait.Duration.html#muldiv)
+                fn mul(self, rhs: T) -> Self::Output {
+                    <Self as FixedPoint>::mul(self, rhs)
+                }
+            }
+
+            impl<T: TimeInt> ops::Div<T> for $name<T> {
+                type Output = Self;
+
+                /// See [Mul/Div](trait.Duration.html#muldiv)
+                fn div(self, rhs: T) -> Self::Output {
+                    <Self as FixedPoint>::div(self, rhs)
+                }
+            }
+
             impl<T: TimeInt, Rhs: Duration> ops::Rem<Rhs> for $name<T>
             where
                 Self: TryFrom<Rhs>,

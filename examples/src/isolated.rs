@@ -102,8 +102,8 @@ mod duration {
         get_generic_integer();
         add();
         sub();
-        // mul();
-        // div();
+        mul();
+        div();
         remainder();
         to_generic();
         try_from_generic();
@@ -183,6 +183,28 @@ mod duration {
         assert_eq!((Minutes(u32::MAX) - Hours(1_u32)), Minutes(u32::MAX - 60));
     }
 
+    fn mul() {
+        assert_eq!((Milliseconds(2_001_u32) * 2), Milliseconds(4_002_u32));
+
+        assert_eq!(
+            Milliseconds(2_001_u32).checked_mul(&2),
+            Some(Milliseconds(4_002_u32))
+        );
+
+        assert_eq!(Milliseconds(u32::MAX).checked_mul(&2), None);
+    }
+
+    fn div() {
+        assert_eq!((Milliseconds(2_002_u32) / 2), Milliseconds(1_001_u32));
+
+        assert_eq!(
+            Milliseconds(2_002_u32).checked_div(&2),
+            Some(Milliseconds(1_001_u32))
+        );
+
+        assert_eq!(Milliseconds(u32::MAX).checked_div(&0), None);
+    }
+
     fn remainder() {
         assert_eq!(Minutes(62_u32) % Hours(1_u32), Minutes(2_u32));
         assert_eq!(Minutes(62_u32) % Milliseconds(1_u32), Minutes(0_u32));
@@ -202,41 +224,6 @@ mod duration {
         assert_eq!(
             Seconds(0_u32).to_rate::<Hertz<u32>>(),
             Err(ConversionError::DivByZero)
-        );
-    }
-
-    fn convert_from_core_duration() {
-        let core_duration = core::time::Duration::from_nanos(5_025_678_901_234);
-        assert_eq!(core_duration.try_into(), Ok(Milliseconds::<u32>(5_025_678)));
-        assert_eq!(core_duration.try_into(), Ok(Seconds::<u32>(5_025)));
-        assert_eq!(core_duration.try_into(), Ok(Minutes::<u32>(83)));
-        assert_eq!(core_duration.try_into(), Ok(Hours::<u32>(1)));
-    }
-
-    fn convert_to_core_duration() {
-        assert_eq!(
-            Nanoseconds(123_u32).try_into(),
-            Ok(core::time::Duration::from_nanos(123))
-        );
-        assert_eq!(
-            Microseconds(123_u32).try_into(),
-            Ok(core::time::Duration::from_micros(123))
-        );
-        assert_eq!(
-            Milliseconds(123_u32).try_into(),
-            Ok(core::time::Duration::from_millis(123))
-        );
-        assert_eq!(
-            Seconds(123_u32).try_into(),
-            Ok(core::time::Duration::from_secs(123))
-        );
-        assert_eq!(
-            Minutes(123_u32).try_into(),
-            Ok(core::time::Duration::from_secs(123 * 60))
-        );
-        assert_eq!(
-            Hours(123_u32).try_into(),
-            Ok(core::time::Duration::from_secs(123 * 3600))
         );
     }
 

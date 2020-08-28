@@ -1,6 +1,5 @@
 //! Fractional/Rational values
 use crate::ConversionError;
-use core::convert::TryInto;
 use core::ops;
 use num::{rational::Ratio, CheckedDiv, CheckedMul, Zero};
 
