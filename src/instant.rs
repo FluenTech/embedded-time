@@ -176,7 +176,7 @@ impl<Clock: crate::Clock> Instant<Clock> {
     pub fn checked_add<Dur: Duration>(self, duration: Dur) -> Option<Self>
     where
         Dur: FixedPoint,
-        Clock::T: TryFrom<Dur::T>,
+        Clock::T: TryFrom<Dur::T> + core::ops::Div<Output = Clock::T>,
     {
         let add_ticks: Clock::T = duration.into_ticks(Clock::SCALING_FACTOR).ok()?;
         if add_ticks <= (<Clock::T as num::Bounded>::max_value() / 2.into()) {
@@ -214,7 +214,7 @@ impl<Clock: crate::Clock> Instant<Clock> {
     pub fn checked_sub<Dur: Duration>(self, duration: Dur) -> Option<Self>
     where
         Dur: FixedPoint,
-        Clock::T: TryFrom<Dur::T>,
+        Clock::T: TryFrom<Dur::T> + core::ops::Div<Output = Clock::T>,
     {
         let sub_ticks: Clock::T = duration.into_ticks(Clock::SCALING_FACTOR).ok()?;
         if sub_ticks <= (<Clock::T as num::Bounded>::max_value() / 2.into()) {
@@ -266,7 +266,11 @@ impl<Clock: crate::Clock> PartialOrd for Instant<Clock> {
     }
 }
 
-impl<Clock: crate::Clock> Ord for Instant<Clock> {
+impl<Clock> Ord for Instant<Clock>
+where
+    Clock: crate::Clock,
+    Clock::T: ops::Div<Output = Clock::T>,
+{
     fn cmp(&self, other: &Self) -> Ordering {
         self.ticks
             .wrapping_sub(&other.ticks)
