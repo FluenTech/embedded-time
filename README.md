@@ -253,6 +253,10 @@ Hertz::<u64>::try_from(Generic::new(2_000_u32, Fraction::new(1,1_000))) == Ok(He
 - Thorough documentation with examples
 - Example for the nRF52_DK board
 
+## Features
+
+- `serde`: Enables `serde::Deserialize` and `serde::Serialize` implementations for concrete units.
+
 ## Notes
 Some parts of this crate were derived from various sources:
 - [`RTIC`](https://github.com/rtic-rs/cortex-m-rtic)

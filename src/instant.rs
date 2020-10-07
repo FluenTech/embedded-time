@@ -46,6 +46,7 @@ use num::traits::{WrappingAdd, WrappingSub};
 /// Instant::<SomeClock>::new(23);
 /// ```
 #[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Instant<Clock: crate::Clock> {
     ticks: Clock::T,
 }

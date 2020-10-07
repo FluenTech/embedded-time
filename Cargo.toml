@@ -24,6 +24,7 @@ members = ["examples"]
 
 [dependencies]
 num = { version = "0.3.0", default-features = false }
+serde = { version = "1.0.0", default-features = false, features = ["derive"], optional = true }
 
 [dev-dependencies]
 crossbeam-utils = "0.7.2"

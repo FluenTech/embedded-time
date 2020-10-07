@@ -393,6 +393,7 @@ pub mod units {
         ( $name:ident, ($numer:expr, $denom:expr), $desc:literal ) => {
             #[doc = $desc]
             #[derive(Copy, Clone, Eq, Ord, Hash, Debug, Default)]
+            #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
             pub struct $name<T: TimeInt = u32>(pub T);
 
             impl<T: TimeInt> $name<T> {
