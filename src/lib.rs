@@ -274,7 +274,7 @@
 #![deny(unsafe_code)]
 #![cfg_attr(not(test), no_std)]
 #![warn(missing_docs)]
-#![deny(intra_doc_link_resolution_failure)]
+#![deny(broken_intra_doc_links)]
 
 pub mod clock;
 pub mod duration;
