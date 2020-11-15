@@ -12,7 +12,7 @@ impl time::Clock for SysClock {
     const SCALING_FACTOR: time::fraction::Fraction = <time::fraction::Fraction>::new(1, 1_000_000);
 
     fn try_now(&self) -> Result<time::Instant<Self>, time::clock::Error> {
-        Ok(time::Instant::new(23 as Self::T))
+        Ok(time::Instant::new(23))
     }
 }
 
