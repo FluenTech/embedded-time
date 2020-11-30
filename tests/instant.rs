@@ -66,6 +66,22 @@ fn duration_since_epoch() {
     );
 }
 
+#[test_case(0, u32::MAX/2 => Instant::<Clock>::new(u32::MAX / 2) ; "Add the maximum allowed duration")]
+fn instant_add_duration(base: u32, addition: u32) -> Instant<Clock> {
+    Instant::<Clock>::new(base) + Milliseconds(addition)
+}
+
+#[test]
+#[should_panic]
+fn add_panic() {
+    let _ = Instant::<Clock>::new(0) + Milliseconds(u32::MAX / 2 + 1);
+}
+
+#[test_case(u32::MAX/2, 0 => Instant::<Clock>::new(u32::MAX / 2) ; "Add the maximum allowed duration")]
+fn duration_add_instant(base: u32, addition: u32) -> Instant<Clock> {
+    Milliseconds(base) + Instant::<Clock>::new(addition)
+}
+
 #[test_case(0, u32::MAX/2 => Some(Instant::<Clock>::new(u32::MAX / 2)) ; "Add the maximum allowed duration")]
 #[test_case(0, u32::MAX/2 + 1 => None ; "Overflow due to the duration being too large")]
 fn checked_add(base: u32, addition: u32) -> Option<Instant<Clock>> {

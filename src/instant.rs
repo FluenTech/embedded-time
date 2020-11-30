@@ -395,8 +395,7 @@ where
     }
 }
 
-impl<Clock: crate::Clock> ops::Sub<Instant<Clock>> for Instant<Clock>
-{
+impl<Clock: crate::Clock> ops::Sub<Instant<Clock>> for Instant<Clock> {
     type Output = duration::Generic<Clock::T>;
 
     /// Subtract a two `Instant`s resulting in a `Duration`
