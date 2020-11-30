@@ -543,6 +543,18 @@ pub mod units {
                 }
             }
 
+            impl<T: TimeInt, Clock: crate::Clock> ops::Add<crate::Instant<Clock>> for $name<T>
+            where
+                Clock::T: TryFrom<T>,
+            {
+                type Output = crate::Instant<Clock>;
+
+                // Symmetric version of Instant + Duration
+                fn add(self, rhs: crate::Instant<Clock>) -> Self::Output {
+                    rhs.checked_add(self).unwrap()
+                }
+            }
+
             impl<T: TimeInt> ops::Mul<T> for $name<T> {
                 type Output = Self;
 

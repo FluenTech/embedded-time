@@ -395,6 +395,51 @@ where
     }
 }
 
+impl<Clock: crate::Clock> ops::Sub<Instant<Clock>> for Instant<Clock> {
+    type Output = duration::Generic<Clock::T>;
+
+    /// Subtract a two `Instant`s resulting in a `Duration`
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use embedded_time::{fraction::Fraction, duration::*, Instant};
+    /// # #[derive(Debug)]
+    /// struct Clock;
+    /// impl embedded_time::Clock for Clock {
+    ///     type T = u32;
+    ///     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
+    ///     // ...
+    /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error> {unimplemented!()}
+    /// }
+    ///
+    /// assert_eq!(*(Instant::<Clock>::new(5_001) - Instant::<Clock>::new(5_000)).integer(), 1);
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// Virtually the same reason the integer operation would panic. Namely, if the
+    /// result overflows the type. Specifically, if the right hand side `Instant` is
+    /// larger than the left hand side.
+    ///
+    /// ```rust,should_panic
+    /// # use embedded_time::{fraction::Fraction, duration::*, Instant};
+    /// # #[derive(Debug)]
+    /// struct Clock;
+    /// impl embedded_time::Clock for Clock {
+    ///     type T = u32;
+    ///     const SCALING_FACTOR: Fraction = Fraction::new(1, 1_000);
+    ///     // ...
+    /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error> {unimplemented!()}
+    /// }
+    ///
+    /// Instant::<Clock>::new(0) - Instant::<Clock>::new(1);
+    /// ```
+    fn sub(self, rhs: Instant<Clock>) -> Self::Output {
+        self.checked_duration_since(&rhs).unwrap()
+    }
+}
+
 impl<Clock: crate::clock::Clock> Hash for Instant<Clock> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         Clock::SCALING_FACTOR.hash(state);
