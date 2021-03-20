@@ -2,7 +2,28 @@
 
 ## [Unreleased]
 
-[unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.10.0...HEAD
+### Fixed
+
+- generic duration comparisons
+
+### Added
+
+- symmetric Duration/Instant math
+
+### Changed
+
+- update dependency patch versions
+
+[unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.10.1...HEAD
+
+
+## [0.10.1] - 2020-11-15
+
+### Changed
+
+- add Div bound to fix nightly build
+
+[0.10.1]: https://github.com/FluenTech/embedded-time/compare/v0.10.0...v0.10.1
 
 
 ## [0.10.0] - 2020-08-28
