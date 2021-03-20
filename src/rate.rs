@@ -490,14 +490,19 @@ pub mod units {
             {
                 type Error = ConversionError;
 
-                /// See [Converting from a `Generic` `Rate`](trait.Rate.html#converting-from-a-generic-rate)
+                /// See [Converting from a `Generic`
+                /// `Rate`](trait.Rate.html#converting-from-a-generic-rate)
                 fn try_from(generic_rate: Generic<SourceInt>) -> Result<Self, Self::Error> {
-                    fixed_point::FixedPoint::from_ticks(generic_rate.integer, generic_rate.scaling_factor)
+                    fixed_point::FixedPoint::from_ticks(
+                        generic_rate.integer,
+                        generic_rate.scaling_factor,
+                    )
                 }
             }
 
             impl<T: TimeInt> From<$name<T>> for Generic<T> {
-                /// See [Converting to a `Generic` `Rate`](trait.Rate.html#converting-to-a-generic-rate)
+                /// See [Converting to a `Generic`
+                /// `Rate`](trait.Rate.html#converting-to-a-generic-rate)
                 fn from(rate: $name<T>) -> Self {
                     Self::new(*rate.integer(), $name::<T>::SCALING_FACTOR)
                 }
