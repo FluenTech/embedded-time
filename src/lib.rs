@@ -1,5 +1,5 @@
 //! `embedded-time` provides a comprehensive library of [`Duration`] and [`Rate`] types as well as
-//! a [`Clock`] abstractions for hardware timers/clocks and the associated [`Instant`] type for
+//! a [`Clock`] abstraction for hardware timers/clocks and the associated [`Instant`] type for
 //! in embedded systems.
 //!
 //! Additionally, an implementation of software timers is provided that work seemlessly with all
@@ -69,7 +69,7 @@
 //! The _scaling factor_ is a `const` [`Fraction`](fraction::Fraction). One benefit of this
 //! structure is that it avoids unnecessary arithmetic. For example, if the [`Duration`] type is
 //! [`Milliseconds`], a call to the [`Duration::integer()`] method simply returns the _integer_
-//! part directly which in the case is the number of milliseconds represented by the [`Duration`].
+//! part directly which in this case is the number of milliseconds represented by the [`Duration`].
 //! Conversion arithmetic is only performed when explicitly converting between time units (eg.
 //! [`Milliseconds`] --> [`Seconds`]).
 //!
