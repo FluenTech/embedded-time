@@ -7,7 +7,12 @@ use crate::{
     time_int::TimeInt,
     ConversionError,
 };
-use core::{convert::TryFrom, mem::size_of, prelude::v1::*};
+use core::{
+    convert::TryFrom,
+    hash::{Hash, Hasher},
+    mem::size_of,
+    prelude::v1::*,
+};
 #[doc(hidden)]
 pub use fixed_point::FixedPoint as _;
 use num::{CheckedDiv, CheckedMul};
@@ -433,10 +438,44 @@ pub trait Duration: Sized + Copy {
 ///
 /// The purpose of this type is to allow a simple `Duration` object that can be defined at run-time.
 /// It does this by replacing the `const` _scaling factor_ with a struct field.
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
+#[derive(Copy, Clone, Debug, Default)]
 pub struct Generic<T> {
     integer: T,
     scaling_factor: Fraction,
+}
+
+impl<T: TimeInt> PartialOrd<Generic<T>> for Generic<T> {
+    /// See [Comparisons](trait.Duration.html#comparisons)
+    fn partial_cmp(&self, rhs: &Generic<T>) -> Option<core::cmp::Ordering> {
+        Some(
+            self.integer
+                .checked_mul_fraction(&self.scaling_factor)?
+                .cmp(&rhs.integer.checked_mul_fraction(&rhs.scaling_factor)?),
+        )
+    }
+}
+
+impl<T: TimeInt> Ord for Generic<T> {
+    fn cmp(&self, rhs: &Generic<T>) -> core::cmp::Ordering {
+        self.partial_cmp(rhs).unwrap()
+    }
+}
+
+impl<T: TimeInt> PartialEq<Generic<T>> for Generic<T> {
+    /// See [Comparisons](trait.Duration.html#comparisons)
+    fn eq(&self, rhs: &Generic<T>) -> bool {
+        self.partial_cmp(rhs) == Some(core::cmp::Ordering::Equal)
+    }
+}
+
+impl<T: TimeInt> Eq for Generic<T> {}
+
+impl<T: TimeInt + Hash> Hash for Generic<T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        if let Some(v) = self.integer.checked_mul_fraction(&self.scaling_factor) {
+            v.hash(state);
+        }
+    }
 }
 
 impl<T> Generic<T> {
