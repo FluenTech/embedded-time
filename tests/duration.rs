@@ -1,4 +1,5 @@
 use core::convert::{TryFrom, TryInto};
+use embedded_time::duration::Generic;
 use embedded_time::{duration, duration::*, fraction::Fraction, rate::*, ConversionError};
 
 #[test]
@@ -48,6 +49,13 @@ fn comparisons() {
 
     assert!(Microseconds(5_u32) < Microseconds(u64::MAX));
     assert!(Microseconds(u64::MAX) > Microseconds(5_u32));
+
+    assert!(Generic::new(32_768, Fraction::new(1, 32_768)) < Milliseconds(10_000_u32).into());
+    assert!(Generic::new(20 * 32_768, Fraction::new(1, 32_768)) > Milliseconds(10_000_u32).into());
+    assert!(
+        Generic::new(1_000u32, Fraction::new(1, 1_000))
+            == Generic::new(2_000u32, Fraction::new(1, 2_000))
+    );
 }
 
 #[test]
