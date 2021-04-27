@@ -11,6 +11,7 @@ repository = "https://github.com/FluenTech/embedded-time/"
 license = "MIT OR Apache-2.0"
 exclude = ["/.github/"]
 autoexamples = false
+resolver = "2"
 # The examples must be their own package due to conflicts with the criterion crate.
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
