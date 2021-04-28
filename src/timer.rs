@@ -7,7 +7,7 @@ use crate::{
 };
 use core::{convert::TryFrom, marker::PhantomData, ops::Add, prelude::v1::*};
 
-pub(crate) mod param {
+pub mod param {
     #[derive(Debug, Hash)]
     pub struct None;
 
