@@ -288,6 +288,7 @@ mod timer;
 pub use clock::Clock;
 pub use instant::Instant;
 pub use timer::Timer;
+pub use time_int::TimeInt;
 
 /// Crate errors
 #[non_exhaustive]
