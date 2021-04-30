@@ -8,10 +8,11 @@
 
 ### Added
 
-- symmetric Duration/Instant math
+- symmetric `Duration`/`Instant` math
 
 ### Changed
 
+- export `TimeInt` trait
 - update dependency patch versions
 
 [unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.10.1...HEAD
