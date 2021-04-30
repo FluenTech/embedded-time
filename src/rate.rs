@@ -33,7 +33,7 @@ pub use units::*;
 /// ```rust
 /// use embedded_time::rate::*;
 ///
-/// assert_eq!(Hertz(45_u32).integer(), &45_u32);
+/// assert_eq!(Hertz(45_u32).integer(), 45_u32);
 /// ```
 ///
 /// # Formatting
@@ -54,10 +54,10 @@ pub use units::*;
 /// use embedded_time::rate::*;
 ///
 /// let kilohertz = Kilohertz::<u32>::from(23_000_u32.Hz());
-/// assert_eq!(kilohertz.integer(), &23_u32);
+/// assert_eq!(kilohertz.integer(), 23_u32);
 ///
 /// let kilohertz: Kilohertz<u32> = 23_000_u32.Hz().into();
-/// assert_eq!(kilohertz.integer(), &23_u32);
+/// assert_eq!(kilohertz.integer(), 23_u32);
 /// ```
 ///
 /// Others require the use of `TryFrom`/`TryInto`:
@@ -67,10 +67,10 @@ pub use units::*;
 /// use std::convert::{TryInto, TryFrom};
 ///
 /// let hertz = Hertz::<u32>::try_from(23_u32.kHz()).unwrap();
-/// assert_eq!(hertz.integer(), &23_000_u32);
+/// assert_eq!(hertz.integer(), 23_000_u32);
 ///
 /// let hertz: Hertz<u32> = 23_u32.kHz().try_into().unwrap();
-/// assert_eq!(hertz.integer(), &23_000_u32);
+/// assert_eq!(hertz.integer(), 23_000_u32);
 /// ```
 ///
 /// # Converting from a [`Generic`] `Rate`
@@ -142,6 +142,10 @@ pub use units::*;
 /// # Converting to a _named_ `Duration`
 ///
 /// See [`Rate::to_duration()`]
+///
+/// # Creating a custom `Rate`
+///
+///
 ///
 /// # Add/Sub
 ///
@@ -324,7 +328,7 @@ pub trait Rate: Sized + Copy {
             fixed_point::FixedPoint::from_ticks(
                 Duration::T::from(*conversion_factor.numerator())
                     .checked_div(
-                        &Duration::T::try_from(*self.integer())
+                        &Duration::T::try_from(self.integer())
                             .ok()
                             .unwrap()
                             .checked_mul(&Duration::T::from(*conversion_factor.denominator()))
@@ -415,8 +419,8 @@ pub mod units {
                 }
 
                 /// See [Get the integer part](trait.Rate.html#get-the-integer-part)
-                fn integer(&self) -> &Self::T {
-                    &self.0
+                fn integer(&self) -> Self::T {
+                    self.0
                 }
             }
 
@@ -505,7 +509,7 @@ pub mod units {
                 /// See [Converting to a `Generic`
                 /// `Rate`](trait.Rate.html#converting-to-a-generic-rate)
                 fn from(rate: $name<T>) -> Self {
-                    Self::new(*rate.integer(), $name::<T>::SCALING_FACTOR)
+                    Self::new(rate.integer(), $name::<T>::SCALING_FACTOR)
                 }
             }
         };
@@ -544,7 +548,7 @@ pub mod units {
             impl From<$name<u32>> for $name<u64> {
                 /// See [Converting between `Rate`s](trait.Rate.html#converting-between-rates)
                 fn from(source: $name<u32>) -> Self {
-                    Self::new(u64::from(*source.integer()))
+                    Self::new(u64::from(source.integer()))
                 }
             }
 
@@ -554,7 +558,7 @@ pub mod units {
                 /// See [Converting between `Rate`s](trait.Rate.html#converting-between-rates)
                 fn try_from(source: $name<u64>) -> Result<Self, Self::Error> {
                     fixed_point::FixedPoint::from_ticks(
-                        *source.integer(),
+                        source.integer(),
                         $name::<u64>::SCALING_FACTOR,
                     )
                 }
@@ -566,8 +570,8 @@ pub mod units {
             {
                 /// See [Comparisons](trait.Rate.html#comparisons)
                 fn eq(&self, rhs: &$name<RhsInt>) -> bool {
-                    match T::try_from(*rhs.integer()) {
-                        Ok(rhs_value) => *self.integer() == rhs_value,
+                    match T::try_from(rhs.integer()) {
+                        Ok(rhs_value) => self.integer() == rhs_value,
                         Err(_) => false
                     }
                 }
@@ -579,7 +583,7 @@ pub mod units {
             {
                 /// See [Comparisons](trait.Rate.html#comparisons)
                 fn partial_cmp(&self, rhs: &$name<RhsInt>) -> Option<core::cmp::Ordering> {
-                    match T::try_from(*rhs.integer()) {
+                    match T::try_from(rhs.integer()) {
                         Ok(rhs_integer) => Some(self.integer().cmp(&rhs_integer)),
                         Err(_) => Some(core::cmp::Ordering::Less),
                     }
@@ -592,7 +596,7 @@ pub mod units {
             {
                 /// See [Converting between `Rate`s](trait.Rate.html#converting-between-rates)
                 fn from(small: $small<T>) -> Self {
-                    fixed_point::FixedPoint::from_ticks(*small.integer(), $small::<T>::SCALING_FACTOR).ok().unwrap()
+                    fixed_point::FixedPoint::from_ticks(small.integer(), $small::<T>::SCALING_FACTOR).ok().unwrap()
                 }
             }
 
@@ -600,7 +604,7 @@ pub mod units {
             {
                 /// See [Converting between `Rate`s](trait.Rate.html#converting-between-rates)
                 fn from(small: $small<u32>) -> Self {
-                    fixed_point::FixedPoint::from_ticks(*small.integer(), $small::<u32>::SCALING_FACTOR).ok().unwrap()
+                    fixed_point::FixedPoint::from_ticks(small.integer(), $small::<u32>::SCALING_FACTOR).ok().unwrap()
                 }
             }
 
@@ -611,7 +615,7 @@ pub mod units {
                 /// See [Converting between `Rate`s](trait.Rate.html#converting-between-rates)
                 fn try_from(small: $small<u64>) -> Result<Self, Self::Error> {
                     fixed_point::FixedPoint::from_ticks(
-                        *small.integer(),
+                        small.integer(),
                         $small::<u64>::SCALING_FACTOR,
                     )
                 }
@@ -622,7 +626,7 @@ pub mod units {
             {
                /// See [Converting between `Rate`s](trait.Rate.html#converting-between-rates)
                 fn from(big: $big<u32>) -> Self {
-                    fixed_point::FixedPoint::from_ticks(*big.integer(), $big::<u32>::SCALING_FACTOR).ok().unwrap()
+                    fixed_point::FixedPoint::from_ticks(big.integer(), $big::<u32>::SCALING_FACTOR).ok().unwrap()
                 }
             }
 
@@ -633,7 +637,7 @@ pub mod units {
                 /// See [Converting between `Rate`s](trait.Rate.html#converting-between-rates)
                 fn try_from(big: $big<T>) -> Result<Self, Self::Error> {
                     fixed_point::FixedPoint::from_ticks(
-                        *big.integer(),
+                        big.integer(),
                         $big::<T>::SCALING_FACTOR,
                     )
                 }
@@ -646,7 +650,7 @@ pub mod units {
                 /// See [Converting between `Rate`s](trait.Rate.html#converting-between-rates)
                 fn try_from(big: $big<u64>) -> Result<Self, Self::Error> {
                     fixed_point::FixedPoint::from_ticks(
-                        *big.integer(),
+                        big.integer(),
                         $big::<u64>::SCALING_FACTOR,
                     )
                 }
