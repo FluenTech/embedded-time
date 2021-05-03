@@ -515,6 +515,10 @@ pub mod units {
     impl_rate![Kibihertz, (1_024, 1), "Hertz × 1,024"];
     impl_rate![Kilohertz, (1_000, 1), "Hertz × 1,000"];
     impl_rate![Hertz, (1, 1), "Hertz"];
+    impl_rate![Decihertz, (1, 10), "Hertz / 10"];
+    impl_rate![Centihertz, (1, 100), "Hertz / 100"];
+    impl_rate![Millihertz, (1, 1_000), "Hertz / 1000"];
+    impl_rate![Microhertz, (1, 1_000_000), "Hertz / 1,000,000"];
     impl_rate![
         MebibytesPerSecond,
         (1_048_576 * 8, 1),
@@ -723,6 +727,10 @@ pub mod units {
     impl_conversion![Megahertz; Kilohertz, Hertz];
     impl_conversion![Kilohertz; Hertz];
     impl_conversion![Hertz];
+    impl_conversion![Decihertz; Hertz];
+    impl_conversion![Centihertz; Hertz];
+    impl_conversion![Millihertz; Hertz];
+    impl_conversion![Microhertz; Hertz];
 
     // The first arg implements From/TryFrom all following
     impl_conversion![MebibytesPerSecond; MebibitsPerSecond, KibibytesPerSecond, KibibitsPerSecond, BytesPerSecond, BitsPerSecond];
