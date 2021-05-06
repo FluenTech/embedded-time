@@ -261,16 +261,18 @@
 //! - Read elapsed/remaining duration
 //!
 //! # Reliability and Usability
+//!
 //! - Extensive tests
 //! - Thorough documentation with examples
 //! - Example for the nRF52_DK board
 //!
 //! # Notes
+//!
 //! Some parts of this crate were derived from various sources:
 //! - [`RTIC`](https://github.com/rtic-rs/cortex-m-rtic)
 //! - [`time`](https://docs.rs/time/latest/time) (Specifically the [`time::NumbericalDuration`](https://docs.rs/time/latest/time/trait.NumericalDuration.html)
 //!   implementations for primitive integers)
-#![doc(html_root_url = "https://docs.rs/embedded-time/0.10.1")]
+#![doc(html_root_url = "https://docs.rs/embedded-time/0.11.0")]
 #![deny(unsafe_code)]
 #![cfg_attr(not(test), no_std)]
 #![warn(missing_docs)]
@@ -283,12 +285,12 @@ pub mod fraction;
 mod instant;
 pub mod rate;
 mod time_int;
-mod timer;
+pub mod timer;
 
 pub use clock::Clock;
 pub use instant::Instant;
-pub use timer::Timer;
 pub use time_int::TimeInt;
+pub use timer::Timer;
 
 /// Crate errors
 #[non_exhaustive]

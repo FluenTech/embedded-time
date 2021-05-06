@@ -1,3 +1,5 @@
+//! Software timers coupled to a [crate::Clock] implementation
+
 use crate::fraction::Fraction;
 use crate::{
     duration::{self, *},
@@ -7,19 +9,25 @@ use crate::{
 };
 use core::{convert::TryFrom, marker::PhantomData, ops::Add, prelude::v1::*};
 
+/// Timer type/state parameters
 pub mod param {
+    /// Parameter not set
     #[derive(Debug, Hash)]
     pub struct None;
 
+    /// Timer is ready to start
     #[derive(Debug, Hash)]
     pub struct Armed;
 
+    /// Timer is running
     #[derive(Debug, Hash)]
     pub struct Running;
 
+    /// Timer will automatically restart when it expires
     #[derive(Debug, Hash)]
     pub struct Periodic;
 
+    /// Timer will stop when it expires
     #[derive(Debug, Hash)]
     pub struct OneShot;
 }

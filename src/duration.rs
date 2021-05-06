@@ -40,7 +40,7 @@ pub use units::*;
 ///
 /// let millis = Milliseconds(23_u32).integer();
 ///
-/// assert_eq!(millis, &23_u32);
+/// assert_eq!(millis, 23_u32);
 /// ```
 ///
 /// # Formatting
@@ -75,10 +75,10 @@ pub use units::*;
 /// use embedded_time::duration::*;
 ///
 /// let seconds = Seconds::<u32>::from(23_000_u32.milliseconds());
-/// assert_eq!(seconds.integer(), &23_u32);
+/// assert_eq!(seconds.integer(), 23_u32);
 ///
 /// let seconds: Seconds<u32> = 23_000_u32.milliseconds().into();
-/// assert_eq!(seconds.integer(), &23_u32);
+/// assert_eq!(seconds.integer(), 23_u32);
 /// ```
 ///
 /// Others require the use of `TryFrom`/`TryInto`:
@@ -88,10 +88,10 @@ pub use units::*;
 /// use std::convert::{TryInto, TryFrom};
 ///
 /// let millis = Milliseconds::<u32>::try_from(23_u32.seconds()).unwrap();
-/// assert_eq!(millis.integer(), &23_000_u32);
+/// assert_eq!(millis.integer(), 23_000_u32);
 ///
 /// let millis: Milliseconds<u32> = 23_u32.seconds().try_into().unwrap();
-/// assert_eq!(millis.integer(), &23_000_u32);
+/// assert_eq!(millis.integer(), 23_000_u32);
 /// ```
 ///
 /// # Converting to `core` types
@@ -182,10 +182,10 @@ pub use units::*;
 /// let generic_duration = Generic::new(2_000_u32, Fraction::new(1, 1_000));
 ///
 /// let secs = Seconds::<u64>::try_from(generic_duration).unwrap();
-/// assert_eq!(secs.integer(), &2_u64);
+/// assert_eq!(secs.integer(), 2_u64);
 ///
 /// let secs: Seconds<u64> = generic_duration.try_into().unwrap();
-/// assert_eq!(secs.integer(), &2_u64);
+/// assert_eq!(secs.integer(), 2_u64);
 /// ```
 ///
 /// ## Errors
@@ -420,7 +420,7 @@ pub trait Duration: Sized + Copy {
             fixed_point::FixedPoint::from_ticks(
                 Rate::T::from(*conversion_factor.numerator())
                     .checked_div(
-                        &Rate::T::try_from(*self.integer())
+                        &Rate::T::try_from(self.integer())
                             .ok()
                             .unwrap()
                             .checked_mul(&Rate::T::from(*conversion_factor.denominator()))
@@ -545,8 +545,8 @@ pub mod units {
                 }
 
                 /// See [Get the integer part](trait.Duration.html#get-the-integer-part)
-                fn integer(&self) -> &Self::T {
-                    &self.0
+                fn integer(&self) -> Self::T {
+                    self.0
                 }
             }
 
@@ -647,7 +647,7 @@ pub mod units {
                 /// See [Converting to a `Generic`
                 /// `Duration`](trait.Duration.html#converting-to-a-generic-duration)
                 fn from(duration: $name<T>) -> Self {
-                    Self::new(*duration.integer(), $name::<T>::SCALING_FACTOR)
+                    Self::new(duration.integer(), $name::<T>::SCALING_FACTOR)
                 }
             }
         };
@@ -664,7 +664,7 @@ pub mod units {
                 /// types](trait.Duration.html#converting-to-core-types)
                 fn try_from(duration: $name<u32>) -> Result<Self, Self::Error> {
                     let seconds: Seconds<u64> = duration.into();
-                    Ok(Self::from_secs(*seconds.integer()))
+                    Ok(Self::from_secs(seconds.integer()))
                 }
             }
 
@@ -699,7 +699,7 @@ pub mod units {
 
                 /// See [Converting to `core` types](trait.Duration.html#converting-to-core-types)
                 fn try_from(duration: $name<T>) -> Result<Self, Self::Error> {
-                    Ok(Self::$from_core_dur((*duration.integer()).into()))
+                    Ok(Self::$from_core_dur(duration.integer().into()))
                 }
             }
 
@@ -737,8 +737,8 @@ pub mod units {
             {
                 /// See [Comparisons](trait.Duration.html#comparisons)
                 fn eq(&self, rhs: &$name<RhsInt>) -> bool {
-                    match T::try_from(*rhs.integer()) {
-                        Ok(rhs_integer) => *self.integer() == rhs_integer,
+                    match T::try_from(rhs.integer()) {
+                        Ok(rhs_integer) => self.integer() == rhs_integer,
                         Err(_) => false,
                     }
                 }
@@ -821,7 +821,7 @@ pub mod units {
             {
                 /// See [Comparisons](trait.Duration.html#comparisons)
                 fn partial_cmp(&self, rhs: &$name<RhsInt>) -> Option<core::cmp::Ordering> {
-                    match T::try_from(*rhs.integer()) {
+                    match T::try_from(rhs.integer()) {
                         Ok(rhs_integer) => Some(self.integer().cmp(&rhs_integer)),
                         Err(_) => Some(core::cmp::Ordering::Less),
                     }
@@ -847,7 +847,7 @@ pub mod units {
                     /// See [Comparisons](trait.Duration.html#comparisons)
                     fn partial_cmp(&self, rhs: &$small<RhsInt>) -> Option<core::cmp::Ordering> {
                         match $small::<RhsInt>::try_from(*self) {
-                            Ok(lhs) => Some(lhs.integer().cmp(rhs.integer())),
+                            Ok(lhs) => Some(lhs.integer().cmp(&rhs.integer())),
                             Err(_) => Some(core::cmp::Ordering::Greater),
                         }
                     }
@@ -877,7 +877,7 @@ pub mod units {
                     /// See [Comparisons](trait.Duration.html#comparisons)
                     fn partial_cmp(&self, rhs: &$big<RhsInt>) -> Option<core::cmp::Ordering> {
                         match Self::try_from(*rhs) {
-                        Ok(rhs) => Some(self.integer().cmp(rhs.integer())),
+                        Ok(rhs) => Some(self.integer().cmp(&rhs.integer())),
                         Err(_) => Some(core::cmp::Ordering::Less),
                     }
                     }
@@ -903,7 +903,7 @@ pub mod units {
                 /// See [Converting between
                 /// `Duration`s](trait.Duration.html#converting-between-durations)
                 fn from(source: $name<u32>) -> Self {
-                    Self::new(u64::from(*source.integer()))
+                    Self::new(u64::from(source.integer()))
                 }
             }
 
@@ -914,7 +914,7 @@ pub mod units {
                 /// `Duration`s](trait.Duration.html#converting-between-durations)
                 fn try_from(source: $name<u64>) -> Result<Self, Self::Error> {
                     fixed_point::FixedPoint::from_ticks(
-                        *source.integer(),
+                        source.integer(),
                         $name::<u64>::SCALING_FACTOR,
                     )
                 }
@@ -936,7 +936,7 @@ pub mod units {
                 {
                     /// See [Converting between `Duration`s](trait.Duration.html#converting-between-durations)
                     fn from(small: $small<T>) -> Self {
-                        fixed_point::FixedPoint::from_ticks(*small.integer(), $small::<T>::SCALING_FACTOR).ok().unwrap()
+                        fixed_point::FixedPoint::from_ticks(small.integer(), $small::<T>::SCALING_FACTOR).ok().unwrap()
                     }
                 }
 
@@ -944,7 +944,7 @@ pub mod units {
                 {
                     /// See [Converting between `Duration`s](trait.Duration.html#converting-between-durations)
                     fn from(small: $small<u32>) -> Self {
-                        fixed_point::FixedPoint::from_ticks(*small.integer(), $small::<u32>::SCALING_FACTOR).ok().unwrap()
+                        fixed_point::FixedPoint::from_ticks(small.integer(), $small::<u32>::SCALING_FACTOR).ok().unwrap()
                     }
                 }
 
@@ -955,7 +955,7 @@ pub mod units {
                     /// See [Converting between `Duration`s](trait.Duration.html#converting-between-durations)
                     fn try_from(small: $small<u64>) -> Result<Self, Self::Error> {
                         fixed_point::FixedPoint::from_ticks(
-                            *small.integer(),
+                            small.integer(),
                             $small::<u64>::SCALING_FACTOR,
                         )
                     }
@@ -983,7 +983,7 @@ pub mod units {
                 {
                     /// See [Converting between `Duration`s](trait.Duration.html#converting-between-durations)
                     fn from(big: $big<u32>) -> Self {
-                        fixed_point::FixedPoint::from_ticks(*big.integer(), $big::<u32>::SCALING_FACTOR).ok().unwrap()
+                        fixed_point::FixedPoint::from_ticks(big.integer(), $big::<u32>::SCALING_FACTOR).ok().unwrap()
                     }
                 }
 
@@ -994,7 +994,7 @@ pub mod units {
                     /// See [Converting between `Duration`s](trait.Duration.html#converting-between-durations)
                     fn try_from(big: $big<T>) -> Result<Self, Self::Error> {
                         fixed_point::FixedPoint::from_ticks(
-                            *big.integer(),
+                            big.integer(),
                             $big::<T>::SCALING_FACTOR,
                         )
                     }
@@ -1007,7 +1007,7 @@ pub mod units {
                     /// See [Converting between `Duration`s](trait.Duration.html#converting-between-durations)
                     fn try_from(big: $big<u64>) -> Result<Self, Self::Error> {
                         fixed_point::FixedPoint::from_ticks(
-                            *big.integer(),
+                            big.integer(),
                             $big::<u64>::SCALING_FACTOR,
                         )
                     }

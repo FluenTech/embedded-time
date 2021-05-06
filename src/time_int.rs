@@ -2,7 +2,6 @@ use crate::fraction::Fraction;
 use core::{fmt, ops};
 
 /// The core inner-type trait for time-related types
-#[doc(hidden)]
 pub trait TimeInt:
     Copy
     + num::Integer

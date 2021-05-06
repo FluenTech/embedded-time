@@ -25,9 +25,9 @@ pub trait FixedPoint: Sized + Copy {
     /// ```rust
     /// # use embedded_time::{ rate::*};
     /// #
-    /// assert_eq!(Hertz(45_u32).integer(), &45_u32);
+    /// assert_eq!(Hertz(45_u32).integer(), 45_u32);
     /// ```
-    fn integer(&self) -> &Self::T;
+    fn integer(&self) -> Self::T;
 
     /// Constructs a `FixedPoint` value from _integer_ and _scaling-factor_ ([`Fraction`]) parts
     ///
@@ -105,7 +105,7 @@ pub trait FixedPoint: Sized + Copy {
     {
         if size_of::<T>() > size_of::<Self::T>() {
             let ticks =
-                T::try_from(*self.integer()).map_err(|_| ConversionError::ConversionFailure)?;
+                T::try_from(self.integer()).map_err(|_| ConversionError::ConversionFailure)?;
 
             if fraction > Fraction::new(1, 1) {
                 TimeInt::checked_div_fraction(
@@ -126,14 +126,14 @@ pub trait FixedPoint: Sized + Copy {
         } else {
             let ticks = if Self::SCALING_FACTOR > Fraction::new(1, 1) {
                 TimeInt::checked_div_fraction(
-                    &TimeInt::checked_mul_fraction(self.integer(), &Self::SCALING_FACTOR)
+                    &TimeInt::checked_mul_fraction(&self.integer(), &Self::SCALING_FACTOR)
                         .ok_or(ConversionError::Unspecified)?,
                     &fraction,
                 )
                 .ok_or(ConversionError::Unspecified)?
             } else {
                 TimeInt::checked_mul_fraction(
-                    self.integer(),
+                    &self.integer(),
                     &Self::SCALING_FACTOR
                         .checked_div(&fraction)
                         .ok_or(ConversionError::Unspecified)?,
@@ -151,7 +151,7 @@ pub trait FixedPoint: Sized + Copy {
     where
         Self: TryFrom<Rhs>,
     {
-        Self::new(*self.integer() + *Self::try_from(rhs).ok().unwrap().integer())
+        Self::new(self.integer() + Self::try_from(rhs).ok().unwrap().integer())
     }
 
     /// Panicky subtraction
@@ -160,29 +160,29 @@ pub trait FixedPoint: Sized + Copy {
     where
         Self: TryFrom<Rhs>,
     {
-        Self::new(*self.integer() - *Self::try_from(rhs).ok().unwrap().integer())
+        Self::new(self.integer() - Self::try_from(rhs).ok().unwrap().integer())
     }
 
     /// Panicky multiplication
     #[doc(hidden)]
     fn mul(self, rhs: Self::T) -> Self {
-        Self::new(*self.integer() * rhs)
+        Self::new(self.integer() * rhs)
     }
 
     /// Multiply with overflow checking
     fn checked_mul(&self, rhs: &Self::T) -> Option<Self> {
-        Some(Self::new((*self.integer()).checked_mul(rhs)?))
+        Some(Self::new((self.integer()).checked_mul(rhs)?))
     }
 
     /// Panicky division
     #[doc(hidden)]
     fn div(self, rhs: Self::T) -> Self {
-        Self::new(*self.integer() / rhs)
+        Self::new(self.integer() / rhs)
     }
 
     /// Multiply with overflow checking
     fn checked_div(&self, rhs: &Self::T) -> Option<Self> {
-        Some(Self::new((*self.integer()).checked_div(rhs)?))
+        Some(Self::new((self.integer()).checked_div(rhs)?))
     }
 
     /// Panicky remainder
@@ -193,8 +193,8 @@ pub trait FixedPoint: Sized + Copy {
     {
         match Self::try_from(rhs) {
             Ok(rhs) => {
-                if *rhs.integer() > Self::T::from(0) {
-                    Self::new(*self.integer() % *rhs.integer())
+                if rhs.integer() > Self::T::from(0) {
+                    Self::new(self.integer() % rhs.integer())
                 } else {
                     Self::new(Self::T::from(0))
                 }

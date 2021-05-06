@@ -2,20 +2,25 @@
 
 ## [Unreleased]
 
+[unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.11.0...HEAD
+
+## [0.11.0] - 2021-05-06
+
 ### Fixed
 
 - generic duration comparisons
 
 ### Added
 
+- serde support
 - symmetric `Duration`/`Instant` math
 
 ### Changed
 
 - export `TimeInt` trait
-- update dependency patch versions
+- `FixedPoint::integer()` returns by value
 
-[unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.10.1...HEAD
+[unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.10.1...v0.11.0
 
 
 ## [0.10.1] - 2020-11-15
