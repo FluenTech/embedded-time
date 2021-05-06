@@ -727,14 +727,6 @@ pub mod units {
                 impl_conversion![once, $big, $small];
             )+
         };
-        // ($big:ident, $($small:ident),+) => {
-        //     $(
-        //         impl_from_smaller![once, $big, $small];
-        //     )+
-        //
-        //     impl_from_smaller![$($small),+];
-        // };
-
     }
 
     // The first arg implements From/TryFrom all following

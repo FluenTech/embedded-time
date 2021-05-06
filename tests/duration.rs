@@ -363,23 +363,6 @@ fn into_bigger() {
 }
 
 #[test]
-fn widen_integer() {
-    macro_rules! test_widen_integer {
-        ($name:ident) => {
-            assert_eq!($name::<u64>::from($name(500_u32)), $name(500_u64));
-            let rate: $name<u64> = $name(500_u32).into();
-            assert_eq!(rate, $name(500_u64));
-        };
-    }
-    test_widen_integer![Hours];
-    test_widen_integer![Minutes];
-    test_widen_integer![Seconds];
-    test_widen_integer![Milliseconds];
-    test_widen_integer![Microseconds];
-    test_widen_integer![Nanoseconds];
-}
-
-#[test]
 fn into_smaller() {
     macro_rules! test_into_smaller {
         ($into:ident) => {};
