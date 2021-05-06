@@ -1,4 +1,4 @@
-//! Software timers coupled to a [Clock] implementation
+//! Software timers coupled to a [crate::Clock] implementation
 
 use crate::fraction::Fraction;
 use crate::{
