@@ -1,2 +1,5 @@
 comment_width = 100
 wrap_comments = true
+
+format_macro_matchers = true
+format_macro_bodies = true

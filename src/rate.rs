@@ -394,7 +394,7 @@ pub mod units {
     pub use Extensions as _;
 
     macro_rules! impl_rate {
-        ( $name:ident, ($numer:expr, $denom:expr), $desc:literal ) => {
+        ($name:ident,($numer:expr, $denom:expr), $desc:literal) => {
             #[doc = $desc]
             #[derive(Copy, Clone, Eq, Ord, Hash, Debug, Default)]
             #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -519,10 +519,9 @@ pub mod units {
     impl_rate![Kibihertz, (1_024, 1), "Hertz × 1,024"];
     impl_rate![Kilohertz, (1_000, 1), "Hertz × 1,000"];
     impl_rate![Hertz, (1, 1), "Hertz"];
-    impl_rate![Decihertz, (1, 10), "Hertz / 10"];
-    impl_rate![Centihertz, (1, 100), "Hertz / 100"];
-    impl_rate![Millihertz, (1, 1_000), "Hertz / 1000"];
+    impl_rate![Millihertz, (1, 1_000), "Hertz / 1,000"];
     impl_rate![Microhertz, (1, 1_000_000), "Hertz / 1,000,000"];
+
     impl_rate![
         MebibytesPerSecond,
         (1_048_576 * 8, 1),
@@ -536,16 +535,23 @@ pub mod units {
     impl_rate![KibibytesPerSecond, (1_024 * 8, 1), "Bytes/s × 1,024"];
     impl_rate![KilobytesPerSecond, (1_000 * 8, 1), "Bytes/s × 1,000"];
     impl_rate![BytesPerSecond, (8, 1), "Bytes/s"];
+    impl_rate![MillibytesPerSecond, (1, 1_000), "Bytes/s / 1,000"];
+    impl_rate![MicrobytesPerSecond, (1, 1_000_000), "Bytes/s / 1,000,000"];
     impl_rate![MebibitsPerSecond, (1_048_576, 1), "Bits/s × 1,048,576"];
     impl_rate![MegabitsPerSecond, (1_000_000, 1), "Bits/s × 1,000,000"];
     impl_rate![KibibitsPerSecond, (1_024, 1), "Bits/s × 1,024"];
     impl_rate![KilobitsPerSecond, (1_000, 1), "Bits/s × 1,000"];
     impl_rate![BitsPerSecond, (1, 1), "Bits/s"];
+    impl_rate![MillibitsPerSecond, (1, 1_000), "Bits/s / 1,000"];
+    impl_rate![MicrobitsPerSecond, (1, 1_000_000), "Bits/s / 1,000,000"];
+
     impl_rate![Mebibaud, (1_048_576, 1), "Baud × 1,048,576"];
     impl_rate![Megabaud, (1_000_000, 1), "Baud × 1,000,000"];
     impl_rate![Kibibaud, (1_024, 1), "Baud × 1,024"];
     impl_rate![Kilobaud, (1_000, 1), "Baud × 1,000"];
     impl_rate![Baud, (1, 1), "Baud"];
+    impl_rate![Millibaud, (1, 1_000), "Baud / 1,000"];
+    impl_rate![Microbaud, (1, 1_000_000), "Baud / 1,000,000"];
 
     macro_rules! impl_conversion {
         ($name:ident) => {
@@ -626,11 +632,16 @@ pub mod units {
             }
 
 
-            impl From<$big<u32>> for $small<u64>
+            impl TryFrom<$big<u32>> for $small<u64>
             {
-               /// See [Converting between `Rate`s](trait.Rate.html#converting-between-rates)
-                fn from(big: $big<u32>) -> Self {
-                    fixed_point::FixedPoint::from_ticks(big.integer(), $big::<u32>::SCALING_FACTOR).ok().unwrap()
+                type Error = ConversionError;
+
+                /// See [Converting between `Rate`s](trait.Rate.html#converting-between-rates)
+                fn try_from(big: $big<u32>) -> Result<Self, Self::Error> {
+                    fixed_point::FixedPoint::from_ticks(
+                        big.integer(),
+                        $big::<u32>::SCALING_FACTOR,
+                    )
                 }
             }
 
@@ -726,35 +737,39 @@ pub mod units {
 
     }
 
-    impl_conversion![Mebihertz; Kibihertz, Hertz];
-    impl_conversion![Kibihertz; Hertz];
-    impl_conversion![Megahertz; Kilohertz, Hertz];
-    impl_conversion![Kilohertz; Hertz];
-    impl_conversion![Hertz];
-    impl_conversion![Decihertz; Hertz];
-    impl_conversion![Centihertz; Hertz];
-    impl_conversion![Millihertz; Hertz];
-    impl_conversion![Microhertz; Hertz];
-
     // The first arg implements From/TryFrom all following
-    impl_conversion![MebibytesPerSecond; MebibitsPerSecond, KibibytesPerSecond, KibibitsPerSecond, BytesPerSecond, BitsPerSecond];
-    impl_conversion![MebibitsPerSecond; KibibytesPerSecond, KibibitsPerSecond, BytesPerSecond, BitsPerSecond];
-    impl_conversion![KibibytesPerSecond; KibibitsPerSecond, BytesPerSecond, BitsPerSecond];
-    impl_conversion![KibibitsPerSecond; BytesPerSecond, BitsPerSecond];
+    impl_conversion![Mebihertz; Kibihertz, Hertz, Millihertz, Microhertz];
+    impl_conversion![Kibihertz; Hertz, Millihertz, Microhertz];
+    impl_conversion![Megahertz; Kilohertz, Hertz, Millihertz, Microhertz];
+    impl_conversion![Kilohertz; Hertz, Millihertz, Microhertz];
+    impl_conversion![Hertz; Millihertz, Microhertz];
+    impl_conversion![Millihertz; Microhertz];
+    impl_conversion![Microhertz];
 
-    impl_conversion![MegabytesPerSecond; MegabitsPerSecond, KilobytesPerSecond, KilobitsPerSecond, BytesPerSecond, BitsPerSecond];
-    impl_conversion![MegabitsPerSecond; KilobytesPerSecond, KilobitsPerSecond, BytesPerSecond, BitsPerSecond  ];
-    impl_conversion![KilobytesPerSecond; KilobitsPerSecond, BytesPerSecond, BitsPerSecond ];
-    impl_conversion![KilobitsPerSecond; BytesPerSecond, BitsPerSecond];
+    impl_conversion![MebibytesPerSecond; MebibitsPerSecond, KibibytesPerSecond, KibibitsPerSecond, BytesPerSecond, BitsPerSecond, MillibytesPerSecond, MillibitsPerSecond, MicrobytesPerSecond, MicrobitsPerSecond];
+    impl_conversion![MebibitsPerSecond; KibibytesPerSecond, KibibitsPerSecond, BytesPerSecond, BitsPerSecond, MillibytesPerSecond, MillibitsPerSecond, MicrobytesPerSecond, MicrobitsPerSecond];
+    impl_conversion![KibibytesPerSecond; KibibitsPerSecond, BytesPerSecond, BitsPerSecond, MillibytesPerSecond, MillibitsPerSecond, MicrobytesPerSecond, MicrobitsPerSecond];
+    impl_conversion![KibibitsPerSecond; BytesPerSecond, BitsPerSecond, MillibytesPerSecond, MillibitsPerSecond, MicrobytesPerSecond, MicrobitsPerSecond];
 
-    impl_conversion![BytesPerSecond; BitsPerSecond];
-    impl_conversion![BitsPerSecond];
+    impl_conversion![MegabytesPerSecond; MegabitsPerSecond, KilobytesPerSecond, KilobitsPerSecond, BytesPerSecond, BitsPerSecond, MillibytesPerSecond, MillibitsPerSecond, MicrobytesPerSecond, MicrobitsPerSecond];
+    impl_conversion![MegabitsPerSecond; KilobytesPerSecond, KilobitsPerSecond, BytesPerSecond, BitsPerSecond, MillibytesPerSecond, MillibitsPerSecond, MicrobytesPerSecond, MicrobitsPerSecond];
+    impl_conversion![KilobytesPerSecond; KilobitsPerSecond, BytesPerSecond, BitsPerSecond, MillibytesPerSecond, MillibitsPerSecond, MicrobytesPerSecond, MicrobitsPerSecond];
+    impl_conversion![KilobitsPerSecond; BytesPerSecond, BitsPerSecond, MillibytesPerSecond, MillibitsPerSecond, MicrobytesPerSecond, MicrobitsPerSecond];
 
-    impl_conversion![Mebibaud; Kibibaud, Baud];
-    impl_conversion![Kibibaud; Baud];
-    impl_conversion![Megabaud; Kilobaud, Baud];
-    impl_conversion![Kilobaud; Baud];
-    impl_conversion![Baud];
+    impl_conversion![BytesPerSecond; BitsPerSecond, MillibytesPerSecond, MillibitsPerSecond, MicrobytesPerSecond, MicrobitsPerSecond];
+    impl_conversion![BitsPerSecond; MillibytesPerSecond, MillibitsPerSecond, MicrobytesPerSecond, MicrobitsPerSecond];
+    impl_conversion![MillibytesPerSecond; MillibitsPerSecond, MicrobytesPerSecond, MicrobitsPerSecond];
+    impl_conversion![MillibitsPerSecond; MicrobytesPerSecond, MicrobitsPerSecond];
+    impl_conversion![MicrobytesPerSecond; MicrobitsPerSecond];
+    impl_conversion![MicrobitsPerSecond];
+
+    impl_conversion![Mebibaud; Kibibaud, Baud, Millibaud, Microbaud];
+    impl_conversion![Kibibaud; Baud, Millibaud, Microbaud];
+    impl_conversion![Megabaud; Kilobaud, Baud, Millibaud, Microbaud];
+    impl_conversion![Kilobaud; Baud, Millibaud, Microbaud];
+    impl_conversion![Baud; Millibaud, Microbaud];
+    impl_conversion![Millibaud; Microbaud];
+    impl_conversion![Microbaud];
 
     /// Create rate-based extensions from primitive numeric types.
     ///
@@ -765,21 +780,32 @@ pub mod units {
     /// assert_eq!(5_u32.KiHz(), Kibihertz(5_u32));
     /// assert_eq!(5_u32.kHz(), Kilohertz(5_u32));
     /// assert_eq!(5_u32.Hz(), Hertz(5_u32));
+    /// assert_eq!(5_u32.mHz(), Millihertz(5_u32));
+    /// assert_eq!(5_u32.uHz(), Microhertz(5_u32));
+    ///
     /// assert_eq!(5_u32.MiBps(), MebibytesPerSecond(5_u32));
     /// assert_eq!(5_u32.MBps(), MegabytesPerSecond(5_u32));
     /// assert_eq!(5_u32.KiBps(), KibibytesPerSecond(5_u32));
     /// assert_eq!(5_u32.kBps(), KilobytesPerSecond(5_u32));
     /// assert_eq!(5_u32.Bps(), BytesPerSecond(5_u32));
+    /// assert_eq!(5_u32.mBps(), MillibytesPerSecond(5_u32));
+    /// assert_eq!(5_u32.uBps(), MicrobytesPerSecond(5_u32));
+    ///
     /// assert_eq!(5_u32.Mibps(), MebibitsPerSecond(5_u32));
     /// assert_eq!(5_u32.Mbps(), MegabitsPerSecond(5_u32));
     /// assert_eq!(5_u32.Kibps(), KibibitsPerSecond(5_u32));
     /// assert_eq!(5_u32.kbps(), KilobitsPerSecond(5_u32));
     /// assert_eq!(5_u32.bps(), BitsPerSecond(5_u32));
+    /// assert_eq!(5_u32.mbps(), MillibitsPerSecond(5_u32));
+    /// assert_eq!(5_u32.ubps(), MicrobitsPerSecond(5_u32));
+    ///
     /// assert_eq!(5_u32.MiBd(), Mebibaud(5_u32));
     /// assert_eq!(5_u32.MBd(), Megabaud(5_u32));
     /// assert_eq!(5_u32.KiBd(), Kibibaud(5_u32));
     /// assert_eq!(5_u32.kBd(), Kilobaud(5_u32));
     /// assert_eq!(5_u32.Bd(), Baud(5_u32));
+    /// assert_eq!(5_u32.mBd(), Millibaud(5_u32));
+    /// assert_eq!(5_u32.uBd(), Microbaud(5_u32));
     /// ```
     #[allow(non_snake_case)]
     pub trait Extensions: TimeInt {
@@ -808,6 +834,16 @@ pub mod units {
             Hertz::new(self)
         }
 
+        /// millihertz
+        fn mHz(self) -> Millihertz<Self> {
+            Millihertz::new(self)
+        }
+
+        /// microhertz
+        fn uHz(self) -> Microhertz<Self> {
+            Microhertz::new(self)
+        }
+
         /// mebibytes per second
         fn MiBps(self) -> MebibytesPerSecond<Self> {
             MebibytesPerSecond::new(self)
@@ -831,6 +867,16 @@ pub mod units {
         /// bytes per second
         fn Bps(self) -> BytesPerSecond<Self> {
             BytesPerSecond::new(self)
+        }
+
+        /// millibytes per second
+        fn mBps(self) -> MillibytesPerSecond<Self> {
+            MillibytesPerSecond::new(self)
+        }
+
+        /// microbytes per second
+        fn uBps(self) -> MicrobytesPerSecond<Self> {
+            MicrobytesPerSecond::new(self)
         }
 
         /// mebibits per second
@@ -858,6 +904,16 @@ pub mod units {
             BitsPerSecond::new(self)
         }
 
+        /// millibits per second
+        fn mbps(self) -> MillibitsPerSecond<Self> {
+            MillibitsPerSecond::new(self)
+        }
+
+        /// microbits per second
+        fn ubps(self) -> MicrobitsPerSecond<Self> {
+            MicrobitsPerSecond::new(self)
+        }
+
         /// mebibaud
         fn MiBd(self) -> Mebibaud<Self> {
             Mebibaud::new(self)
@@ -881,6 +937,16 @@ pub mod units {
         /// baud
         fn Bd(self) -> Baud<Self> {
             Baud::new(self)
+        }
+
+        /// millibaud
+        fn mBd(self) -> Millibaud<Self> {
+            Millibaud::new(self)
+        }
+
+        /// microbaud
+        fn uBd(self) -> Microbaud<Self> {
+            Microbaud::new(self)
         }
     }
 
