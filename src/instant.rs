@@ -334,7 +334,11 @@ where
     /// Instant::<Clock>::new(0) + Milliseconds(u32::MAX/2 + 1);
     /// ```
     fn add(self, rhs: Dur) -> Self::Output {
-        self.checked_add(rhs).unwrap()
+        if let Some(v) = self.checked_add(rhs) {
+            v
+        } else {
+            panic!("Add failed")
+        }
     }
 }
 
@@ -392,7 +396,11 @@ where
     /// Instant::<Clock>::new(u32::MAX) - Milliseconds(u32::MAX/2 + 1);
     /// ```
     fn sub(self, rhs: Dur) -> Self::Output {
-        self.checked_sub(rhs).unwrap()
+        if let Some(v) = self.checked_sub(rhs) {
+            v
+        } else {
+            panic!("Sub failed")
+        }
     }
 }
 
@@ -437,7 +445,11 @@ impl<Clock: crate::Clock> ops::Sub<Instant<Clock>> for Instant<Clock> {
     /// Instant::<Clock>::new(0) - Instant::<Clock>::new(1);
     /// ```
     fn sub(self, rhs: Instant<Clock>) -> Self::Output {
-        self.checked_duration_since(&rhs).unwrap()
+        if let Some(v) = self.checked_duration_since(&rhs) {
+            v
+        } else {
+            panic!("Sub failed")
+        }
     }
 }
 

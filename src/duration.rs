@@ -421,8 +421,7 @@ pub trait Duration: Sized + Copy {
                 Rate::T::from(*conversion_factor.numerator())
                     .checked_div(
                         &Rate::T::try_from(self.integer())
-                            .ok()
-                            .unwrap()
+                            .map_err(|_| ConversionError::Overflow)?
                             .checked_mul(&Rate::T::from(*conversion_factor.denominator()))
                             .ok_or(ConversionError::Overflow)?,
                     )
@@ -457,7 +456,11 @@ impl<T: TimeInt> PartialOrd<Generic<T>> for Generic<T> {
 
 impl<T: TimeInt> Ord for Generic<T> {
     fn cmp(&self, rhs: &Generic<T>) -> core::cmp::Ordering {
-        self.partial_cmp(rhs).unwrap()
+        if let Some(v) = self.partial_cmp(rhs) {
+            v
+        } else {
+            panic!("Cmp failed")
+        }
     }
 }
 
@@ -591,7 +594,11 @@ pub mod units {
 
                 // Symmetric version of Instant + Duration
                 fn add(self, rhs: crate::Instant<Clock>) -> Self::Output {
-                    rhs.checked_add(self).unwrap()
+                    if let Some(v) = rhs.checked_add(self) {
+                        v
+                    } else {
+                        panic!("Add failed")
+                    }
                 }
             }
 
@@ -936,7 +943,11 @@ pub mod units {
                 {
                     /// See [Converting between `Duration`s](trait.Duration.html#converting-between-durations)
                     fn from(small: $small<T>) -> Self {
-                        fixed_point::FixedPoint::from_ticks(small.integer(), $small::<T>::SCALING_FACTOR).ok().unwrap()
+                        if let Ok(v) = fixed_point::FixedPoint::from_ticks(small.integer(), $small::<T>::SCALING_FACTOR) {
+                            v
+                        } else {
+                            panic!("From failed")
+                        }
                     }
                 }
 
@@ -944,7 +955,11 @@ pub mod units {
                 {
                     /// See [Converting between `Duration`s](trait.Duration.html#converting-between-durations)
                     fn from(small: $small<u32>) -> Self {
-                        fixed_point::FixedPoint::from_ticks(small.integer(), $small::<u32>::SCALING_FACTOR).ok().unwrap()
+                        if let Ok(v) = fixed_point::FixedPoint::from_ticks(small.integer(), $small::<u32>::SCALING_FACTOR) {
+                            v
+                        } else {
+                            panic!("From failed")
+                        }
                     }
                 }
 
@@ -983,7 +998,11 @@ pub mod units {
                 {
                     /// See [Converting between `Duration`s](trait.Duration.html#converting-between-durations)
                     fn from(big: $big<u32>) -> Self {
-                        fixed_point::FixedPoint::from_ticks(big.integer(), $big::<u32>::SCALING_FACTOR).ok().unwrap()
+                        if let Ok(v) = fixed_point::FixedPoint::from_ticks(big.integer(), $big::<u32>::SCALING_FACTOR) {
+                            v
+                        } else {
+                            panic!("From failed")
+                        }
                     }
                 }
 

@@ -151,7 +151,12 @@ pub trait FixedPoint: Sized + Copy {
     where
         Self: TryFrom<Rhs>,
     {
-        Self::new(self.integer() + Self::try_from(rhs).ok().unwrap().integer())
+        let v = if let Ok(v) = Self::try_from(rhs) {
+            v
+        } else {
+            panic!("Add failed")
+        };
+        Self::new(self.integer() + v.integer())
     }
 
     /// Panicky subtraction
@@ -160,7 +165,13 @@ pub trait FixedPoint: Sized + Copy {
     where
         Self: TryFrom<Rhs>,
     {
-        Self::new(self.integer() - Self::try_from(rhs).ok().unwrap().integer())
+        let v = if let Ok(v) = Self::try_from(rhs) {
+            v
+        } else {
+            panic!("Sub failed")
+        };
+
+        Self::new(self.integer() - v.integer())
     }
 
     /// Panicky multiplication
