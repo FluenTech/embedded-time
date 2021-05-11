@@ -329,8 +329,7 @@ pub trait Rate: Sized + Copy {
                 Duration::T::from(*conversion_factor.numerator())
                     .checked_div(
                         &Duration::T::try_from(self.integer())
-                            .ok()
-                            .unwrap()
+                            .map_err(|_| ConversionError::Overflow)?
                             .checked_mul(&Duration::T::from(*conversion_factor.denominator()))
                             .ok_or(ConversionError::Overflow)?,
                     )
@@ -600,7 +599,11 @@ pub mod units {
             {
                 /// See [Converting between `Rate`s](trait.Rate.html#converting-between-rates)
                 fn from(small: $small<T>) -> Self {
-                    fixed_point::FixedPoint::from_ticks(small.integer(), $small::<T>::SCALING_FACTOR).ok().unwrap()
+                    if let Ok(v) = fixed_point::FixedPoint::from_ticks(small.integer(), $small::<T>::SCALING_FACTOR) {
+                        v
+                    } else {
+                        panic!("From failed")
+                    }
                 }
             }
 
@@ -608,7 +611,11 @@ pub mod units {
             {
                 /// See [Converting between `Rate`s](trait.Rate.html#converting-between-rates)
                 fn from(small: $small<u32>) -> Self {
-                    fixed_point::FixedPoint::from_ticks(small.integer(), $small::<u32>::SCALING_FACTOR).ok().unwrap()
+                    if let Ok(v) = fixed_point::FixedPoint::from_ticks(small.integer(), $small::<u32>::SCALING_FACTOR) {
+                        v
+                    } else {
+                        panic!("From failed")
+                    }
                 }
             }
 
@@ -630,7 +637,11 @@ pub mod units {
             {
                /// See [Converting between `Rate`s](trait.Rate.html#converting-between-rates)
                 fn from(big: $big<u32>) -> Self {
-                    fixed_point::FixedPoint::from_ticks(big.integer(), $big::<u32>::SCALING_FACTOR).ok().unwrap()
+                    if let Ok(v) = fixed_point::FixedPoint::from_ticks(big.integer(), $big::<u32>::SCALING_FACTOR) {
+                        v
+                    } else {
+                        panic!("From failed")
+                    }
                 }
             }
 
