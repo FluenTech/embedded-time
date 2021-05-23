@@ -499,6 +499,56 @@ impl<T> Generic<T> {
     pub const fn scaling_factor(&self) -> &Fraction {
         &self.scaling_factor
     }
+
+    pub(crate) fn into_ticks<T2: TimeInt>(self, fraction: Fraction) -> Result<T2, ConversionError>
+    where
+        T: TimeInt,
+        T2: TimeInt,
+        T2: TryFrom<T>,
+    {
+        if size_of::<T2>() > size_of::<T>() {
+            let ticks =
+                T2::try_from(*self.integer()).map_err(|_| ConversionError::ConversionFailure)?;
+
+            if fraction > Fraction::new(1, 1) {
+                TimeInt::checked_div_fraction(
+                    &TimeInt::checked_mul_fraction(&ticks, &self.scaling_factor)
+                        .ok_or(ConversionError::Unspecified)?,
+                    &fraction,
+                )
+                .ok_or(ConversionError::Unspecified)
+            } else {
+                TimeInt::checked_mul_fraction(
+                    &ticks,
+                    &self
+                        .scaling_factor
+                        .checked_div(&fraction)
+                        .ok_or(ConversionError::Unspecified)?,
+                )
+                .ok_or(ConversionError::Unspecified)
+            }
+        } else {
+            let ticks = if self.scaling_factor > Fraction::new(1, 1) {
+                TimeInt::checked_div_fraction(
+                    &TimeInt::checked_mul_fraction(self.integer(), &self.scaling_factor)
+                        .ok_or(ConversionError::Unspecified)?,
+                    &fraction,
+                )
+                .ok_or(ConversionError::Unspecified)?
+            } else {
+                TimeInt::checked_mul_fraction(
+                    self.integer(),
+                    &self
+                        .scaling_factor
+                        .checked_div(&fraction)
+                        .ok_or(ConversionError::Unspecified)?,
+                )
+                .ok_or(ConversionError::Unspecified)?
+            };
+
+            T2::try_from(ticks).map_err(|_| ConversionError::ConversionFailure)
+        }
+    }
 }
 
 impl<T: TimeInt> Duration for Generic<T> {}
