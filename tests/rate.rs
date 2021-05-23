@@ -40,10 +40,7 @@ fn construction() {
 
 #[test]
 fn comparisons() {
-    assert_ne!(2_001_u32.Hz(), 2_u32.kHz());
-    assert_ne!(2_001_u32.Hz(), 2_u64.kHz());
-    assert_ne!(2_001_u64.Hz(), 2_u32.kHz());
-    assert_ne!(2_001_u64.Hz(), 2_u64.kHz());
+    assert_ne!(2_001.Hz(), 2_u32.kHz());
 
     assert_eq!(8_u32.Kibps(), 1_u32.KiBps());
 
@@ -119,8 +116,8 @@ fn checked_div() {
 
 #[test]
 fn rem() {
-    assert_eq!(100_u32.bps() % u64::MAX.MiBps(), 100_u32.bps());
-    assert_eq!(10_020_u32.Bps() % 1_u64.kBps(), 20_u32.Bps());
+    assert_eq!(100_u32.bps() % u32::MAX.MiBps(), 100_u32.bps());
+    assert_eq!(10_020_u32.Bps() % 1.kBps(), 20_u32.Bps());
 
     assert_eq!(Hertz(456_u32) % Hertz(100_u32), Hertz(56_u32));
     assert_eq!(Hertz(2_003_u32) % Kilohertz(1_u32), Hertz(3_u32));

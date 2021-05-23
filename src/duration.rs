@@ -1032,12 +1032,12 @@ pub mod units {
     /// ```rust
     /// use embedded_time::duration::*;
     ///
-    /// assert_eq!(5_u32.nanoseconds(), Nanoseconds(5_u32));
-    /// assert_eq!(5_u32.microseconds(), Microseconds(5_u32));
-    /// assert_eq!(5_u32.milliseconds(), Milliseconds(5_u32));
-    /// assert_eq!(5_u32.seconds(), Seconds(5_u32));
-    /// assert_eq!(5_u32.minutes(), Minutes(5_u32));
-    /// assert_eq!(5_u32.hours(), Hours(5_u32));
+    /// assert_eq!(5.nanoseconds(), Nanoseconds(5_u32));
+    /// assert_eq!(5.microseconds(), Microseconds(5_u32));
+    /// assert_eq!(5.milliseconds(), Milliseconds(5_u32));
+    /// assert_eq!(5.seconds(), Seconds(5_u32));
+    /// assert_eq!(5.minutes(), Minutes(5_u32));
+    /// assert_eq!(5.hours(), Hours(5_u32));
     /// ```
     pub trait Extensions: TimeInt {
         /// nanoseconds
@@ -1067,8 +1067,6 @@ pub mod units {
     }
 
     impl Extensions for u32 {}
-
-    impl Extensions for u64 {}
 }
 
 #[cfg(test)]

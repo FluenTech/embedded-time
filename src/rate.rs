@@ -760,26 +760,26 @@ pub mod units {
     ///
     /// ```rust
     /// # use embedded_time::{rate::*};
-    /// assert_eq!(5_u32.MiHz(), Mebihertz(5_u32));
-    /// assert_eq!(5_u32.MHz(), Megahertz(5_u32));
-    /// assert_eq!(5_u32.KiHz(), Kibihertz(5_u32));
-    /// assert_eq!(5_u32.kHz(), Kilohertz(5_u32));
-    /// assert_eq!(5_u32.Hz(), Hertz(5_u32));
-    /// assert_eq!(5_u32.MiBps(), MebibytesPerSecond(5_u32));
-    /// assert_eq!(5_u32.MBps(), MegabytesPerSecond(5_u32));
-    /// assert_eq!(5_u32.KiBps(), KibibytesPerSecond(5_u32));
-    /// assert_eq!(5_u32.kBps(), KilobytesPerSecond(5_u32));
-    /// assert_eq!(5_u32.Bps(), BytesPerSecond(5_u32));
-    /// assert_eq!(5_u32.Mibps(), MebibitsPerSecond(5_u32));
-    /// assert_eq!(5_u32.Mbps(), MegabitsPerSecond(5_u32));
-    /// assert_eq!(5_u32.Kibps(), KibibitsPerSecond(5_u32));
-    /// assert_eq!(5_u32.kbps(), KilobitsPerSecond(5_u32));
-    /// assert_eq!(5_u32.bps(), BitsPerSecond(5_u32));
-    /// assert_eq!(5_u32.MiBd(), Mebibaud(5_u32));
-    /// assert_eq!(5_u32.MBd(), Megabaud(5_u32));
-    /// assert_eq!(5_u32.KiBd(), Kibibaud(5_u32));
-    /// assert_eq!(5_u32.kBd(), Kilobaud(5_u32));
-    /// assert_eq!(5_u32.Bd(), Baud(5_u32));
+    /// assert_eq!(5.MiHz(), Mebihertz(5_u32));
+    /// assert_eq!(5.MHz(), Megahertz(5_u32));
+    /// assert_eq!(5.KiHz(), Kibihertz(5_u32));
+    /// assert_eq!(5.kHz(), Kilohertz(5_u32));
+    /// assert_eq!(5.Hz(), Hertz(5_u32));
+    /// assert_eq!(5.MiBps(), MebibytesPerSecond(5_u32));
+    /// assert_eq!(5.MBps(), MegabytesPerSecond(5_u32));
+    /// assert_eq!(5.KiBps(), KibibytesPerSecond(5_u32));
+    /// assert_eq!(5.kBps(), KilobytesPerSecond(5_u32));
+    /// assert_eq!(5.Bps(), BytesPerSecond(5_u32));
+    /// assert_eq!(5.Mibps(), MebibitsPerSecond(5_u32));
+    /// assert_eq!(5.Mbps(), MegabitsPerSecond(5_u32));
+    /// assert_eq!(5.Kibps(), KibibitsPerSecond(5_u32));
+    /// assert_eq!(5.kbps(), KilobitsPerSecond(5_u32));
+    /// assert_eq!(5.bps(), BitsPerSecond(5_u32));
+    /// assert_eq!(5.MiBd(), Mebibaud(5_u32));
+    /// assert_eq!(5.MBd(), Megabaud(5_u32));
+    /// assert_eq!(5.KiBd(), Kibibaud(5_u32));
+    /// assert_eq!(5.kBd(), Kilobaud(5_u32));
+    /// assert_eq!(5.Bd(), Baud(5_u32));
     /// ```
     #[allow(non_snake_case)]
     pub trait Extensions: TimeInt {
@@ -885,7 +885,6 @@ pub mod units {
     }
 
     impl Extensions for u32 {}
-    impl Extensions for u64 {}
 }
 
 #[cfg(test)]
