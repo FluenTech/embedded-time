@@ -176,7 +176,7 @@ fn to_generic() {
 #[test]
 fn get_generic_integer() {
     let generic = duration::Generic::new(246_u32, Fraction::new(1, 2));
-    assert_eq!(generic.integer(), &246_u32);
+    assert_eq!(generic.integer(), 246_u32);
 }
 
 #[test]

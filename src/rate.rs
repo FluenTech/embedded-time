@@ -132,7 +132,7 @@ pub use units::*;
 /// let generic_rate = Generic::<u32>::from(5_u32.Hz());
 /// let generic_rate: Generic<u32> = 5_u32.Hz().into();
 ///
-/// assert_eq!(generic_rate.integer(), &5_u32);
+/// assert_eq!(generic_rate.integer(), 5_u32);
 /// ```
 ///
 /// # Converting to a [`Generic`] `Rate` with a different _scaling factor_
@@ -210,7 +210,7 @@ pub trait Rate: Sized + Copy {
     /// // convert into a generic rate with a different _scaling factor_
     /// let generic = kilobits.to_generic::<u32>(Fraction::new(500, 1)).unwrap();
     ///
-    /// assert_eq!(generic.integer(), &40_u32);
+    /// assert_eq!(generic.integer(), 40_u32);
     /// ```
     ///
     /// # Errors
@@ -352,9 +352,9 @@ pub struct Generic<T> {
     scaling_factor: Fraction,
 }
 
-impl<T> Generic<T> {
+impl<T: TimeInt> Generic<T> {
     /// Constructs a new fixed-point `Generic` `Rate` value
-    pub const fn new(integer: T, scaling_factor: Fraction) -> Self {
+    pub fn new(integer: T, scaling_factor: Fraction) -> Self {
         Self {
             integer,
             scaling_factor,
@@ -362,12 +362,12 @@ impl<T> Generic<T> {
     }
 
     /// Returns the _integer_ part
-    pub const fn integer(&self) -> &T {
-        &self.integer
+    pub fn integer(&self) -> T {
+        self.integer
     }
 
     /// Returns the _scaling factor_ [`Fraction`] part
-    pub const fn scaling_factor(&self) -> &Fraction {
+    pub fn scaling_factor(&self) -> &Fraction {
         &self.scaling_factor
     }
 }

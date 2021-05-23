@@ -229,7 +229,7 @@ pub use units::*;
 /// let generic_duration = Generic::<u32>::from(5_u32.seconds());
 /// let generic_duration: Generic<u32> = 5_u32.seconds().into();
 ///
-/// assert_eq!(generic_duration.integer(), &5_u32);
+/// assert_eq!(generic_duration.integer(), 5_u32);
 /// ```
 ///
 /// # Converting to a [`Generic`] `Duration` with a different _scaling factor_
@@ -304,7 +304,7 @@ pub trait Duration: Sized + Copy {
     /// // convert into a generic duration with a different _scaling factor_
     /// let generic = millis.to_generic::<u32>(Fraction::new(1, 2_000)).unwrap();
     ///
-    /// assert_eq!(generic.integer(), &40_u32);
+    /// assert_eq!(generic.integer(), 40_u32);
     /// ```
     ///
     /// # Errors
@@ -478,9 +478,9 @@ impl<T: TimeInt + Hash> Hash for Generic<T> {
     }
 }
 
-impl<T> Generic<T> {
+impl<T: TimeInt> Generic<T> {
     /// Constructs a new fixed-point `Generic` `Duration` value
-    pub const fn new(integer: T, scaling_factor: Fraction) -> Self {
+    pub fn new(integer: T, scaling_factor: Fraction) -> Self {
         Self {
             integer,
             scaling_factor,
@@ -488,12 +488,12 @@ impl<T> Generic<T> {
     }
 
     /// Returns the _integer_ part
-    pub const fn integer(&self) -> &T {
-        &self.integer
+    pub fn integer(&self) -> T {
+        self.integer
     }
 
     /// Returns the _scaling factor_ [`Fraction`] part
-    pub const fn scaling_factor(&self) -> &Fraction {
+    pub fn scaling_factor(&self) -> &Fraction {
         &self.scaling_factor
     }
 }

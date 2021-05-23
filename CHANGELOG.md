@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- make `Generic::integer()` return a value
+
+
 [unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.11.0...HEAD
 
 ## [0.11.0] - 2021-05-06
