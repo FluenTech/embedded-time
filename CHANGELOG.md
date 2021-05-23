@@ -6,6 +6,9 @@
 
 - make `Generic::integer()` return a value
 
+### Changed
+
+- limit Rate and Duration extension to u32
 
 [unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.11.0...HEAD
 
