@@ -141,8 +141,6 @@ impl<Clock: crate::Clock> Instant<Clock> {
 
     /// Returns the [`Duration`] (in the provided units) since the beginning of time (the
     /// [`Clock`](clock/trait.Clock.html)'s 0)
-    ///
-    /// If it is a _wrapping_ clock, the result is meaningless.
     pub fn duration_since_epoch(&self) -> duration::Generic<Clock::T> {
         duration::Generic::new(self.ticks, Clock::SCALING_FACTOR)
     }
