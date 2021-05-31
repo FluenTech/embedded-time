@@ -2,7 +2,19 @@
 
 ## [Unreleased]
 
-[unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.11.0...HEAD
+[unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.12.0...HEAD
+
+## [0.12.0] - 2021-05-30
+
+### Fixed
+
+- make `Generic::integer()` return a value
+
+### Changed
+
+- limit Rate and Duration extension to u32
+
+[0.12.0]: https://github.com/FluenTech/embedded-time/compare/v0.11.0...v0.12.0
 
 ## [0.11.0] - 2021-05-06
 
@@ -20,7 +32,7 @@
 - export `TimeInt` trait
 - `FixedPoint::integer()` returns by value
 
-[unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.10.1...v0.11.0
+[0.11.0]: https://github.com/FluenTech/embedded-time/compare/v0.10.1...v0.11.0
 
 
 ## [0.10.1] - 2020-11-15

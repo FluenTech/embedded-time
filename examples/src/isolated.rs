@@ -164,7 +164,7 @@ mod duration {
 
     fn get_generic_integer() {
         let generic = duration::Generic::new(246_u32, Fraction::new(1, 2));
-        assert_eq!(generic.integer(), &246_u32);
+        assert_eq!(generic.integer(), 246_u32);
     }
 
     fn add() {
@@ -295,7 +295,7 @@ mod rate {
 
     fn get_generic_integer() {
         let generic = rate::Generic::new(246_u32, Fraction::new(1, 2));
-        assert_eq!(generic.integer(), &246_u32);
+        assert_eq!(generic.integer(), 246_u32);
     }
 
     fn add() {

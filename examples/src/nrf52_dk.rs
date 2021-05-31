@@ -282,7 +282,7 @@ mod duration {
 
     pub fn get_generic_integer() {
         let generic = duration::Generic::new(246_u32, Fraction::new(1, 2));
-        assert_eq!(generic.integer(), &246_u32);
+        assert_eq!(generic.integer(), 246_u32);
     }
 
     pub fn remainder() {
@@ -355,14 +355,10 @@ mod duration {
         assert_eq!(1_u32.microseconds(), 1_000_u32.nanoseconds());
         assert_eq!(1_u32.milliseconds(), 1_000_000_u32.nanoseconds());
         assert_eq!(1_u32.seconds(), 1_000_000_000_u32.nanoseconds());
-        assert_eq!(1_u64.minutes(), 60_000_000_000_u64.nanoseconds());
-        assert_eq!(1_u64.hours(), 3_600_000_000_000_u64.nanoseconds());
 
         assert_eq!(1_000_u32.nanoseconds(), 1_u32.microseconds());
         assert_eq!(1_000_000_u32.nanoseconds(), 1_u32.milliseconds());
         assert_eq!(1_000_000_000_u32.nanoseconds(), 1_u32.seconds());
-        assert_eq!(60_000_000_000_u64.nanoseconds(), 1_u64.minutes());
-        assert_eq!(3_600_000_000_000_u64.nanoseconds(), 1_u64.hours());
     }
 
     pub fn error_try_from() {
@@ -387,9 +383,6 @@ mod rate {
 
     pub fn comparison() {
         assert_ne!(2_001_u32.Hz(), 2_u32.kHz());
-        assert_ne!(2_001_u32.Hz(), 2_u64.kHz());
-        assert_ne!(2_001_u64.Hz(), 2_u32.kHz());
-        assert_ne!(2_001_u64.Hz(), 2_u64.kHz());
 
         assert_eq!(8_u32.Kibps(), 1_u32.KiBps());
     }
@@ -417,7 +410,7 @@ mod rate {
 
     pub fn get_generic_integer() {
         let generic = rate::Generic::new(246_u32, Fraction::new(1, 2));
-        assert_eq!(generic.integer(), &246_u32);
+        assert_eq!(generic.integer(), 246_u32);
     }
 
     pub fn remainder() {

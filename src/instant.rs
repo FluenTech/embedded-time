@@ -141,8 +141,6 @@ impl<Clock: crate::Clock> Instant<Clock> {
 
     /// Returns the [`Duration`] (in the provided units) since the beginning of time (the
     /// [`Clock`](clock/trait.Clock.html)'s 0)
-    ///
-    /// If it is a _wrapping_ clock, the result is meaningless.
     pub fn duration_since_epoch(&self) -> duration::Generic<Clock::T> {
         duration::Generic::new(self.ticks, Clock::SCALING_FACTOR)
     }
@@ -422,7 +420,7 @@ impl<Clock: crate::Clock> ops::Sub<Instant<Clock>> for Instant<Clock> {
     /// # fn try_now(&self) -> Result<Instant<Self>, embedded_time::clock::Error> {unimplemented!()}
     /// }
     ///
-    /// assert_eq!(*(Instant::<Clock>::new(5_001) - Instant::<Clock>::new(5_000)).integer(), 1);
+    /// assert_eq!((Instant::<Clock>::new(5_001) - Instant::<Clock>::new(5_000)).integer(), 1);
     /// ```
     ///
     /// # Panics

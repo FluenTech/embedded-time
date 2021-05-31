@@ -132,7 +132,7 @@ pub use units::*;
 /// let generic_rate = Generic::<u32>::from(5_u32.Hz());
 /// let generic_rate: Generic<u32> = 5_u32.Hz().into();
 ///
-/// assert_eq!(generic_rate.integer(), &5_u32);
+/// assert_eq!(generic_rate.integer(), 5_u32);
 /// ```
 ///
 /// # Converting to a [`Generic`] `Rate` with a different _scaling factor_
@@ -210,7 +210,7 @@ pub trait Rate: Sized + Copy {
     /// // convert into a generic rate with a different _scaling factor_
     /// let generic = kilobits.to_generic::<u32>(Fraction::new(500, 1)).unwrap();
     ///
-    /// assert_eq!(generic.integer(), &40_u32);
+    /// assert_eq!(generic.integer(), 40_u32);
     /// ```
     ///
     /// # Errors
@@ -351,9 +351,9 @@ pub struct Generic<T> {
     scaling_factor: Fraction,
 }
 
-impl<T> Generic<T> {
+impl<T: TimeInt> Generic<T> {
     /// Constructs a new fixed-point `Generic` `Rate` value
-    pub const fn new(integer: T, scaling_factor: Fraction) -> Self {
+    pub fn new(integer: T, scaling_factor: Fraction) -> Self {
         Self {
             integer,
             scaling_factor,
@@ -361,12 +361,12 @@ impl<T> Generic<T> {
     }
 
     /// Returns the _integer_ part
-    pub const fn integer(&self) -> &T {
-        &self.integer
+    pub fn integer(&self) -> T {
+        self.integer
     }
 
     /// Returns the _scaling factor_ [`Fraction`] part
-    pub const fn scaling_factor(&self) -> &Fraction {
+    pub fn scaling_factor(&self) -> &Fraction {
         &self.scaling_factor
     }
 }
@@ -771,26 +771,26 @@ pub mod units {
     ///
     /// ```rust
     /// # use embedded_time::{rate::*};
-    /// assert_eq!(5_u32.MiHz(), Mebihertz(5_u32));
-    /// assert_eq!(5_u32.MHz(), Megahertz(5_u32));
-    /// assert_eq!(5_u32.KiHz(), Kibihertz(5_u32));
-    /// assert_eq!(5_u32.kHz(), Kilohertz(5_u32));
-    /// assert_eq!(5_u32.Hz(), Hertz(5_u32));
-    /// assert_eq!(5_u32.MiBps(), MebibytesPerSecond(5_u32));
-    /// assert_eq!(5_u32.MBps(), MegabytesPerSecond(5_u32));
-    /// assert_eq!(5_u32.KiBps(), KibibytesPerSecond(5_u32));
-    /// assert_eq!(5_u32.kBps(), KilobytesPerSecond(5_u32));
-    /// assert_eq!(5_u32.Bps(), BytesPerSecond(5_u32));
-    /// assert_eq!(5_u32.Mibps(), MebibitsPerSecond(5_u32));
-    /// assert_eq!(5_u32.Mbps(), MegabitsPerSecond(5_u32));
-    /// assert_eq!(5_u32.Kibps(), KibibitsPerSecond(5_u32));
-    /// assert_eq!(5_u32.kbps(), KilobitsPerSecond(5_u32));
-    /// assert_eq!(5_u32.bps(), BitsPerSecond(5_u32));
-    /// assert_eq!(5_u32.MiBd(), Mebibaud(5_u32));
-    /// assert_eq!(5_u32.MBd(), Megabaud(5_u32));
-    /// assert_eq!(5_u32.KiBd(), Kibibaud(5_u32));
-    /// assert_eq!(5_u32.kBd(), Kilobaud(5_u32));
-    /// assert_eq!(5_u32.Bd(), Baud(5_u32));
+    /// assert_eq!(5.MiHz(), Mebihertz(5_u32));
+    /// assert_eq!(5.MHz(), Megahertz(5_u32));
+    /// assert_eq!(5.KiHz(), Kibihertz(5_u32));
+    /// assert_eq!(5.kHz(), Kilohertz(5_u32));
+    /// assert_eq!(5.Hz(), Hertz(5_u32));
+    /// assert_eq!(5.MiBps(), MebibytesPerSecond(5_u32));
+    /// assert_eq!(5.MBps(), MegabytesPerSecond(5_u32));
+    /// assert_eq!(5.KiBps(), KibibytesPerSecond(5_u32));
+    /// assert_eq!(5.kBps(), KilobytesPerSecond(5_u32));
+    /// assert_eq!(5.Bps(), BytesPerSecond(5_u32));
+    /// assert_eq!(5.Mibps(), MebibitsPerSecond(5_u32));
+    /// assert_eq!(5.Mbps(), MegabitsPerSecond(5_u32));
+    /// assert_eq!(5.Kibps(), KibibitsPerSecond(5_u32));
+    /// assert_eq!(5.kbps(), KilobitsPerSecond(5_u32));
+    /// assert_eq!(5.bps(), BitsPerSecond(5_u32));
+    /// assert_eq!(5.MiBd(), Mebibaud(5_u32));
+    /// assert_eq!(5.MBd(), Megabaud(5_u32));
+    /// assert_eq!(5.KiBd(), Kibibaud(5_u32));
+    /// assert_eq!(5.kBd(), Kilobaud(5_u32));
+    /// assert_eq!(5.Bd(), Baud(5_u32));
     /// ```
     #[allow(non_snake_case)]
     pub trait Extensions: TimeInt {
@@ -896,7 +896,6 @@ pub mod units {
     }
 
     impl Extensions for u32 {}
-    impl Extensions for u64 {}
 }
 
 #[cfg(test)]

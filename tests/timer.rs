@@ -132,7 +132,7 @@ where
 {
     let ticks = TICKS.load(Ordering::SeqCst);
     let ticks = ticks
-        + *duration
+        + duration
             .to_generic::<u64>(Clock::SCALING_FACTOR)
             .unwrap()
             .integer();

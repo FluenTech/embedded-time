@@ -117,8 +117,8 @@ fn checked_div() {
 
 #[test]
 fn rem() {
-    assert_eq!(100_u32.minutes() % u64::MAX.hours(), 100_u32.minutes());
-    assert_eq!(100_u32.minutes() % 1_u64.hours(), 40_u32.minutes());
+    assert_eq!(100_u32.minutes() % u32::MAX.hours(), 100_u32.minutes());
+    assert_eq!(100_u32.minutes() % 1.hours(), 40_u32.minutes());
 
     assert_eq!(Minutes(62_u32) % Hours(1_u32), Minutes(2_u32));
     assert_eq!(Minutes(62_u32) % Milliseconds(1_u32), Minutes(0_u32));
@@ -176,7 +176,7 @@ fn to_generic() {
 #[test]
 fn get_generic_integer() {
     let generic = duration::Generic::new(246_u32, Fraction::new(1, 2));
-    assert_eq!(generic.integer(), &246_u32);
+    assert_eq!(generic.integer(), 246_u32);
 }
 
 #[test]
@@ -258,14 +258,10 @@ fn duration_scaling() {
     assert_eq!(1_u32.microseconds(), 1_000_u32.nanoseconds());
     assert_eq!(1_u32.milliseconds(), 1_000_000_u32.nanoseconds());
     assert_eq!(1_u32.seconds(), 1_000_000_000_u32.nanoseconds());
-    assert_eq!(1_u64.minutes(), 60_000_000_000_u64.nanoseconds());
-    assert_eq!(1_u64.hours(), 3_600_000_000_000_u64.nanoseconds());
 
     assert_eq!(1_000_u32.nanoseconds(), 1_u32.microseconds());
     assert_eq!(1_000_000_u32.nanoseconds(), 1_u32.milliseconds());
     assert_eq!(1_000_000_000_u32.nanoseconds(), 1_u32.seconds());
-    assert_eq!(60_000_000_000_u64.nanoseconds(), 1_u64.minutes());
-    assert_eq!(3_600_000_000_000_u64.nanoseconds(), 1_u64.hours());
 }
 
 #[test]

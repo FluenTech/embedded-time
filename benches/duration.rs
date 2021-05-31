@@ -67,7 +67,7 @@ fn conversions(c: &mut Criterion) {
         },
     );
 
-    let duration = 500_u64.nanoseconds();
+    let duration = Nanoseconds(500_u64);
     group.bench_with_input(
         BenchmarkId::new("Seconds<u32>::try_from::<Nanoseconds<u64>>()", duration),
         &duration,
@@ -76,7 +76,7 @@ fn conversions(c: &mut Criterion) {
         },
     );
 
-    let duration = 500_u64.nanoseconds();
+    let duration = Nanoseconds(500_u64);
     group.bench_with_input(
         BenchmarkId::new(
             "Seconds<u32>::try_from::<Nanoseconds<u64>>() (unwrap)",
