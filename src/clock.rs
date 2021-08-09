@@ -9,6 +9,7 @@ use core::hash::Hash;
 /// Potential `Clock` errors
 #[non_exhaustive]
 #[derive(Debug, Eq, PartialEq, Hash)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Error {
     /// Exact cause of failure is unknown
     Unspecified,
@@ -34,7 +35,11 @@ impl Default for Error {
 /// software [`Timer`]s can be spawned from a `Clock` object.
 pub trait Clock: Sized {
     /// The type to hold the tick count
+    #[cfg(not(feature = "defmt"))]
     type T: TimeInt + Hash;
+    /// The type to hold the tick count
+    #[cfg(feature = "defmt")]
+    type T: TimeInt + Hash + defmt::Format;
 
     /// The duration of one clock tick in seconds, AKA the clock precision.
     const SCALING_FACTOR: Fraction;

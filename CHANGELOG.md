@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- added optional support for [defmt](https://github.com/knurling-rs/defmt)
+
 [unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.12.0...HEAD
 
 ## [0.12.0] - 2021-05-30
