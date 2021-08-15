@@ -49,7 +49,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --doc --all-features
+          args: --doc --features serde
 
       - name: Clippy
         uses: actions-rs/cargo@v1
