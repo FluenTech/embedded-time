@@ -29,6 +29,11 @@ pub trait FixedPoint: Sized + Copy {
     /// ```
     fn integer(&self) -> Self::T;
 
+    /// Returns the _scaling factor_ [`Fraction`] part
+    fn scaling_factor(&self) -> Fraction {
+        Self::SCALING_FACTOR
+    }
+
     /// Constructs a `FixedPoint` value from _integer_ and _scaling-factor_ ([`Fraction`]) parts
     ///
     /// # Errors
