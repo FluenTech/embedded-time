@@ -510,7 +510,7 @@ impl<T: TimeInt> Generic<T> {
     {
         if size_of::<T2>() > size_of::<T>() {
             let ticks =
-                T2::try_from(*self.integer()).map_err(|_| ConversionError::ConversionFailure)?;
+                T2::try_from(self.integer()).map_err(|_| ConversionError::ConversionFailure)?;
 
             if fraction > Fraction::new(1, 1) {
                 TimeInt::checked_div_fraction(
@@ -532,14 +532,14 @@ impl<T: TimeInt> Generic<T> {
         } else {
             let ticks = if self.scaling_factor > Fraction::new(1, 1) {
                 TimeInt::checked_div_fraction(
-                    &TimeInt::checked_mul_fraction(self.integer(), &self.scaling_factor)
+                    &TimeInt::checked_mul_fraction(&self.integer(), &self.scaling_factor)
                         .ok_or(ConversionError::Unspecified)?,
                     &fraction,
                 )
                 .ok_or(ConversionError::Unspecified)?
             } else {
                 TimeInt::checked_mul_fraction(
-                    self.integer(),
+                    &self.integer(),
                     &self
                         .scaling_factor
                         .checked_div(&fraction)
