@@ -64,6 +64,11 @@ fn add() {
         (Milliseconds(1_u32) + Seconds(1_u32)),
         Milliseconds(1_001_u32)
     );
+
+    assert_eq!(
+        (Generic::new(1_010u32, Fraction::new(1, 1_000)) + Generic::new(1u32, Fraction::new(1, 1))),
+        Generic::new(2_010u32, Fraction::new(1, 1_000))
+    );
 }
 
 #[test]
@@ -74,6 +79,11 @@ fn sub() {
     );
 
     assert_eq!(Minutes(u32::MAX) - Hours(1_u32), Minutes(u32::MAX - 60));
+
+    assert_eq!(
+        (Generic::new(1_010u32, Fraction::new(1, 1_000)) - Generic::new(1u32, Fraction::new(1, 1))),
+        Generic::new(10u32, Fraction::new(1, 1_000))
+    );
 }
 
 #[test]
