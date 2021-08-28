@@ -346,7 +346,7 @@ impl<Clock: crate::Clock> PartialOrd for Instant<Clock> {
     /// assert!(Instant::<Clock>::new(u32::MAX) < Instant::<Clock>::new(u32::MIN));
     /// ```
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(&other))
+        Some(self.cmp(other))
     }
 }
 
