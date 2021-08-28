@@ -13,7 +13,7 @@
 ### Changed
 
 - limit Rate and Duration extension to u32
-- removed all use os `unwrap()`
+- removed all use of `unwrap()`
 
 [0.12.0]: https://github.com/FluenTech/embedded-time/compare/v0.11.0...v0.12.0
 
