@@ -407,11 +407,11 @@ pub trait Duration: Sized + Copy {
 
         if size_of::<Self::T>() >= size_of::<Rate::T>() {
             fixed_point::FixedPoint::from_ticks(
-                Self::T::from(*conversion_factor.numerator())
+                Self::T::from(conversion_factor.numerator())
                     .checked_div(
                         &self
                             .integer()
-                            .checked_mul(&Self::T::from(*conversion_factor.denominator()))
+                            .checked_mul(&Self::T::from(conversion_factor.denominator()))
                             .ok_or(ConversionError::Overflow)?,
                     )
                     .ok_or(ConversionError::DivByZero)?,
@@ -419,11 +419,11 @@ pub trait Duration: Sized + Copy {
             )
         } else {
             fixed_point::FixedPoint::from_ticks(
-                Rate::T::from(*conversion_factor.numerator())
+                Rate::T::from(conversion_factor.numerator())
                     .checked_div(
                         &Rate::T::try_from(self.integer())
                             .map_err(|_| ConversionError::Overflow)?
-                            .checked_mul(&Rate::T::from(*conversion_factor.denominator()))
+                            .checked_mul(&Rate::T::from(conversion_factor.denominator()))
                             .ok_or(ConversionError::Overflow)?,
                     )
                     .ok_or(ConversionError::DivByZero)?,

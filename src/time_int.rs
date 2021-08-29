@@ -22,8 +22,8 @@ pub trait TimeInt:
     ///
     /// Returns truncated (rounded toward `0`) integer or [`None`] upon failure
     fn checked_mul_fraction(&self, fraction: &Fraction) -> Option<Self> {
-        self.checked_mul(&(*fraction.numerator()).into())?
-            .checked_div(&(*fraction.denominator()).into())
+        self.checked_mul(&fraction.numerator().into())?
+            .checked_div(&fraction.denominator().into())
     }
 
     /// Checked integer / [`Fraction`] = integer

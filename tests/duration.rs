@@ -292,40 +292,40 @@ fn into_bigger() {
                 assert_eq!(
                     $into::<u32>::from($small(u32::MAX)),
                     $into((u32::MAX as u64
-                    * *$small::<u32>::SCALING_FACTOR.numerator() as u64
-                    * *$into::<u32>::SCALING_FACTOR.denominator() as u64
-                    / *$into::<u32>::SCALING_FACTOR.numerator() as u64
-                    / *$small::<u32>::SCALING_FACTOR.denominator() as u64
+                    * $small::<u32>::SCALING_FACTOR.numerator() as u64
+                    * $into::<u32>::SCALING_FACTOR.denominator() as u64
+                    / $into::<u32>::SCALING_FACTOR.numerator() as u64
+                    / $small::<u32>::SCALING_FACTOR.denominator() as u64
                     ) as u32)
                 );
 
                 let rate: $into<u32> = $small(u32::MAX).into();
                 assert_eq!(rate,
                     $into((u32::MAX as u64
-                    * *$small::<u32>::SCALING_FACTOR.numerator() as u64
-                    * *$into::<u32>::SCALING_FACTOR.denominator() as u64
-                    / *$into::<u32>::SCALING_FACTOR.numerator() as u64
-                    / *$small::<u32>::SCALING_FACTOR.denominator() as u64
+                    * $small::<u32>::SCALING_FACTOR.numerator() as u64
+                    * $into::<u32>::SCALING_FACTOR.denominator() as u64
+                    / $into::<u32>::SCALING_FACTOR.numerator() as u64
+                    / $small::<u32>::SCALING_FACTOR.denominator() as u64
                     ) as u32)
                 );
 
                 assert_eq!(
                     $into::<u64>::from($small(u32::MAX)),
                     $into((u32::MAX as u64
-                    * *$small::<u32>::SCALING_FACTOR.numerator() as u64
-                    * *$into::<u64>::SCALING_FACTOR.denominator() as u64
-                    / *$into::<u64>::SCALING_FACTOR.numerator() as u64
-                    / *$small::<u32>::SCALING_FACTOR.denominator() as u64
+                    * $small::<u32>::SCALING_FACTOR.numerator() as u64
+                    * $into::<u64>::SCALING_FACTOR.denominator() as u64
+                    / $into::<u64>::SCALING_FACTOR.numerator() as u64
+                    / $small::<u32>::SCALING_FACTOR.denominator() as u64
                     ) as u64)
                 );
 
                 let rate: $into<u64> = $small(u32::MAX).into();
                 assert_eq!(rate,
                     $into((u32::MAX as u64
-                    * *$small::<u32>::SCALING_FACTOR.numerator() as u64
-                    * *$into::<u64>::SCALING_FACTOR.denominator() as u64
-                    / *$into::<u64>::SCALING_FACTOR.numerator() as u64
-                    / *$small::<u32>::SCALING_FACTOR.denominator() as u64
+                    * $small::<u32>::SCALING_FACTOR.numerator() as u64
+                    * $into::<u64>::SCALING_FACTOR.denominator() as u64
+                    / $into::<u64>::SCALING_FACTOR.numerator() as u64
+                    / $small::<u32>::SCALING_FACTOR.denominator() as u64
                     ) as u64)
                 );
 
@@ -333,10 +333,10 @@ fn into_bigger() {
                     $into::<u32>::try_from($small(u32::MAX as u64)),
                     Ok(
                         $into((u32::MAX as u64
-                        * *$small::<u64>::SCALING_FACTOR.numerator() as u64
-                        * *$into::<u32>::SCALING_FACTOR.denominator() as u64
-                        / *$into::<u32>::SCALING_FACTOR.numerator() as u64
-                        / *$small::<u64>::SCALING_FACTOR.denominator() as u64
+                        * $small::<u64>::SCALING_FACTOR.numerator() as u64
+                        * $into::<u32>::SCALING_FACTOR.denominator() as u64
+                        / $into::<u32>::SCALING_FACTOR.numerator() as u64
+                        / $small::<u64>::SCALING_FACTOR.denominator() as u64
                         ) as u32)
                     )
                 );
@@ -346,10 +346,10 @@ fn into_bigger() {
                     rate,
                     Ok(
                         $into((u32::MAX as u64
-                        * *$small::<u64>::SCALING_FACTOR.numerator() as u64
-                        * *$into::<u32>::SCALING_FACTOR.denominator() as u64
-                        / *$into::<u32>::SCALING_FACTOR.numerator() as u64
-                        / *$small::<u64>::SCALING_FACTOR.denominator() as u64
+                        * $small::<u64>::SCALING_FACTOR.numerator() as u64
+                        * $into::<u32>::SCALING_FACTOR.denominator() as u64
+                        / $into::<u32>::SCALING_FACTOR.numerator() as u64
+                        / $small::<u64>::SCALING_FACTOR.denominator() as u64
                         ) as u32)
                     )
                 );
@@ -403,20 +403,20 @@ fn into_smaller() {
                 assert_eq!(
                     $into::<u64>::from($big(u32::MAX)),
                     $into((u32::MAX as u64
-                    * *$big::<u32>::SCALING_FACTOR.numerator() as u64
-                    * *$into::<u64>::SCALING_FACTOR.denominator() as u64
-                    / *$into::<u64>::SCALING_FACTOR.numerator() as u64
-                    / *$big::<u32>::SCALING_FACTOR.denominator() as u64
+                    * $big::<u32>::SCALING_FACTOR.numerator() as u64
+                    * $into::<u64>::SCALING_FACTOR.denominator() as u64
+                    / $into::<u64>::SCALING_FACTOR.numerator() as u64
+                    / $big::<u32>::SCALING_FACTOR.denominator() as u64
                     ) as u64)
                 );
 
                 let rate: $into<u64> = $big(u32::MAX).into();
                 assert_eq!(rate,
                     $into((u32::MAX as u64
-                    * *$big::<u32>::SCALING_FACTOR.numerator() as u64
-                    * *$into::<u64>::SCALING_FACTOR.denominator() as u64
-                    / *$into::<u64>::SCALING_FACTOR.numerator() as u64
-                    / *$big::<u32>::SCALING_FACTOR.denominator() as u64
+                    * $big::<u32>::SCALING_FACTOR.numerator() as u64
+                    * $into::<u64>::SCALING_FACTOR.denominator() as u64
+                    / $into::<u64>::SCALING_FACTOR.numerator() as u64
+                    / $big::<u32>::SCALING_FACTOR.denominator() as u64
                     ) as u64)
                 );
 
@@ -424,10 +424,10 @@ fn into_smaller() {
                     $into::<u32>::try_from($big(4 as u32)),
                     Ok(
                         $into((4 as u64
-                        * *$big::<u32>::SCALING_FACTOR.numerator() as u64
-                        * *$into::<u32>::SCALING_FACTOR.denominator() as u64
-                        / *$into::<u32>::SCALING_FACTOR.numerator() as u64
-                        / *$big::<u32>::SCALING_FACTOR.denominator() as u64
+                        * $big::<u32>::SCALING_FACTOR.numerator() as u64
+                        * $into::<u32>::SCALING_FACTOR.denominator() as u64
+                        / $into::<u32>::SCALING_FACTOR.numerator() as u64
+                        / $big::<u32>::SCALING_FACTOR.denominator() as u64
                         ) as u32)
                     )
                 );
@@ -437,10 +437,10 @@ fn into_smaller() {
                     rate,
                     Ok(
                         $into((4 as u64
-                        * *$big::<u32>::SCALING_FACTOR.numerator() as u64
-                        * *$into::<u32>::SCALING_FACTOR.denominator() as u64
-                        / *$into::<u32>::SCALING_FACTOR.numerator() as u64
-                        / *$big::<u32>::SCALING_FACTOR.denominator() as u64
+                        * $big::<u32>::SCALING_FACTOR.numerator() as u64
+                        * $into::<u32>::SCALING_FACTOR.denominator() as u64
+                        / $into::<u32>::SCALING_FACTOR.numerator() as u64
+                        / $big::<u32>::SCALING_FACTOR.denominator() as u64
                         ) as u32)
                     )
                 );
@@ -449,10 +449,10 @@ fn into_smaller() {
                     $into::<u32>::try_from($big(4 as u64)),
                     Ok(
                         $into((4 as u64
-                        * *$big::<u64>::SCALING_FACTOR.numerator() as u64
-                        * *$into::<u32>::SCALING_FACTOR.denominator() as u64
-                        / *$into::<u32>::SCALING_FACTOR.numerator() as u64
-                        / *$big::<u64>::SCALING_FACTOR.denominator() as u64
+                        * $big::<u64>::SCALING_FACTOR.numerator() as u64
+                        * $into::<u32>::SCALING_FACTOR.denominator() as u64
+                        / $into::<u32>::SCALING_FACTOR.numerator() as u64
+                        / $big::<u64>::SCALING_FACTOR.denominator() as u64
                         ) as u32)
                     )
                 );
@@ -462,10 +462,10 @@ fn into_smaller() {
                     rate,
                     Ok(
                         $into((4 as u64
-                        * *$big::<u64>::SCALING_FACTOR.numerator() as u64
-                        * *$into::<u32>::SCALING_FACTOR.denominator() as u64
-                        / *$into::<u32>::SCALING_FACTOR.numerator() as u64
-                        / *$big::<u64>::SCALING_FACTOR.denominator() as u64
+                        * $big::<u64>::SCALING_FACTOR.numerator() as u64
+                        * $into::<u32>::SCALING_FACTOR.denominator() as u64
+                        / $into::<u32>::SCALING_FACTOR.numerator() as u64
+                        / $big::<u64>::SCALING_FACTOR.denominator() as u64
                         ) as u32)
                     )
                 );
@@ -474,10 +474,10 @@ fn into_smaller() {
                     $into::<u64>::try_from($big(4 as u64)),
                     Ok(
                         $into((4 as u64
-                        * *$big::<u64>::SCALING_FACTOR.numerator() as u64
-                        * *$into::<u64>::SCALING_FACTOR.denominator() as u64
-                        / *$into::<u64>::SCALING_FACTOR.numerator() as u64
-                        / *$big::<u64>::SCALING_FACTOR.denominator() as u64
+                        * $big::<u64>::SCALING_FACTOR.numerator() as u64
+                        * $into::<u64>::SCALING_FACTOR.denominator() as u64
+                        / $into::<u64>::SCALING_FACTOR.numerator() as u64
+                        / $big::<u64>::SCALING_FACTOR.denominator() as u64
                         ) as u64)
                     )
                 );
@@ -487,10 +487,10 @@ fn into_smaller() {
                     rate,
                     Ok(
                         $into((4 as u64
-                        * *$big::<u64>::SCALING_FACTOR.numerator() as u64
-                        * *$into::<u64>::SCALING_FACTOR.denominator() as u64
-                        / *$into::<u64>::SCALING_FACTOR.numerator() as u64
-                        / *$big::<u64>::SCALING_FACTOR.denominator() as u64
+                        * $big::<u64>::SCALING_FACTOR.numerator() as u64
+                        * $into::<u64>::SCALING_FACTOR.denominator() as u64
+                        / $into::<u64>::SCALING_FACTOR.numerator() as u64
+                        / $big::<u64>::SCALING_FACTOR.denominator() as u64
                         ) as u64)
                     )
                 );

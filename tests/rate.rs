@@ -225,27 +225,27 @@ fn into_bigger() {
             $(
                 assert_eq!(
                     $into::<u32>::from($small(u32::MAX)),
-                    $into((u32::MAX as u64 * *$small::<u32>::SCALING_FACTOR.numerator() as u64 / *$into::<u32>::SCALING_FACTOR.numerator() as u64) as u32)
+                    $into((u32::MAX as u64 * $small::<u32>::SCALING_FACTOR.numerator() as u64 / $into::<u32>::SCALING_FACTOR.numerator() as u64) as u32)
                 );
 
                 let rate: $into<u32> = $small(u32::MAX).into();
-                assert_eq!(rate, $into((u32::MAX as u64 * *$small::<u32>::SCALING_FACTOR.numerator() as u64 / *$into::<u32>::SCALING_FACTOR.numerator() as u64) as u32));
+                assert_eq!(rate, $into((u32::MAX as u64 * $small::<u32>::SCALING_FACTOR.numerator() as u64 / $into::<u32>::SCALING_FACTOR.numerator() as u64) as u32));
 
                 assert_eq!(
                     $into::<u64>::from($small(u32::MAX)),
-                    $into((u32::MAX as u64 * *$small::<u32>::SCALING_FACTOR.numerator() as u64 / *$into::<u64>::SCALING_FACTOR.numerator() as u64) as u32)
+                    $into((u32::MAX as u64 * $small::<u32>::SCALING_FACTOR.numerator() as u64 / $into::<u64>::SCALING_FACTOR.numerator() as u64) as u32)
                 );
 
                 let rate: $into<u64> = $small(u32::MAX).into();
-                assert_eq!(rate, $into((u32::MAX as u64 * *$small::<u64>::SCALING_FACTOR.numerator() as u64 / *$into::<u64>::SCALING_FACTOR.numerator() as u64) as u32));
+                assert_eq!(rate, $into((u32::MAX as u64 * $small::<u64>::SCALING_FACTOR.numerator() as u64 / $into::<u64>::SCALING_FACTOR.numerator() as u64) as u32));
 
                 assert_eq!(
                     $into::<u32>::try_from($small(u32::MAX as u64)),
-                    Ok($into((u32::MAX as u64 * *$small::<u32>::SCALING_FACTOR.numerator() as u64 / *$into::<u32>::SCALING_FACTOR.numerator() as u64) as u32))
+                    Ok($into((u32::MAX as u64 * $small::<u32>::SCALING_FACTOR.numerator() as u64 / $into::<u32>::SCALING_FACTOR.numerator() as u64) as u32))
                 );
 
                 let rate: Result<$into<u32>, _> = $small(u32::MAX as u64).try_into();
-                assert_eq!(rate, Ok($into((u32::MAX as u64 * *$small::<u64>::SCALING_FACTOR.numerator() as u64 / *$into::<u32>::SCALING_FACTOR.numerator() as u64) as u32)));
+                assert_eq!(rate, Ok($into((u32::MAX as u64 * $small::<u64>::SCALING_FACTOR.numerator() as u64 / $into::<u32>::SCALING_FACTOR.numerator() as u64) as u32)));
             )+
 
             test_into_bigger!($($small),+);
@@ -324,38 +324,38 @@ fn into_smaller() {
             $(
                 assert_eq!(
                     $into::<u64>::from($big(u32::MAX)),
-                    $into(u32::MAX as u64 * *$big::<u32>::SCALING_FACTOR.numerator() as u64 / *$into::<u64>::SCALING_FACTOR.numerator() as u64)
+                    $into(u32::MAX as u64 * $big::<u32>::SCALING_FACTOR.numerator() as u64 / $into::<u64>::SCALING_FACTOR.numerator() as u64)
                 );
 
                 let rate: $into<u64> = $big(u32::MAX).into();
-                assert_eq!(rate, $into(u32::MAX as u64 * *$big::<u32>::SCALING_FACTOR.numerator() as u64 / *$into::<u64>::SCALING_FACTOR.numerator() as u64));
+                assert_eq!(rate, $into(u32::MAX as u64 * $big::<u32>::SCALING_FACTOR.numerator() as u64 / $into::<u64>::SCALING_FACTOR.numerator() as u64));
 
                 // big<u64> to small<u32>
                 assert_eq!(
                     $into::<u32>::try_from($big(500 as u64)),
-                    Ok($into((500 as u64 * *$big::<u32>::SCALING_FACTOR.numerator() as u64 / *$into::<u32>::SCALING_FACTOR.numerator() as u64) as u32))
+                    Ok($into((500 as u64 * $big::<u32>::SCALING_FACTOR.numerator() as u64 / $into::<u32>::SCALING_FACTOR.numerator() as u64) as u32))
                 );
 
                 let rate: Result<$into<u32>, _> = $big(500 as u64).try_into();
-                assert_eq!(rate, Ok($into((500 as u64 * *$big::<u64>::SCALING_FACTOR.numerator() as u64 / *$into::<u32>::SCALING_FACTOR.numerator() as u64) as u32)));
+                assert_eq!(rate, Ok($into((500 as u64 * $big::<u64>::SCALING_FACTOR.numerator() as u64 / $into::<u32>::SCALING_FACTOR.numerator() as u64) as u32)));
 
                 // big<u64> to small<u64>
                 assert_eq!(
                     $into::<u64>::try_from($big(500 as u64)),
-                    Ok($into((500 as u64 * *$big::<u32>::SCALING_FACTOR.numerator() as u64 / *$into::<u32>::SCALING_FACTOR.numerator() as u64) as u64))
+                    Ok($into((500 as u64 * $big::<u32>::SCALING_FACTOR.numerator() as u64 / $into::<u32>::SCALING_FACTOR.numerator() as u64) as u64))
                 );
 
                 let rate: Result<$into<u64>, _> = $big(500 as u64).try_into();
-                assert_eq!(rate, Ok($into((500 as u64 * *$big::<u64>::SCALING_FACTOR.numerator() as u64 / *$into::<u32>::SCALING_FACTOR.numerator() as u64) as u64)));
+                assert_eq!(rate, Ok($into((500 as u64 * $big::<u64>::SCALING_FACTOR.numerator() as u64 / $into::<u32>::SCALING_FACTOR.numerator() as u64) as u64)));
 
                 // big<u32> to small<u32>
                 assert_eq!(
                     $into::<u32>::try_from($big(500 as u32)),
-                    Ok($into((500 as u64 * *$big::<u32>::SCALING_FACTOR.numerator() as u64 / *$into::<u32>::SCALING_FACTOR.numerator() as u64) as u32))
+                    Ok($into((500 as u64 * $big::<u32>::SCALING_FACTOR.numerator() as u64 / $into::<u32>::SCALING_FACTOR.numerator() as u64) as u32))
                 );
 
                 let rate: Result<$into<u32>, _> = $big(500 as u32).try_into();
-                assert_eq!(rate, Ok($into((500 as u64 * *$big::<u64>::SCALING_FACTOR.numerator() as u64 / *$into::<u32>::SCALING_FACTOR.numerator() as u64) as u32)));
+                assert_eq!(rate, Ok($into((500 as u64 * $big::<u64>::SCALING_FACTOR.numerator() as u64 / $into::<u32>::SCALING_FACTOR.numerator() as u64) as u32)));
             )+
 
             test_into_smaller!($($big),+);

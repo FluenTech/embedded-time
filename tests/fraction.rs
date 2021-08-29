@@ -6,7 +6,7 @@ use test_case::test_case;
 #[test_case((6, 0) => Err(ConversionError::DivByZero) ; "A denominator of 0 will fail")]
 fn new_reduce(fraction: (u32, u32)) -> Result<(u32, u32), ConversionError> {
     Fraction::new_reduce(fraction.0, fraction.1)
-        .map(|fraction| (*fraction.numerator(), *fraction.denominator()))
+        .map(|fraction| (fraction.numerator(), fraction.denominator()))
 }
 
 #[test_case((3, 1) => 3 ; "Returns integer, no truncation required")]
@@ -18,7 +18,7 @@ fn to_integer(fraction: (u32, u32)) -> u32 {
 #[test_case(3 => (3,1) ; "Returns integer as fraction")]
 fn from_integer(integer: u32) -> (u32, u32) {
     let fraction = Fraction::from_integer(integer);
-    (*fraction.numerator(), *fraction.denominator())
+    (fraction.numerator(), fraction.denominator())
 }
 
 #[test_case(u32::MAX, (3,5) => u32::MAX / 5 * 3 ; "Properly handles potential overflows when possible")]
@@ -36,8 +36,8 @@ fn u64_mul_fraction(integer: u64, fraction: (u32, u32)) -> u64 {
 #[test]
 fn fraction_mul_fraction() {
     let product = Fraction::new(1_000, 1) * Fraction::new(5, 5);
-    assert_eq!(*product.numerator(), 1_000_u32);
-    assert_eq!(*product.denominator(), 1_u32);
+    assert_eq!(product.numerator(), 1_000_u32);
+    assert_eq!(product.denominator(), 1_u32);
 }
 
 #[test_case(12, (4,3) => 9 ; "Returns integer result")]
@@ -57,6 +57,6 @@ fn u64_div_fraction(integer: u64, fraction: (u32, u32)) -> u64 {
 #[test]
 fn fraction_div_fraction() {
     let product = Fraction::new(1_000, 1) / Fraction::new(10, 1_000);
-    assert_eq!(*product.numerator(), 100_000_u32);
-    assert_eq!(*product.denominator(), 1_u32);
+    assert_eq!(product.numerator(), 100_000_u32);
+    assert_eq!(product.denominator(), 1_u32);
 }
