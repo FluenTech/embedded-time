@@ -291,7 +291,7 @@ pub use units::*;
 ///
 /// assert_eq!(Minutes(62_u32) % Hours(1_u32), Minutes(2_u32));
 /// ```
-pub trait Duration: Sized + Copy {
+pub trait Duration: FixedPoint + Sized + Copy {
     /// Construct a `Generic` `Duration` from a _named_ `Duration` (eg.
     /// [`Milliseconds`])
     ///
@@ -341,7 +341,6 @@ pub trait Duration: Sized + Copy {
         scaling_factor: Fraction,
     ) -> Result<Generic<DestInt>, ConversionError>
     where
-        Self: FixedPoint,
         DestInt: TryFrom<Self::T>,
     {
         Ok(Generic::<DestInt>::new(
@@ -396,8 +395,6 @@ pub trait Duration: Sized + Copy {
     /// ```
     fn to_rate<Rate: rate::Rate>(&self) -> Result<Rate, ConversionError>
     where
-        Rate: FixedPoint,
-        Self: FixedPoint,
         Rate::T: TryFrom<Self::T>,
     {
         let conversion_factor = Self::SCALING_FACTOR
@@ -575,8 +572,6 @@ impl<T: TimeInt> Generic<T> {
     }
 }
 
-impl<T: TimeInt> Duration for Generic<T> {}
-
 impl<T: TimeInt, T2: TimeInt> ops::Add<Generic<T2>> for Generic<T>
 where
     T: TryFrom<T2>,
@@ -666,7 +661,6 @@ pub mod units {
 
             impl<T: TimeInt, Rhs: Duration> ops::Add<Rhs> for $name<T>
             where
-                Rhs: FixedPoint,
                 Self: TryFrom<Rhs>,
             {
                 type Output = Self;
@@ -680,7 +674,6 @@ pub mod units {
             impl<T: TimeInt, Rhs: Duration> ops::Sub<Rhs> for $name<T>
             where
                 Self: TryFrom<Rhs>,
-                Rhs: FixedPoint,
             {
                 type Output = Self;
 
@@ -727,7 +720,6 @@ pub mod units {
             impl<T: TimeInt, Rhs: Duration> ops::Rem<Rhs> for $name<T>
             where
                 Self: TryFrom<Rhs>,
-                Rhs: FixedPoint,
             {
                 type Output = Self;
 

@@ -197,7 +197,7 @@ pub use units::*;
 ///
 /// assert_eq!(Hertz(2_037_u32) % Kilohertz(1_u32), Hertz(37_u32));
 /// ```
-pub trait Rate: Sized + Copy {
+pub trait Rate: FixedPoint + Sized + Copy {
     /// Construct a `Generic` `Rate` from a _named_ `Rate` (eg. [`Kilohertz`])
     ///
     /// # Examples
@@ -248,7 +248,6 @@ pub trait Rate: Sized + Copy {
         scaling_factor: Fraction,
     ) -> Result<Generic<DestInt>, ConversionError>
     where
-        Self: FixedPoint,
         DestInt: TryFrom<Self::T>,
     {
         Ok(Generic::<DestInt>::new(
@@ -303,8 +302,6 @@ pub trait Rate: Sized + Copy {
     /// ```
     fn to_duration<Duration: duration::Duration>(&self) -> Result<Duration, ConversionError>
     where
-        Duration: FixedPoint,
-        Self: FixedPoint,
         Duration::T: TryFrom<Self::T>,
     {
         let conversion_factor = Self::SCALING_FACTOR
@@ -371,8 +368,6 @@ impl<T: TimeInt> Generic<T> {
     }
 }
 
-impl<T: TimeInt> Rate for Generic<T> {}
-
 /// Rate-type units
 #[doc(hidden)]
 pub mod units {
@@ -432,7 +427,6 @@ pub mod units {
 
             impl<T: TimeInt, Rhs: Rate> ops::Add<Rhs> for $name<T>
             where
-                Rhs: FixedPoint,
                 Self: TryFrom<Rhs>,
             {
                 type Output = Self;
@@ -446,7 +440,6 @@ pub mod units {
             impl<T: TimeInt, Rhs: Rate> ops::Sub<Rhs> for $name<T>
             where
                 Self: TryFrom<Rhs>,
-                Rhs: FixedPoint,
             {
                 type Output = Self;
 
@@ -477,7 +470,6 @@ pub mod units {
             impl<T: TimeInt, Rhs: Rate> ops::Rem<Rhs> for $name<T>
             where
                 Self: TryFrom<Rhs>,
-                Rhs: FixedPoint,
             {
                 type Output = Self;
 

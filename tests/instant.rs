@@ -82,14 +82,20 @@ fn duration_add_instant(base: u32, addition: u32) -> Instant<Clock> {
     Milliseconds(base) + Instant::<Clock>::new(addition)
 }
 
-#[test_case(0, u32::MAX/2 => Some(Instant::<Clock>::new(u32::MAX / 2)) ; "Add the maximum allowed duration")]
-#[test_case(0, u32::MAX/2 + 1 => None ; "Overflow due to the duration being too large")]
-fn checked_add(base: u32, addition: u32) -> Option<Instant<Clock>> {
-    Instant::<Clock>::new(base).checked_add(Milliseconds(addition))
+#[test_case(0, Milliseconds(u32::MAX/2) => Some(Instant::<Clock>::new(u32::MAX / 2)) ; "Add the maximum allowed duration")]
+#[test_case(0, Milliseconds(u32::MAX/2 + 1) => None ; "Overflow due to the duration being too large")]
+fn checked_add<Dur: Duration>(base: u32, addition: Dur) -> Option<Instant<Clock>>
+where
+    Dur::T: Into<u32>,
+{
+    Instant::<Clock>::new(base).checked_add(addition)
 }
 
-#[test_case(u32::MAX, u32::MAX/2 => Some(Instant::<Clock>::new(u32::MAX - (u32::MAX / 2))) ; "Subtract the maximum allowed duration")]
-#[test_case(u32::MAX, u32::MAX/2 + 1 => None ; "Overflow due to the duration being too large")]
-fn checked_sub(base: u32, subtrahend: u32) -> Option<Instant<Clock>> {
-    Instant::<Clock>::new(base).checked_sub(Milliseconds(subtrahend))
+#[test_case(u32::MAX, Milliseconds(u32::MAX/2) => Some(Instant::<Clock>::new(u32::MAX - (u32::MAX / 2))) ; "Subtract the maximum allowed duration")]
+#[test_case(u32::MAX, Milliseconds(u32::MAX/2 + 1) => None ; "Overflow due to the duration being too large")]
+fn checked_sub<Dur: Duration>(base: u32, subtrahend: Dur) -> Option<Instant<Clock>>
+where
+    Dur::T: Into<u32>,
+{
+    Instant::<Clock>::new(base).checked_sub(subtrahend)
 }

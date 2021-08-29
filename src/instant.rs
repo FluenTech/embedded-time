@@ -2,7 +2,6 @@
 
 use crate::{
     duration::{self, Duration, Generic},
-    fixed_point::FixedPoint,
     time_int::TimeInt,
 };
 use core::{
@@ -175,7 +174,6 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// ```
     pub fn checked_add<Dur: Duration>(self, duration: Dur) -> Option<Self>
     where
-        Dur: FixedPoint,
         Clock::T: TryFrom<Dur::T> + core::ops::Div<Output = Clock::T>,
     {
         let add_ticks: Clock::T = duration.into_ticks(Clock::SCALING_FACTOR).ok()?;
@@ -257,7 +255,6 @@ impl<Clock: crate::Clock> Instant<Clock> {
     /// ```
     pub fn checked_sub<Dur: Duration>(self, duration: Dur) -> Option<Self>
     where
-        Dur: FixedPoint,
         Clock::T: TryFrom<Dur::T> + core::ops::Div<Output = Clock::T>,
     {
         let sub_ticks: Clock::T = duration.into_ticks(Clock::SCALING_FACTOR).ok()?;
@@ -366,7 +363,6 @@ where
 impl<Clock: crate::Clock, Dur: Duration> ops::Add<Dur> for Instant<Clock>
 where
     Clock::T: TryFrom<Dur::T>,
-    Dur: FixedPoint,
 {
     type Output = Self;
 
@@ -444,7 +440,6 @@ where
 impl<Clock: crate::Clock, Dur: Duration> ops::Sub<Dur> for Instant<Clock>
 where
     Clock::T: TryFrom<Dur::T>,
-    Dur: FixedPoint,
 {
     type Output = Self;
 
