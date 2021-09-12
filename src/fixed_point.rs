@@ -30,6 +30,12 @@ pub trait FixedPoint: Sized + Copy {
     fn integer(&self) -> Self::T;
 
     /// Returns the _scaling factor_ [`Fraction`] part
+    ///
+    /// ```rust
+    /// # use embedded_time::{ rate::*};
+    /// #
+    /// assert_eq!(Kilohertz(45_u32).scaling_factor(), Fraction::new(1_000, 1));
+    /// ```
     fn scaling_factor(&self) -> Fraction {
         Self::SCALING_FACTOR
     }
