@@ -25,13 +25,13 @@ impl Fraction {
     }
 
     /// Return the numerator of the fraction
-    pub const fn numerator(&self) -> &u32 {
-        self.0.numer()
+    pub const fn numerator(&self) -> u32 {
+        *self.0.numer()
     }
 
     /// Return the denominator of the fraction
-    pub const fn denominator(&self) -> &u32 {
-        self.0.denom()
+    pub const fn denominator(&self) -> u32 {
+        *self.0.denom()
     }
 }
 
@@ -132,7 +132,7 @@ impl ops::Mul<Fraction> for u64 {
 
     /// Panicky u64 × `Fraction` = u64
     fn mul(self, rhs: Fraction) -> Self::Output {
-        (Ratio::new_raw((*rhs.numerator()).into(), (*rhs.denominator()).into()) * self).to_integer()
+        (Ratio::new_raw(rhs.numerator().into(), rhs.denominator().into()) * self).to_integer()
     }
 }
 
@@ -142,7 +142,7 @@ impl ops::Div<Fraction> for u64 {
     /// Panicky u64 / `Fraction` = u64
     #[allow(clippy::suspicious_arithmetic_impl)]
     fn div(self, rhs: Fraction) -> Self::Output {
-        (Ratio::new_raw((*rhs.denominator()).into(), (*rhs.numerator()).into()) * self).to_integer()
+        (Ratio::new_raw(rhs.denominator().into(), rhs.numerator().into()) * self).to_integer()
     }
 }
 

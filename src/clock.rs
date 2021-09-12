@@ -1,8 +1,8 @@
 //! Abstraction for hardware timers/clocks
 
 use crate::{
-    duration::Duration, fixed_point::FixedPoint, fraction::Fraction, instant::Instant,
-    time_int::TimeInt, timer::param, timer::Timer,
+    duration::Duration, fraction::Fraction, instant::Instant, time_int::TimeInt, timer::param,
+    timer::Timer,
 };
 use core::hash::Hash;
 
@@ -56,10 +56,7 @@ pub trait Clock: Sized {
     fn new_timer<Dur: Duration>(
         &self,
         duration: Dur,
-    ) -> Timer<param::OneShot, param::Armed, Self, Dur>
-    where
-        Dur: FixedPoint,
-    {
+    ) -> Timer<param::OneShot, param::Armed, Self, Dur> {
         Timer::<param::None, param::None, Self, Dur>::new(&self, duration)
     }
 }

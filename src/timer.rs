@@ -3,7 +3,6 @@
 use crate::fraction::Fraction;
 use crate::{
     duration::{self, *},
-    fixed_point::FixedPoint,
     timer::param::*,
     ConversionError, Instant, TimeError,
 };
@@ -92,7 +91,6 @@ impl<'a, Type, Clock: crate::Clock, Dur: Duration> Timer<'a, Type, Armed, Clock,
     pub fn start(self) -> Result<Timer<'a, Type, Running, Clock, Dur>, TimeError>
     where
         Clock::T: TryFrom<Dur::T>,
-        Dur: FixedPoint,
     {
         Ok(Timer::<Type, Running, Clock, Dur> {
             clock: self.clock,
@@ -120,7 +118,7 @@ impl<Type, Clock: crate::Clock, Dur: Duration> Timer<'_, Type, Running, Clock, D
     /// The units of the [`Duration`] are the same as that used to construct the `Timer`.
     pub fn elapsed(&self) -> Result<Dur, TimeError>
     where
-        Dur: FixedPoint + TryFrom<duration::Generic<Clock::T>, Error = ConversionError>,
+        Dur: TryFrom<duration::Generic<Clock::T>, Error = ConversionError>,
         Dur::T: TryFrom<Clock::T>,
         Clock::T: TryFrom<Dur::T>,
     {
@@ -145,7 +143,7 @@ impl<Type, Clock: crate::Clock, Dur: Duration> Timer<'_, Type, Running, Clock, D
     /// The units of the [`Duration`] are the same as that used to construct the `Timer`.
     pub fn remaining(&self) -> Result<Dur, TimeError>
     where
-        Dur: FixedPoint + TryFrom<duration::Generic<Clock::T>, Error = ConversionError>,
+        Dur: TryFrom<duration::Generic<Clock::T>, Error = ConversionError>,
         Dur::T: TryFrom<u32> + TryFrom<Clock::T>,
         Clock::T: TryFrom<Dur::T>,
     {

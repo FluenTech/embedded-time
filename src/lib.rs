@@ -272,7 +272,7 @@
 //! - [`RTIC`](https://github.com/rtic-rs/cortex-m-rtic)
 //! - [`time`](https://docs.rs/time/latest/time) (Specifically the [`time::NumbericalDuration`](https://docs.rs/time/latest/time/trait.NumericalDuration.html)
 //!   implementations for primitive integers)
-#![doc(html_root_url = "https://docs.rs/embedded-time/0.12.0")]
+#![doc(html_root_url = "https://docs.rs/embedded-time/0.13.0")]
 #![deny(unsafe_code)]
 #![cfg_attr(not(test), no_std)]
 #![warn(missing_docs)]
