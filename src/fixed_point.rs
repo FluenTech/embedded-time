@@ -146,7 +146,6 @@ pub trait FixedPoint: Sized + Copy {
     }
 
     /// Panicky addition
-    #[doc(hidden)]
     fn add<Rhs: FixedPoint>(self, rhs: Rhs) -> Self
     where
         Self: TryFrom<Rhs>,
@@ -160,7 +159,6 @@ pub trait FixedPoint: Sized + Copy {
     }
 
     /// Panicky subtraction
-    #[doc(hidden)]
     fn sub<Rhs: FixedPoint>(self, rhs: Rhs) -> Self
     where
         Self: TryFrom<Rhs>,
