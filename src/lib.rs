@@ -295,6 +295,7 @@ pub use timer::Timer;
 /// Crate errors
 #[non_exhaustive]
 #[derive(Debug, Eq, PartialEq, Hash)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum TimeError {
     /// Exact cause of failure is unknown
     Unspecified,
@@ -325,6 +326,7 @@ impl Default for TimeError {
 /// Conversion errors
 #[non_exhaustive]
 #[derive(Debug, Eq, PartialEq, Hash)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ConversionError {
     /// Exact cause of failure is unknown
     Unspecified,

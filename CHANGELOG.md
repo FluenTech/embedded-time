@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- added optional support for [defmt](https://github.com/knurling-rs/defmt)
 - add `scaling_factor` method to `FixedPoint` type to retrieve the const scaling-factor [`Fraction`] from any fixed-point object
 - Duration and Rate are no longer implemented by the `Generic` duration and rate types
 - durations and rates can now be taken generically by a function without having to bind to `FixedPoint` (`FixedPoint` is now bound to the `Duration` and `Rate` traits)

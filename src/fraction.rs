@@ -180,5 +180,12 @@ impl Default for Fraction {
     }
 }
 
+#[cfg(feature = "defmt")]
+impl defmt::Format for Fraction {
+    fn format(&self, fmt: defmt::Formatter) {
+        defmt::write!(fmt, "{} / {}", self.numerator(), self.denominator())
+    }
+}
+
 #[cfg(test)]
 mod tests {}

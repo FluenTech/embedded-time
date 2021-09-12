@@ -436,6 +436,7 @@ pub trait Duration: FixedPoint + Sized + Copy {
 /// The purpose of this type is to allow a simple `Duration` object that can be defined at run-time.
 /// It does this by replacing the `const` _scaling factor_ with a struct field.
 #[derive(Copy, Clone, Debug, Default)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Generic<T> {
     integer: T,
     scaling_factor: Fraction,
@@ -656,6 +657,13 @@ pub mod units {
                 /// See [Formatting](trait.Duration.html#formatting)
                 fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
                     fmt::Display::fmt(&self.0, f)
+                }
+            }
+
+            #[cfg(feature = "defmt")]
+            impl<T: TimeInt + defmt::Format> defmt::Format for $name<T> {
+                fn format(&self, fmt: defmt::Formatter) {
+                    defmt::write!(fmt, "{}", self.0)
                 }
             }
 
