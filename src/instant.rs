@@ -261,6 +261,7 @@ impl<Clock: crate::Clock> PartialOrd for Instant<Clock> {
     /// assert!(Instant::<Clock>::new(5) > Instant::<Clock>::new(3));
     /// assert!(Instant::<Clock>::new(5) == Instant::<Clock>::new(5));
     /// assert!(Instant::<Clock>::new(u32::MAX) < Instant::<Clock>::new(u32::MIN));
+    /// assert!(Instant::<Clock>::new(5) <= Instant::<Clock>::new(5));
     /// ```
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(&other))
@@ -273,10 +274,14 @@ where
     Clock::T: ops::Div<Output = Clock::T>,
 {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.ticks
-            .wrapping_sub(&other.ticks)
-            .cmp(&(<Clock::T as num::Bounded>::max_value() / 2.into()))
-            .reverse()
+        if self.ticks == other.ticks {
+            Ordering::Equal
+        } else {
+            self.ticks
+                .wrapping_sub(&other.ticks)
+                .cmp(&(<Clock::T as num::Bounded>::max_value() / 2.into()))
+                .reverse()
+        }
     }
 }
 
