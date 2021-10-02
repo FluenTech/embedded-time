@@ -1,6 +1,6 @@
 [package]
 name = "embedded-time"
-version = "0.12.0"
+version = "0.13.0"
 authors = ["Peter Taylor <PTaylor@FluenTech.info>"]
 edition = "2018"
 description = "Fully defined, inter-operable, ergonomic, and fast human-time units (both duration and rate types) with hardware timer abstraction and software timers."
@@ -26,6 +26,7 @@ members = ["examples"]
 [dependencies]
 num = { version = "0.3.0", default-features = false }
 serde = { version = "1.0.0", default-features = false, features = ["derive"], optional = true }
+defmt = { version = "0.2.3", optional = true }
 
 [dev-dependencies]
 crossbeam-utils = "0.7.2"

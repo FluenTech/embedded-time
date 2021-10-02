@@ -1,7 +1,5 @@
 use crossbeam_utils::thread;
-use embedded_time::{
-    self as time, duration::*, fixed_point, fraction::Fraction, Clock as _, Instant,
-};
+use embedded_time::{self as time, duration::*, fraction::Fraction, Clock as _, Instant};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 static TICKS: AtomicU64 = AtomicU64::new(0);
@@ -127,7 +125,6 @@ fn init_ticks() {}
 
 fn add_to_ticks<Dur: Duration>(duration: Dur)
 where
-    Dur: fixed_point::FixedPoint,
     u64: From<Dur::T>,
 {
     let ticks = TICKS.load(Ordering::SeqCst);

@@ -1,5 +1,6 @@
 //! Fractional/Rational values
 use crate::ConversionError;
+use core::cmp::Ordering;
 use core::ops;
 use num::{rational::Ratio, CheckedDiv, CheckedMul, Zero};
 
@@ -12,7 +13,7 @@ use num::{rational::Ratio, CheckedDiv, CheckedMul, Zero};
 /// [`Rate`]: rate/trait.Rate.html
 /// [`Clock`]: clock/trait.Clock.html
 /// [`Instant`]: instant/struct.Instant.html
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub struct Fraction(Ratio<u32>);
 
 impl Fraction {
@@ -25,13 +26,53 @@ impl Fraction {
     }
 
     /// Return the numerator of the fraction
-    pub const fn numerator(&self) -> &u32 {
-        self.0.numer()
+    pub const fn numerator(&self) -> u32 {
+        *self.0.numer()
     }
 
     /// Return the denominator of the fraction
-    pub const fn denominator(&self) -> &u32 {
-        self.0.denom()
+    pub const fn denominator(&self) -> u32 {
+        *self.0.denom()
+    }
+
+    const fn const_eq(&self, other: &Self) -> bool {
+        (self.numerator() as u64) * (other.denominator() as u64)
+            == (self.denominator() as u64) * (other.numerator() as u64)
+    }
+
+    const fn const_cmp(&self, other: &Self) -> Ordering {
+        let ad = (self.numerator() as u64) * (other.denominator() as u64);
+        let bc = (self.denominator() as u64) * (other.numerator() as u64);
+        if ad < bc {
+            Ordering::Less
+        } else if ad == bc {
+            Ordering::Equal
+        } else {
+            Ordering::Greater
+        }
+    }
+}
+
+impl PartialEq for Fraction {
+    #[inline(always)]
+    fn eq(&self, other: &Self) -> bool {
+        self.const_eq(other)
+    }
+}
+
+impl Eq for Fraction {}
+
+impl PartialOrd for Fraction {
+    #[inline(always)]
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.const_cmp(other))
+    }
+}
+
+impl Ord for Fraction {
+    #[inline(always)]
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.const_cmp(other)
     }
 }
 
@@ -132,7 +173,7 @@ impl ops::Mul<Fraction> for u64 {
 
     /// Panicky u64 × `Fraction` = u64
     fn mul(self, rhs: Fraction) -> Self::Output {
-        (Ratio::new_raw((*rhs.numerator()).into(), (*rhs.denominator()).into()) * self).to_integer()
+        (Ratio::new_raw(rhs.numerator().into(), rhs.denominator().into()) * self).to_integer()
     }
 }
 
@@ -142,7 +183,7 @@ impl ops::Div<Fraction> for u64 {
     /// Panicky u64 / `Fraction` = u64
     #[allow(clippy::suspicious_arithmetic_impl)]
     fn div(self, rhs: Fraction) -> Self::Output {
-        (Ratio::new_raw((*rhs.denominator()).into(), (*rhs.numerator()).into()) * self).to_integer()
+        (Ratio::new_raw(rhs.denominator().into(), rhs.numerator().into()) * self).to_integer()
     }
 }
 
@@ -177,6 +218,30 @@ impl ops::Div for Fraction {
 impl Default for Fraction {
     fn default() -> Self {
         Self::new(1, 1)
+    }
+}
+
+#[cfg(feature = "defmt")]
+impl defmt::Format for Fraction {
+    fn format(&self, fmt: defmt::Formatter) {
+        defmt::write!(fmt, "{} / {}", self.numerator(), self.denominator())
+    }
+}
+
+use core::hash::{Hash, Hasher};
+impl Hash for Fraction {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        recurse(self.numerator(), self.denominator(), state);
+
+        fn recurse<H: Hasher>(numer: u32, denom: u32, state: &mut H) {
+            if denom != 0 {
+                let (int, rem) = ((numer / denom), (numer % denom));
+                int.hash(state);
+                recurse(denom, rem, state);
+            } else {
+                denom.hash(state);
+            }
+        }
     }
 }
 

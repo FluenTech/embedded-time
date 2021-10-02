@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- added optional support for [defmt](https://github.com/knurling-rs/defmt)
+- add `scaling_factor` method to `FixedPoint` type to retrieve the const scaling-factor [`Fraction`] from any fixed-point object
+- Duration and Rate are no longer implemented by the `Generic` duration and rate types
+- durations and rates can now be taken generically by a function without having to bind to `FixedPoint` (`FixedPoint` is now bound to the `Duration` and `Rate` traits)
+- `Fraction`s `numerator()` and `denominator()` getter methods now return a value instead of a reference
+
 [unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.12.0...HEAD
 
 ## [0.12.0] - 2021-05-30
@@ -13,7 +19,7 @@
 ### Changed
 
 - limit Rate and Duration extension to u32
-- removed all use os `unwrap()`
+- removed all use of `unwrap()`
 
 [0.12.0]: https://github.com/FluenTech/embedded-time/compare/v0.11.0...v0.12.0
 

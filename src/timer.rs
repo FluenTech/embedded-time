@@ -3,7 +3,6 @@
 use crate::fraction::Fraction;
 use crate::{
     duration::{self, *},
-    fixed_point::FixedPoint,
     timer::param::*,
     ConversionError, Instant, TimeError,
 };
@@ -13,28 +12,34 @@ use core::{convert::TryFrom, marker::PhantomData, ops::Add, prelude::v1::*};
 pub mod param {
     /// Parameter not set
     #[derive(Debug, Hash)]
+    #[cfg_attr(feature = "defmt", derive(defmt::Format))]
     pub struct None;
 
     /// Timer is ready to start
     #[derive(Debug, Hash)]
+    #[cfg_attr(feature = "defmt", derive(defmt::Format))]
     pub struct Armed;
 
     /// Timer is running
     #[derive(Debug, Hash)]
+    #[cfg_attr(feature = "defmt", derive(defmt::Format))]
     pub struct Running;
 
     /// Timer will automatically restart when it expires
     #[derive(Debug, Hash)]
+    #[cfg_attr(feature = "defmt", derive(defmt::Format))]
     pub struct Periodic;
 
     /// Timer will stop when it expires
     #[derive(Debug, Hash)]
+    #[cfg_attr(feature = "defmt", derive(defmt::Format))]
     pub struct OneShot;
 }
 
 /// A `Timer` counts toward an expiration, can be polled for elapsed and remaining time, and can be
 /// one-shot or continuous/periodic.
 #[derive(Debug, Hash)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Timer<'a, Type, State, Clock: crate::Clock, Dur: Duration> {
     clock: &'a Clock,
     duration: Dur,
@@ -86,7 +91,6 @@ impl<'a, Type, Clock: crate::Clock, Dur: Duration> Timer<'a, Type, Armed, Clock,
     pub fn start(self) -> Result<Timer<'a, Type, Running, Clock, Dur>, TimeError>
     where
         Clock::T: TryFrom<Dur::T>,
-        Dur: FixedPoint,
     {
         Ok(Timer::<Type, Running, Clock, Dur> {
             clock: self.clock,
@@ -114,7 +118,7 @@ impl<Type, Clock: crate::Clock, Dur: Duration> Timer<'_, Type, Running, Clock, D
     /// The units of the [`Duration`] are the same as that used to construct the `Timer`.
     pub fn elapsed(&self) -> Result<Dur, TimeError>
     where
-        Dur: FixedPoint + TryFrom<duration::Generic<Clock::T>, Error = ConversionError>,
+        Dur: TryFrom<duration::Generic<Clock::T>, Error = ConversionError>,
         Dur::T: TryFrom<Clock::T>,
         Clock::T: TryFrom<Dur::T>,
     {
@@ -139,7 +143,7 @@ impl<Type, Clock: crate::Clock, Dur: Duration> Timer<'_, Type, Running, Clock, D
     /// The units of the [`Duration`] are the same as that used to construct the `Timer`.
     pub fn remaining(&self) -> Result<Dur, TimeError>
     where
-        Dur: FixedPoint + TryFrom<duration::Generic<Clock::T>, Error = ConversionError>,
+        Dur: TryFrom<duration::Generic<Clock::T>, Error = ConversionError>,
         Dur::T: TryFrom<u32> + TryFrom<Clock::T>,
         Clock::T: TryFrom<Dur::T>,
     {
