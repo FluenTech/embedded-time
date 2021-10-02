@@ -2,7 +2,15 @@
 
 ## [Unreleased]
 
-[unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.12.0...HEAD
+[unreleased]: https://github.com/FluenTech/embedded-time/compare/v0.12.1...HEAD
+
+## [0.12.1] - 2021-10-02
+
+### Fixed
+
+- `Instant` comparison returned wrong result if equal
+
+[0.12.1]: https://github.com/FluenTech/embedded-time/compare/v0.12.0...v0.12.1
 
 ## [0.12.0] - 2021-05-30
 
