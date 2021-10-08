@@ -650,11 +650,38 @@ pub mod units {
                 }
             }
 
-            impl<T: TimeInt> From<$name<T>> for Generic<T> {
+            impl<T1, T2> From<$name<T1>> for Generic<T2>
+            where
+                T1: TimeInt,
+                T2: TimeInt + From<T1>,
+            {
                 /// See [Converting to a `Generic`
                 /// `Duration`](trait.Duration.html#converting-to-a-generic-duration)
-                fn from(duration: $name<T>) -> Self {
-                    Self::new(duration.integer(), $name::<T>::SCALING_FACTOR)
+                fn from(duration: $name<T1>) -> Self {
+                    Self::new(duration.integer().into(), $name::<T1>::SCALING_FACTOR)
+                }
+            }
+
+            impl<T1, T2> PartialEq<$name<T1>> for Generic<T2>
+            where
+                T1: TimeInt,
+                T2: TimeInt + From<T1>,
+            {
+                fn eq(&self, rhs: &$name<T1>) -> bool {
+                    self.eq(rhs.into())
+                }
+            }
+
+            impl<T1, T2> PartialOrd<$name<T1>> for Generic<T2>
+            where
+                T1: TimeInt,
+                T2: TimeInt + From<T1>,
+            {
+                fn partial_cmp(&self, rhs: &$name<T1>) -> Option<core::cmp::Ordering> {
+                    self.partial_cmp(&Self::new(
+                        rhs.integer().into(),
+                        $name::<T1>::SCALING_FACTOR,
+                    ))
                 }
             }
         };
