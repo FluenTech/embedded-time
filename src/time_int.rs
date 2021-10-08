@@ -32,6 +32,14 @@ pub trait TimeInt:
     fn checked_div_fraction(&self, fraction: &Fraction) -> Option<Self> {
         self.checked_mul_fraction(&fraction.recip())
     }
+
+    /// Moves an integer into a comparable base for checking
+    fn checked_same_base(&self, fraction: &Fraction, rhs_fraction: &Fraction) -> Option<Self> {
+       let a_n = *fraction.numerator();
+       let b_d = *rhs_fraction.denominator();
+
+       self.checked_mul(&(b_d.into()))?.checked_mul(&(a_n.into()))
+    }
 }
 
 impl TimeInt for u32 {}

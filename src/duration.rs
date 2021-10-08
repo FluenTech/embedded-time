@@ -446,11 +446,17 @@ pub struct Generic<T> {
 impl<T: TimeInt> PartialOrd<Generic<T>> for Generic<T> {
     /// See [Comparisons](trait.Duration.html#comparisons)
     fn partial_cmp(&self, rhs: &Generic<T>) -> Option<core::cmp::Ordering> {
-        Some(
-            self.integer
-                .checked_mul_fraction(&self.scaling_factor)?
-                .cmp(&rhs.integer.checked_mul_fraction(&rhs.scaling_factor)?),
-        )
+        let a = self.integer;
+        let b = rhs.integer;
+
+        if self.scaling_factor == rhs.scaling_factor {
+            Some(self.integer().cmp(&rhs.integer()))
+        } else {
+            let a = a.checked_same_base(self.scaling_factor(), rhs.scaling_factor())?;
+            let b = b.checked_same_base(rhs.scaling_factor(), self.scaling_factor())?;
+
+            Some(a.cmp(&b))
+        }
     }
 }
 
