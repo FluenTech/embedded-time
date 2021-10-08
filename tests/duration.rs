@@ -56,6 +56,29 @@ fn comparisons() {
         Generic::new(1_000u32, Fraction::new(1, 1_000))
             == Generic::new(2_000u32, Fraction::new(1, 2_000))
     );
+
+    // Generic comparisons
+    assert!(
+        Generic::new(100u32, Fraction::new(1, 1000)) == Generic::new(10u32, Fraction::new(1, 100))
+    );
+    assert!(
+        Generic::new(100u32, Fraction::new(1, 1000)) <= Generic::new(10u32, Fraction::new(1, 100))
+    );
+    assert!(
+        Generic::new(100u32, Fraction::new(1, 1000)) <= Generic::new(11u32, Fraction::new(1, 100))
+    );
+    assert!(
+        Generic::new(200u32, Fraction::new(1, 1000)) >= Generic::new(10u32, Fraction::new(1, 100))
+    );
+    assert!(
+        Generic::new(200u32, Fraction::new(1, 1000)) >= Generic::new(10u32, Fraction::new(1, 100))
+    );
+    assert!(
+        Generic::new(100u32, Fraction::new(1, 1000)) != Generic::new(100u32, Fraction::new(1, 100))
+    );
+    assert!(
+        Generic::new(101u32, Fraction::new(1, 1000)) > Generic::new(100u32, Fraction::new(1, 1000))
+    );
 }
 
 #[test]
