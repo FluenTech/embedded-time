@@ -443,14 +443,42 @@ pub struct Generic<T> {
     scaling_factor: Fraction,
 }
 
+impl<T: TimeInt> Generic<T> {
+    /// Try to create a new, equivalent `Generic` with the given _scaling factor_
+    fn try_into_scaling_factor(self, scaling_factor: Fraction) -> Result<Self, ConversionError> {
+        let new_int = TimeInt::checked_mul_fraction(
+            &self.integer,
+            &self
+                .scaling_factor
+                .checked_div(&scaling_factor)
+                .ok_or(ConversionError::Overflow)?,
+        )
+        .ok_or(ConversionError::Overflow)?;
+
+        Ok(Self::new(new_int, scaling_factor))
+    }
+}
+
 impl<T: TimeInt> PartialOrd<Generic<T>> for Generic<T> {
     /// See [Comparisons](trait.Duration.html#comparisons)
     fn partial_cmp(&self, rhs: &Generic<T>) -> Option<core::cmp::Ordering> {
-        Some(
-            self.integer
-                .checked_mul_fraction(&self.scaling_factor)?
-                .cmp(&rhs.integer.checked_mul_fraction(&rhs.scaling_factor)?),
-        )
+        if self.scaling_factor == rhs.scaling_factor {
+            Some(self.integer.cmp(&rhs.integer))
+        } else if self.scaling_factor < rhs.scaling_factor {
+            // convert to the smaller scaling factor (rhs -> self)
+            // if conversion fails, we know self is less than rhs
+            match rhs.try_into_scaling_factor(self.scaling_factor) {
+                Ok(converted_rhs) => Some(self.integer.cmp(&converted_rhs.integer)),
+                Err(_) => Some(core::cmp::Ordering::Less),
+            }
+        } else {
+            // convert to the smaller scaling factor (self -> rhs)
+            // if conversion fails, we know rhs is less than self
+            match self.try_into_scaling_factor(rhs.scaling_factor) {
+                Ok(converted_self) => Some(converted_self.integer.cmp(&rhs.integer)),
+                Err(_) => Some(core::cmp::Ordering::Greater),
+            }
+        }
     }
 }
 
@@ -884,9 +912,9 @@ pub mod units {
                     /// See [Comparisons](trait.Duration.html#comparisons)
                     fn partial_cmp(&self, rhs: &$big<RhsInt>) -> Option<core::cmp::Ordering> {
                         match Self::try_from(*rhs) {
-                        Ok(rhs) => Some(self.integer().cmp(&rhs.integer())),
-                        Err(_) => Some(core::cmp::Ordering::Less),
-                    }
+                            Ok(rhs) => Some(self.integer().cmp(&rhs.integer())),
+                            Err(_) => Some(core::cmp::Ordering::Less),
+                        }
                     }
                 }
             )+

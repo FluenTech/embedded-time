@@ -56,6 +56,53 @@ fn comparisons() {
         Generic::new(1_000u32, Fraction::new(1, 1_000))
             == Generic::new(2_000u32, Fraction::new(1, 2_000))
     );
+
+    // Generic comparisons
+    assert!(
+        Generic::new(100u32, Fraction::new(1, 1000)) == Generic::new(10u32, Fraction::new(1, 100))
+    );
+    assert!(
+        Generic::new(100u32, Fraction::new(1, 1000)) <= Generic::new(10u32, Fraction::new(1, 100))
+    );
+    assert!(
+        Generic::new(100u32, Fraction::new(1, 1000)) <= Generic::new(11u32, Fraction::new(1, 100))
+    );
+    assert!(
+        Generic::new(200u32, Fraction::new(1, 1000)) >= Generic::new(10u32, Fraction::new(1, 100))
+    );
+    assert!(
+        Generic::new(200u32, Fraction::new(1, 1000)) >= Generic::new(10u32, Fraction::new(1, 100))
+    );
+    assert!(
+        Generic::new(100u32, Fraction::new(1, 1000)) != Generic::new(100u32, Fraction::new(1, 100))
+    );
+    assert!(
+        Generic::new(101u32, Fraction::new(1, 1000)) > Generic::new(100u32, Fraction::new(1, 1000))
+    );
+    assert!(
+        Generic::new(u32::MAX, Fraction::new(1, 100))
+            > Generic::new(100u32, Fraction::new(1, 1000))
+    );
+
+    /* Generic comparison stress test:
+    loop {
+        let mut rands: [u32; 6] = [0; 6];
+        for rand in rands.iter_mut() {
+            unsafe {
+                loop {
+                    core::arch::x86_64::_rdrand32_step(rand);
+                    if *rand != 0 {
+                        break;
+                    }
+                }
+            }
+        }
+        println!("rands: {:#?}", rands);
+        assert!(
+            Generic::new(rands[0], Fraction::new(rands[1], rands[2]))
+                != Generic::new(rands[3], Fraction::new(rands[4], rands[5]))
+        );
+    } */
 }
 
 #[test]
